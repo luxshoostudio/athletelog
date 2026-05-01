@@ -104,12 +104,55 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 #food-day-list, #food-day-detail {
   position: absolute; inset: 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-y: auto;
+  overflow-y: auto; display: flex; flex-direction: column;
 }
 #food-day-list { transform: translateX(0); }
 #food-day-list.slide-left { transform: translateX(-100%); }
 #food-day-detail { transform: translateX(100%); }
 #food-day-detail.slide-in { transform: translateX(0); }
+.day-list-inner { flex: 1; }
+
+/* HOME ADD ROW */
+.home-add-row {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
+}
+.home-add-row .quick-add-select { text-align: center; }
+
+/* TODAY FOOD LIST (inline on home) */
+#home-today-food .home-food-item {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  background: var(--bg); border-radius: var(--radius-sm);
+  box-shadow: var(--nm-raised-sm); margin-bottom: 8px;
+}
+#home-today-food .home-food-item-name { flex:1; font-size:13px; font-weight:600; color:var(--text); }
+#home-today-food .home-food-item-meta { font-size:11px; color:var(--muted); font-family:var(--mono); }
+#home-today-food .home-food-item-del { background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:2px 4px; }
+#home-today-food .home-food-item-del:active { color:var(--red); }
+
+/* INLINE AI DRAWER */
+.home-ai-drawer {
+  flex-shrink: 0; background: var(--bg);
+  box-shadow: 0 -3px 10px #c2c8d6;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.home-ai-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 18px; cursor: pointer;
+  font-size: 13px; font-weight: 700; color: var(--text2);
+}
+.home-ai-body {
+  overflow: hidden; max-height: 0;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1);
+}
+.home-ai-body.open { max-height: 340px; }
+
+/* GYM QUICK SELECT CATEGORIES */
+.gym-cat-label {
+  font-size: 9px; font-weight: 800; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.12em;
+  margin: 10px 0 6px; display: block;
+}
+.gym-cat-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 4px; }
 
 /* DAY LIST */
 .day-list-inner { padding: 16px 16px 90px; }
@@ -587,18 +630,52 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <!-- PRIMARY: Day List -->
     <div id="food-day-list">
       <div class="day-list-inner">
-        <div id="today-hero" class="today-hero-card" onclick="showDayDetail(todayKey())">
+        <!-- Hero card -->
+        <div id="today-hero" class="today-hero-card">
           <div class="today-hero-date" id="hero-date-label"></div>
           <div class="today-hero-title">Today's Food</div>
           <div class="today-hero-stats" id="hero-stats"></div>
         </div>
+
+        <!-- Home text input -->
+        <div class="home-add-row" id="home-add-row">
+          <div class="quick-add-wrapper" style="margin-bottom:0;flex:0 0 auto;width:44px;position:relative">
+            <select class="quick-add-select" id="home-quick-select" style="padding:11px 8px 11px 10px;width:44px;min-width:0;font-size:16px;text-align:center;" onchange="homeQuickAdd(this.value);this.selectedIndex=0;" title="Quick add">
+              <option value="">⭐</option>
+            </select>
+          </div>
+          <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food…" autocomplete="off" style="flex:1;">
+          <button class="icon-btn" id="home-voice-btn" onclick="toggleHomeVoice()" style="flex-shrink:0">🎤</button>
+          <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">ADD</button>
+        </div>
+
+        <!-- Action pills -->
         <div class="today-action-row">
           <button class="action-pill" onclick="openFreqModal()">⭐ Frequent</button>
-          <button class="action-pill" onclick="openAI('food')">🤖 AI</button>
           <button class="action-pill" onclick="triggerPhoto()">📷 Photo</button>
         </div>
-        <div class="section-label">History</div>
+
+        <!-- Today's food entries (inline) -->
+        <div id="home-today-food"></div>
+
+        <!-- Past days history -->
+        <div class="section-label" style="margin-top:8px">History</div>
         <div id="day-history-list"></div>
+      </div>
+
+      <!-- Inline AI Chat at bottom -->
+      <div class="home-ai-drawer" id="home-ai-drawer">
+        <div class="home-ai-toggle" onclick="toggleFoodAI()">
+          <span>🤖 Nutrition AI</span>
+          <span id="home-ai-chevron" style="transition:transform .2s">▲</span>
+        </div>
+        <div class="home-ai-body" id="home-ai-body">
+          <div class="ai-messages" id="home-ai-messages" style="max-height:240px;min-height:80px;padding:10px 14px;"></div>
+          <div class="ai-input-row" style="padding:8px 14px 12px;">
+            <textarea class="ai-text-input" id="home-ai-input" placeholder="Ask about your nutrition…" rows="1" onkeydown="homeAiKeydown(event)"></textarea>
+            <button class="ai-send-btn" id="home-ai-send" onclick="sendHomeAI()">➤</button>
+          </div>
+        </div>
       </div>
     </div>
     <!-- SECONDARY: Day Detail -->
@@ -633,13 +710,13 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
         <button class="icon-btn" onclick="openAI('gym')" style="margin-top:18px;">🤖</button>
       </div>
 
-      <!-- Frequent Exercises -->
+      <!-- Categorized Quick Select -->
       <div class="freq-ex-panel">
         <div class="freq-ex-header" onclick="toggleFreqEx()">
           <span class="freq-ex-title">⚡ Quick Select</span>
           <span id="freq-ex-toggle">▼</span>
         </div>
-        <div id="freq-ex-body" class="freq-ex-body hidden"></div>
+        <div id="freq-ex-body" class="hidden" style="padding:10px 0 4px;"></div>
       </div>
 
       <!-- Exercise Input -->
@@ -651,10 +728,10 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
         <div class="gym-input-row">
           <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets">
           <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
-          <input type="text" class="gym-num-input" id="gym-weight" placeholder="kg">
+          <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
           <button class="green-btn" onclick="addExercise()">+ Add</button>
         </div>
-        <button class="outline-btn" onclick="openBulkModal()">Bulk Entry…</button>
+        <button class="outline-btn" onclick="openGymAI()">🤖 AI Coach…</button>
       </div>
 
       <!-- Exercise List -->
@@ -743,15 +820,17 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
   </div>
 </div>
 
-<!-- BULK MODAL -->
-<div class="modal-overlay" id="bulk-modal">
-  <div class="modal-sheet">
-    <div class="modal-title">Bulk Exercise Entry</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">One exercise per line: Name, Sets, Reps, Weight(kg)</p>
-    <textarea class="modal-input" id="bulk-textarea" rows="8" placeholder="Squat, 4, 8, 100&#10;Bench Press, 4, 6, 80&#10;Deadlift, 3, 5, 120" style="resize:vertical;height:160px;"></textarea>
-    <div class="modal-btn-row">
-      <button class="outline-btn" onclick="closeBulkModal()">Cancel</button>
-      <button class="green-btn" onclick="confirmBulkEntry()">Add All</button>
+<!-- GYM AI CHAT MODAL -->
+<div class="modal-overlay" id="gym-ai-modal">
+  <div class="modal-sheet" style="max-height:82vh;display:flex;flex-direction:column;padding:0;">
+    <div style="padding:18px 20px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(0,0,0,0.06);">
+      <div class="modal-title" style="margin-bottom:0;font-size:17px;">🤖 Gym AI Coach</div>
+      <button class="outline-btn" onclick="closeGymAI()" style="margin-left:auto;padding:7px 14px;">Close</button>
+    </div>
+    <div class="ai-messages" id="gym-ai-messages" style="flex:1;padding:12px 16px;gap:12px;min-height:160px;"></div>
+    <div class="ai-input-row" style="padding:8px 16px 20px;flex-shrink:0;">
+      <textarea class="ai-text-input" id="gym-ai-input" rows="2" placeholder="e.g. Did 3 sets of deadlifts at 185 lbs for 8 reps, then 4 sets of pull-ups…" onkeydown="gymAiKeydown(event)" style="height:auto;"></textarea>
+      <button class="ai-send-btn" id="gym-ai-send" onclick="sendGymAI()">➤</button>
     </div>
   </div>
 </div>
@@ -826,16 +905,30 @@ const SESSIONS = [
 ];
 
 const EXERCISES = [
-  'Squat','Back Squat','Front Squat','Goblet Squat','Bench Press',
-  'Incline Bench Press','Overhead Press','Push Press','Pull-Up','Chin-Up',
-  'Lat Pulldown','Seated Row','Barbell Row','Deadlift','Romanian Deadlift',
-  'Hip Hinge','Dips','Tricep Pushdown','Bicep Curl','Hammer Curl',
-  'Leg Press','Leg Curl','Leg Extension','Calf Raise','Plank',
-  'Ab Wheel','Russian Twist','Box Jump','Sled Push','Farmer Carry',
+  'Squat','Back Squat','Front Squat','Wide Stance Squat','Goblet Squat',
+  'Bench Press','Incline Bench Press','Overhead Press','Overhead Thruster',
+  'Narrow Grip Pull-Up','Wide Grip Pull-Up','Pull-Up','Chin-Up',
+  'Lat Pulldown','Seated Row','Bent Over Row','Barbell Row',
+  'Deadlift','RDL','Single Leg Deadlift','Sumo Deadlift','Hex Bar Deadlift',
+  'Dips','Narrow Pushups','Wide Pushups','Pike Pushups','Push-Up',
+  'Toe to Bar','L-Sit','L-Sit Hold','Handstand Hold','Handstand Walk',
+  'Handstand Shoulder Taps','Against-Bench Handstand Hold','Wrist Curl',
+  'Hamstring Curl','Side Lunge with KB','Kneeling to Box Jump','Box Jump',
+  'Hip Thrust','Glute Bridge','Lunge','Bulgarian Split Squat','Step-Up',
+  'Leg Press','Leg Extension','Calf Raise','Face Pull','Band Pull-Apart',
+  'Bicep Curl','Hammer Curl','Tricep Pushdown','Shrug',
+  'Plank','Ab Wheel','Russian Twist','Sled Push','Farmer Carry',
   'Kettlebell Swing','Turkish Get-Up','Clean','Power Clean','Snatch',
-  'Handstand Hold','Handstand Push-Up','L-Sit','Muscle-Up','Ring Dip',
-  'Lunge','Bulgarian Split Squat','Step-Up','Hip Thrust','Glute Bridge',
-  'Face Pull','Band Pull-Apart','Shrug','Hex Bar Deadlift','Sumo Deadlift'
+  'Muscle-Up','Ring Dip','100 Mixed Pushups'
+];
+
+// Gym quick select — categorized from April gym log
+const GYM_QUICK = [
+  { cat: '🔼 Pull Day', items: ['Narrow Grip Pull-Up','Wide Grip Pull-Up','Bent Over Row','Overhead Thruster','Lat Pulldown'] },
+  { cat: '🔽 Push Day', items: ['Narrow Pushups','Wide Pushups','Dips','Pike Pushups','Overhead Thruster'] },
+  { cat: '🏋️ Lower Body', items: ['RDL','Deadlift','Single Leg Deadlift','Front Squat','Wide Stance Squat','Hamstring Curl','Side Lunge with KB','Kneeling to Box Jump'] },
+  { cat: '🤸 Handstand', items: ['Handstand Hold','Handstand Walk','Handstand Shoulder Taps','Against-Bench Handstand Hold','L-Sit','L-Sit Hold','Wrist Curl'] },
+  { cat: '⚡ Core / Calisthenics', items: ['Toe to Bar','L-Sit','Plank','Ab Wheel','Muscle-Up','Ring Dip'] },
 ];
 
 // Sourced from April Food Log — ranked by frequency
@@ -937,6 +1030,7 @@ let pendingSearchResults = [];
 let editingTimeId = null;
 let freqAccordionOpen = false;
 let freqExOpen = false;
+let addingFromHome = false;
 let aiContext = 'food'; // 'food' or 'gym'
 let aiHistory = [];
 let aiStreaming = false;
@@ -1119,10 +1213,23 @@ function renderDayList() {
     <div class="today-stat"><span class="today-stat-val">${state.food.length}</span><span class="today-stat-lbl">Items</span></div>
   `;
 
+  // Populate home quick-add select with QUICK foods
+  const homeQS = document.getElementById('home-quick-select');
+  if (homeQS && homeQS.options.length <= 1) {
+    for (const chip of QUICK) {
+      const opt = document.createElement('option');
+      opt.value = chip; opt.textContent = chip;
+      homeQS.appendChild(opt);
+    }
+  }
+
+  // Today's food entries inline
+  renderHomeTodayFood();
+
+  // Past days history
   const container = document.getElementById('day-history-list');
   container.innerHTML = '';
   const keys = getRecentKeys(14);
-  // skip today (index 0)
   for (let i=1; i<keys.length; i++) {
     const key = keys[i];
     const s = loadState(key);
@@ -1141,6 +1248,32 @@ function renderDayList() {
     card.onclick = () => showDayDetail(key);
     container.appendChild(card);
   }
+}
+
+function renderHomeTodayFood() {
+  const container = document.getElementById('home-today-food');
+  if (!container) return;
+  const foods = state.food.slice().sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if (foods.length === 0) {
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px 0 8px;">No food logged yet — add something above ↑</div>';
+    return;
+  }
+  container.innerHTML = foods.map(f => `
+    <div class="home-food-item">
+      <div style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:36px">${f.time||''}</div>
+      <div class="home-food-item-name">${escHtml(f.name)}</div>
+      <div class="home-food-item-meta">${f.p}g P · ${f.kcal} kcal</div>
+      <button class="home-food-item-del" onclick="homeDeleteFood('${f.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+function homeDeleteFood(id) {
+  state.food = state.food.filter(f => f.id !== id);
+  saveState();
+  renderDayList();
+  renderHeader();
+  renderLogTab();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1448,8 +1581,14 @@ function confirmAddFood() {
     saveDetailState();
   }
 
+  const wasFromHome = addingFromHome;
+  addingFromHome = false;
   closeQtyModal();
-  if (currentDetailKey) {
+  if (wasFromHome) {
+    currentDetailKey = null;
+    detailState = null;
+    renderDayList();
+  } else if (currentDetailKey) {
     renderDetailContent();
   } else {
     renderDayList();
@@ -1511,16 +1650,178 @@ function confirmTimeEdit() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HOME PAGE ADD FOOD
+// ═══════════════════════════════════════════════════════════════
+function homeQuickAdd(chip) {
+  if (!chip) return;
+  // Strip emoji prefix to get the food name
+  const name = chip.replace(/^\S+\s+/, '');
+  document.getElementById('home-food-text').value = name;
+  handleHomeAddFood();
+}
+
+function addFoodEntryFromHome(entry) {
+  state.food.push(entry);
+  saveState();
+  addingFromHome = false;
+  currentDetailKey = null;
+  detailState = null;
+  renderDayList();
+  renderHeader();
+  renderLogTab();
+}
+
+async function handleHomeAddFood() {
+  const query = document.getElementById('home-food-text').value.trim();
+  if (!query) return;
+  addingFromHome = true;
+  currentDetailKey = todayKey();
+  detailState = state;
+  const item = parseFood(query);
+  if (item) {
+    openQtyModalWithItem(item, query);
+  } else {
+    await searchOpenFoodFacts(query);
+  }
+}
+
+// Home voice input (mirrors detail view voice)
+let homeVoiceActive = false;
+function toggleHomeVoice() {
+  if (!recognition) { alert('Voice not supported in this browser.'); return; }
+  if (homeVoiceActive) {
+    homeVoiceActive = false;
+    document.getElementById('home-voice-btn').classList.remove('recording');
+    try { recognition.stop(); } catch {}
+    return;
+  }
+  homeVoiceActive = true;
+  document.getElementById('home-voice-btn').classList.add('recording');
+  recognition.onresult = (e) => {
+    document.getElementById('home-food-text').value = e.results[0][0].transcript;
+    homeVoiceActive = false;
+    document.getElementById('home-voice-btn').classList.remove('recording');
+    try { recognition.stop(); } catch {}
+  };
+  recognition.onerror = recognition.onend = () => {
+    homeVoiceActive = false;
+    const btn = document.getElementById('home-voice-btn');
+    if (btn) btn.classList.remove('recording');
+  };
+  try { recognition.start(); } catch {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const hft = document.getElementById('home-food-text');
+  if (hft) hft.addEventListener('keydown', e => { if (e.key === 'Enter') handleHomeAddFood(); });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INLINE FOOD AI (bottom drawer)
+// ═══════════════════════════════════════════════════════════════
+let foodAiOpen = false;
+let foodAiHistory = [];
+let foodAiStreaming = false;
+
+function toggleFoodAI() {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey && !foodAiOpen) {
+    pendingApiKeyAction = { type: 'ai', context: 'food-inline' };
+    openApiKeyModal();
+    return;
+  }
+  foodAiOpen = !foodAiOpen;
+  const body = document.getElementById('home-ai-body');
+  const chevron = document.getElementById('home-ai-chevron');
+  body.classList.toggle('open', foodAiOpen);
+  if (chevron) chevron.style.transform = foodAiOpen ? 'rotate(180deg)' : '';
+  if (foodAiOpen && document.getElementById('home-ai-messages').children.length === 0) {
+    appendHomeAIBubble('assistant', 'Hi! Ask me about your nutrition today — macros, meal suggestions, or anything food-related.');
+  }
+}
+
+function appendHomeAIBubble(role, text) {
+  const msgs = document.getElementById('home-ai-messages');
+  const div = document.createElement('div');
+  div.className = `ai-bubble ${role}`;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function homeAiKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendHomeAI(); }
+}
+
+async function sendHomeAI() {
+  if (foodAiStreaming) return;
+  const input = document.getElementById('home-ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) { openApiKeyModal(); return; }
+  input.value = '';
+  foodAiHistory.push({ role: 'user', content: text });
+  appendHomeAIBubble('user', text);
+  const bubble = appendHomeAIBubble('assistant', '');
+  bubble.classList.add('thinking');
+  bubble.innerHTML = '<div class="spinner"></div>';
+  document.getElementById('home-ai-send').disabled = true;
+  foodAiStreaming = true;
+
+  const m = sumMacros(state.food);
+  const foodList = state.food.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(f=>`${f.time} ${f.name} (${f.p}g P, ${f.kcal} kcal)`).join('\n');
+  const sys = `You are a sports nutritionist. Today's log:\n${foodList||'Nothing yet'}\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal. Goals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal. Be concise.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-opus-4-6', max_tokens:512, stream:true, system:sys, messages:foodAiHistory })
+    });
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    bubble.classList.remove('thinking'); bubble.innerHTML = '';
+    let full = '';
+    const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = '';
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const d = line.slice(6); if (d==='[DONE]') break;
+        try { const ev=JSON.parse(d); if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){full+=ev.delta.text;bubble.textContent=full;document.getElementById('home-ai-messages').scrollTop=9999;} } catch {}
+      }
+    }
+    foodAiHistory.push({ role:'assistant', content:full });
+  } catch(err) {
+    bubble.classList.remove('thinking'); bubble.style.color='var(--red)'; bubble.textContent='Error: '+err.message;
+  } finally {
+    foodAiStreaming = false;
+    document.getElementById('home-ai-send').disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FREQUENT FOODS MODAL (standalone)
 // ═══════════════════════════════════════════════════════════════
 function openFreqModal() {
-  const freqs = getFreqFoods();
   const container = document.getElementById('freq-modal-pills');
-  if (freqs.length === 0) {
-    container.innerHTML = '<span style="color:var(--muted)">No frequent foods yet</span>';
-  } else {
-    container.innerHTML = freqs.map(f => `<div class="freq-pill" onclick="freqModalTap('${escHtml(f.name)}')">${escHtml(f.name)} <span style="color:var(--dim)">${f.count}</span></div>`).join('');
-  }
+  const logged = getFreqFoods();
+  // Seed with QUICK foods (strip emoji prefix for matching)
+  const quickNames = QUICK.map(q => ({ name: q.replace(/^\S+\s+/, ''), emoji: q.split(' ')[0], count: -1 }));
+  // Merge: logged history first, then QUICK items not already in history
+  const loggedNames = new Set(logged.map(f => f.name.toLowerCase()));
+  const merged = [
+    ...logged.map(f => ({ ...f, emoji: '' })),
+    ...quickNames.filter(q => !loggedNames.has(q.name.toLowerCase()))
+  ];
+  container.innerHTML = merged.map(f => {
+    const label = f.emoji ? `${f.emoji} ${f.name}` : f.name;
+    const badge = f.count > 0 ? ` <span style="color:var(--dim);font-size:10px">${f.count}×</span>` : '';
+    return `<div class="freq-pill" onclick="freqModalTap('${escHtml(f.name)}')">${escHtml(label)}${badge}</div>`;
+  }).join('') || '<span style="color:var(--muted)">No foods yet</span>';
   document.getElementById('freq-modal').classList.add('open');
 }
 
@@ -1749,34 +2050,144 @@ function toggleFreqEx() {
 }
 
 function renderFreqExercises() {
-  const freqs = getFreqExercises();
   const body = document.getElementById('freq-ex-body');
   if (!body) return;
-  if (freqs.length === 0) { body.innerHTML = '<span style="color:var(--muted);font-size:13px;">No history yet</span>'; return; }
-  body.innerHTML = freqs.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')">${escHtml(name)}</div>`).join('');
+  const logged = getFreqExercises();
+  let html = '';
+  if (logged.length > 0) {
+    html += '<span class="gym-cat-label">Recent</span><div class="gym-cat-pills">';
+    html += logged.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')">${escHtml(name)}</div>`).join('');
+    html += '</div>';
+  }
+  for (const cat of GYM_QUICK) {
+    html += `<span class="gym-cat-label">${cat.cat}</span><div class="gym-cat-pills">`;
+    html += cat.items.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')">${escHtml(name)}</div>`).join('');
+    html += '</div>';
+  }
+  body.innerHTML = html || '<span style="color:var(--muted);font-size:13px;">No exercises</span>';
 }
 
 function selectFreqEx(name) {
   document.getElementById('gym-ex-name').value = name;
   document.getElementById('gym-sets').focus();
+  // Close quick select after picking
+  if (freqExOpen) toggleFreqEx();
 }
 
-function openBulkModal() { document.getElementById('bulk-modal').classList.add('open'); }
-function closeBulkModal() { document.getElementById('bulk-modal').classList.remove('open'); }
+// ═══════════════════════════════════════════════════════════════
+// GYM AI COACH (replaces Bulk Entry)
+// ═══════════════════════════════════════════════════════════════
+let gymAiHistory = [];
+let gymAiStreaming = false;
 
-function confirmBulkEntry() {
-  const text = document.getElementById('bulk-textarea').value.trim();
-  const lines = text.split('\n').filter(l=>l.trim());
-  for (const line of lines) {
-    const parts = line.split(',').map(p=>p.trim());
-    if (!parts[0]) continue;
-    const exercise = { id: uid(), name: parts[0], sets: parts[1]||'', reps: parts[2]||'', weight: parts[3]||'' };
-    state.gym.exercises.push(exercise);
+function openGymAI() {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) { pendingApiKeyAction = { type: 'ai', context: 'gym-modal' }; openApiKeyModal(); return; }
+  gymAiHistory = [];
+  const msgs = document.getElementById('gym-ai-messages');
+  msgs.innerHTML = '';
+  appendGymAIBubble('assistant', `Hi Coach! Tell me what you did today and I'll log it. Example: "3 sets of deadlifts at 185 lbs for 8 reps, 4 sets of narrow pull-ups, front squats 4×10 at 95 lbs"`);
+  document.getElementById('gym-ai-modal').classList.add('open');
+}
+
+function closeGymAI() {
+  document.getElementById('gym-ai-modal').classList.remove('open');
+  gymAiStreaming = false;
+}
+
+function appendGymAIBubble(role, text) {
+  const msgs = document.getElementById('gym-ai-messages');
+  const div = document.createElement('div');
+  div.className = `ai-bubble ${role}`;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function gymAiKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendGymAI(); }
+}
+
+async function sendGymAI() {
+  if (gymAiStreaming) return;
+  const input = document.getElementById('gym-ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) { openApiKeyModal(); return; }
+  input.value = '';
+  gymAiHistory.push({ role:'user', content:text });
+  appendGymAIBubble('user', text);
+
+  const bubble = appendGymAIBubble('assistant','');
+  bubble.classList.add('thinking'); bubble.innerHTML='<div class="spinner"></div>';
+  document.getElementById('gym-ai-send').disabled = true;
+  gymAiStreaming = true;
+
+  const existing = state.gym.exercises.map(e=>`${e.name} ${e.sets||''}×${e.reps||''} @${e.weight||'?'}`).join(', ')||'None yet';
+  const sys = `You are a gym logging assistant. Session: ${state.gym.session||'Not set'}. Exercises logged so far: ${existing}.
+
+The user describes their workout in natural language. Your job:
+1. Parse exercises from their description
+2. Reply conversationally confirming what you logged
+3. At the END of your reply, include a JSON block (wrapped in \`\`\`json ... \`\`\`) with this exact format:
+[{"name":"Exercise Name","sets":"4","reps":"8","weight":"185 lbs"}]
+
+If the user is just chatting (not logging), answer normally without JSON.
+Keep replies concise. Weight can be in lbs or kg as user specifies.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({ model:'claude-opus-4-6', max_tokens:600, stream:true, system:sys, messages:gymAiHistory })
+    });
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    bubble.classList.remove('thinking'); bubble.innerHTML='';
+    let full='';
+    const reader=resp.body.getReader(); const dec=new TextDecoder(); let buf='';
+    while(true){
+      const {done,value}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n'); buf=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const d=line.slice(6); if(d==='[DONE]') break;
+        try{const ev=JSON.parse(d);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){full+=ev.delta.text;bubble.textContent=full;document.getElementById('gym-ai-messages').scrollTop=9999;}}catch{}
+      }
+    }
+    gymAiHistory.push({role:'assistant',content:full});
+
+    // Parse JSON exercises from response
+    const jsonMatch = full.match(/```json\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        const exercises = JSON.parse(jsonMatch[1].trim());
+        let added = 0;
+        for (const ex of exercises) {
+          if (!ex.name) continue;
+          state.gym.exercises.push({ id:uid(), name:ex.name, sets:String(ex.sets||''), reps:String(ex.reps||''), weight:String(ex.weight||'') });
+          added++;
+        }
+        if (added > 0) {
+          saveState();
+          renderExerciseList();
+          const confirmDiv = document.createElement('div');
+          confirmDiv.className = 'ai-bubble assistant';
+          confirmDiv.style.cssText = 'font-size:12px;color:var(--sp-green);font-weight:700;';
+          confirmDiv.textContent = `✓ Added ${added} exercise${added>1?'s':''} to your log`;
+          document.getElementById('gym-ai-messages').appendChild(confirmDiv);
+          document.getElementById('gym-ai-messages').scrollTop = 9999;
+        }
+      } catch {}
+    }
+  } catch(err) {
+    bubble.classList.remove('thinking'); bubble.style.color='var(--red)'; bubble.textContent='Error: '+err.message;
+  } finally {
+    gymAiStreaming=false;
+    document.getElementById('gym-ai-send').disabled=false;
   }
-  saveState();
-  renderExerciseList();
-  closeBulkModal();
-  document.getElementById('bulk-textarea').value = '';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2038,7 +2449,9 @@ function saveApiKey() {
   if (pendingApiKeyAction) {
     const action = pendingApiKeyAction;
     pendingApiKeyAction = null;
-    if (action.type === 'ai') openAI(action.context);
+    if (action.type === 'ai' && action.context === 'food-inline') toggleFoodAI();
+    else if (action.type === 'ai' && action.context === 'gym-modal') openGymAI();
+    else if (action.type === 'ai') openAI(action.context);
     else if (action.type === 'photo') document.getElementById('photo-input').click();
   }
 }
@@ -2069,6 +2482,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       if (overlay.id === 'api-key-modal') closeApiKeyModal();
       if (overlay.id === 'freq-modal') closeFreqModal();
       if (overlay.id === 'photo-modal') closePhotoModal();
+      if (overlay.id === 'gym-ai-modal') closeGymAI();
     }
   });
 });
