@@ -652,6 +652,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
         <!-- Action pills -->
         <div class="today-action-row">
           <button class="action-pill" onclick="openFreqModal()">⭐ Frequent</button>
+          <button class="action-pill" onclick="openFoodBulkModal()">📋 Bulk</button>
           <button class="action-pill" onclick="triggerPhoto()">📷 Photo</button>
         </div>
 
@@ -842,6 +843,19 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <div id="freq-modal-pills" class="freq-pills"></div>
     <div class="modal-btn-row" style="margin-top:12px;">
       <button class="outline-btn" onclick="closeFreqModal()" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD BULK MODAL -->
+<div class="modal-overlay" id="food-bulk-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">📋 Bulk Food Entry</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">One food per line. Include protein &amp; calories if known.<br>e.g. <em>Think! Protein Bar 20g protein 230 kcal</em><br>or just <em>2 boiled eggs</em></p>
+    <textarea class="modal-input" id="food-bulk-textarea" rows="7" placeholder="Think! Protein Bar 20g protein 230 kcal&#10;150g Greek yogurt&#10;1 banana&#10;Air-fried salmon 100g&#10;Cottage cheese 1 cup" style="height:160px;resize:vertical;font-size:13px;line-height:1.6;"></textarea>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeFoodBulkModal()">Cancel</button>
+      <button class="green-btn" onclick="confirmFoodBulkEntry()">Add All</button>
     </div>
   </div>
 </div>
@@ -1276,6 +1290,44 @@ function homeDeleteFood(id) {
   renderLogTab();
 }
 
+// ─── BULK FOOD ENTRY ────────────────────────────────────────────
+function openFoodBulkModal() {
+  document.getElementById('food-bulk-modal').classList.add('open');
+  setTimeout(() => document.getElementById('food-bulk-textarea').focus(), 200);
+}
+function closeFoodBulkModal() {
+  document.getElementById('food-bulk-modal').classList.remove('open');
+  document.getElementById('food-bulk-textarea').value = '';
+}
+
+function parseBulkFoodLine(line) {
+  line = line.trim();
+  if (!line) return null;
+  // Extract numbers for protein and kcal
+  const pMatch = line.match(/(\d+(?:\.\d+)?)\s*g\s*(?:protein|prot|p\b)/i);
+  const kMatch = line.match(/(\d+)\s*(?:kcal|cal|calories)/i);
+  // Try DB match first
+  const item = parseFood(line);
+  const name = line.replace(/\s*\d+(?:\.\d+)?\s*g\s*(?:protein|prot|p\b)/i,'')
+                   .replace(/\s*\d+\s*(?:kcal|cal|calories)/i,'').trim() || line;
+  if (item) return makeEntry(item.name || name, { p: item.p * (item.qty||1)/100, kcal: item.kcal * (item.qty||1)/100, fat: item.fat, carbs: item.carbs, fiber: item.fiber }, nowTime());
+  const p = pMatch ? parseFloat(pMatch[1]) : 0;
+  const kcal = kMatch ? parseInt(kMatch[1]) : 0;
+  return makeEntry(name, { p, kcal, fat: 0, carbs: 0, fiber: 0 }, nowTime());
+}
+
+function confirmFoodBulkEntry() {
+  const text = document.getElementById('food-bulk-textarea').value.trim();
+  const lines = text.split('\n').filter(l => l.trim());
+  let added = 0;
+  for (const line of lines) {
+    const entry = parseBulkFoodLine(line);
+    if (entry) { state.food.push(entry); added++; }
+  }
+  if (added > 0) { saveState(); renderDayList(); renderHeader(); renderLogTab(); }
+  closeFoodBulkModal();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // DAY DETAIL VIEW (Secondary)
 // ═══════════════════════════════════════════════════════════════
@@ -1685,31 +1737,7 @@ async function handleHomeAddFood() {
   }
 }
 
-// Home voice input (mirrors detail view voice)
-let homeVoiceActive = false;
-function toggleHomeVoice() {
-  if (!recognition) { alert('Voice not supported in this browser.'); return; }
-  if (homeVoiceActive) {
-    homeVoiceActive = false;
-    document.getElementById('home-voice-btn').classList.remove('recording');
-    try { recognition.stop(); } catch {}
-    return;
-  }
-  homeVoiceActive = true;
-  document.getElementById('home-voice-btn').classList.add('recording');
-  recognition.onresult = (e) => {
-    document.getElementById('home-food-text').value = e.results[0][0].transcript;
-    homeVoiceActive = false;
-    document.getElementById('home-voice-btn').classList.remove('recording');
-    try { recognition.stop(); } catch {}
-  };
-  recognition.onerror = recognition.onend = () => {
-    homeVoiceActive = false;
-    const btn = document.getElementById('home-voice-btn');
-    if (btn) btn.classList.remove('recording');
-  };
-  try { recognition.start(); } catch {}
-}
+function toggleHomeVoice() { startVoice('home-food-text', 'home-voice-btn'); }
 
 document.addEventListener('DOMContentLoaded', () => {
   const hft = document.getElementById('home-food-text');
@@ -1736,7 +1764,7 @@ function toggleFoodAI() {
   body.classList.toggle('open', foodAiOpen);
   if (chevron) chevron.style.transform = foodAiOpen ? 'rotate(180deg)' : '';
   if (foodAiOpen && document.getElementById('home-ai-messages').children.length === 0) {
-    appendHomeAIBubble('assistant', 'Hi! Ask me about your nutrition today — macros, meal suggestions, or anything food-related.');
+    appendHomeAIBubble('assistant', 'Hi! I can log food or answer nutrition questions. Try: "I just had a protein bar and banana" or "How much protein do I still need?"');
   }
 }
 
@@ -1772,7 +1800,13 @@ async function sendHomeAI() {
 
   const m = sumMacros(state.food);
   const foodList = state.food.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(f=>`${f.time} ${f.name} (${f.p}g P, ${f.kcal} kcal)`).join('\n');
-  const sys = `You are a sports nutritionist. Today's log:\n${foodList||'Nothing yet'}\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal. Goals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal. Be concise.`;
+  const sys = `You are a smart nutrition assistant and food logger. Today's food log:\n${foodList||'Nothing logged yet'}\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal. Goals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal.
+
+You can both CHAT and LOG food. When the user describes eating something or asks you to log food, do TWO things:
+1. Reply naturally (confirm what you're logging, give brief nutrition insight)
+2. Append a JSON block at the end: \`\`\`json [{"name":"Food","p":20,"kcal":230,"fat":8,"carbs":24,"fiber":5}] \`\`\`
+
+Only include the JSON block when logging food items. If just chatting or answering questions, skip it. Keep replies concise.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1795,6 +1829,31 @@ async function sendHomeAI() {
       }
     }
     foodAiHistory.push({ role:'assistant', content:full });
+
+    // Auto-add any food items the AI logged
+    const jsonMatch = full.match(/```json\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        const items = JSON.parse(jsonMatch[1].trim());
+        let added = 0;
+        for (const f of items) {
+          if (!f.name) continue;
+          state.food.push(makeEntry(f.name, {p:f.p||0, kcal:f.kcal||0, fat:f.fat||0, carbs:f.carbs||0, fiber:f.fiber||0}, nowTime()));
+          added++;
+        }
+        if (added > 0) {
+          saveState(); renderDayList(); renderHeader(); renderLogTab();
+          const confirm = document.createElement('div');
+          confirm.className = 'ai-bubble assistant';
+          confirm.style.cssText = 'font-size:12px;color:var(--sp-green);font-weight:700;padding:6px 12px;';
+          confirm.textContent = `✓ Logged ${added} item${added>1?'s':''} to today`;
+          document.getElementById('home-ai-messages').appendChild(confirm);
+          document.getElementById('home-ai-messages').scrollTop = 9999;
+        }
+        // Remove JSON block from bubble display
+        bubble.textContent = full.replace(/```json[\s\S]*?```/g, '').trim();
+      } catch {}
+    }
   } catch(err) {
     bubble.classList.remove('thinking'); bubble.style.color='var(--red)'; bubble.textContent='Error: '+err.message;
   } finally {
@@ -1840,41 +1899,44 @@ function freqModalTap(name) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// VOICE INPUT
+// VOICE INPUT — fresh instance each call (iOS Safari compat)
 // ═══════════════════════════════════════════════════════════════
-function initVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  recognition = new SR();
+const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function initVoice() { /* instances created on demand */ }
+
+function startVoice(targetInputId, btnId) {
+  if (!_SR) { alert('Voice not supported. Use Safari 14.5+ or Chrome.'); return; }
+  if (voiceActive) { stopVoice(); return; }
+  if (recognition) { try { recognition.abort(); } catch {} }
+  recognition = new _SR();
   recognition.continuous = false;
   recognition.interimResults = false;
   recognition.lang = 'en-US';
-  recognition.onresult = (e) => {
-    const transcript = e.results[0][0].transcript;
-    document.getElementById('food-text').value = transcript;
-    stopVoice();
-  };
-  recognition.onerror = () => stopVoice();
-  recognition.onend = () => stopVoice();
-}
-
-function toggleVoice() {
-  if (!recognition) {
-    alert('Voice input is not supported in this browser.');
-    return;
-  }
-  if (voiceActive) { stopVoice(); return; }
   voiceActive = true;
-  document.getElementById('voice-btn').classList.add('recording');
-  try { recognition.start(); } catch(e) { stopVoice(); }
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.add('recording');
+  recognition.onresult = (e) => {
+    const t = e.results[0][0].transcript;
+    const input = document.getElementById(targetInputId);
+    if (input) input.value = t;
+    stopVoice(btnId);
+  };
+  recognition.onerror = () => stopVoice(btnId);
+  recognition.onend = () => stopVoice(btnId);
+  try { recognition.start(); } catch { stopVoice(btnId); }
 }
 
-function stopVoice() {
+function stopVoice(btnId) {
   voiceActive = false;
-  const btn = document.getElementById('voice-btn');
+  const id = btnId || 'voice-btn';
+  const btn = document.getElementById(id);
   if (btn) btn.classList.remove('recording');
-  try { recognition && recognition.stop(); } catch {}
+  try { recognition && recognition.abort(); } catch {}
+  recognition = null;
 }
+
+function toggleVoice() { startVoice('food-text', 'voice-btn'); }
 
 // ═══════════════════════════════════════════════════════════════
 // PHOTO UPLOAD + CLAUDE VISION
@@ -2504,6 +2566,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       if (overlay.id === 'freq-modal') closeFreqModal();
       if (overlay.id === 'photo-modal') closePhotoModal();
       if (overlay.id === 'gym-ai-modal') closeGymAI();
+      if (overlay.id === 'food-bulk-modal') closeFoodBulkModal();
     }
   });
 });
