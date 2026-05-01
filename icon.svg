@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#060606"/>
+  <!-- Ambient glow -->
+  <radialGradient id="glow" cx="40%" cy="30%" r="60%">
+    <stop offset="0%" stop-color="#1DB954" stop-opacity="0.18"/>
+    <stop offset="100%" stop-color="#060606" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+  <!-- Protein ring arc -->
+  <circle cx="256" cy="210" r="88" fill="none" stroke="#1a1a1a" stroke-width="18"/>
+  <circle cx="256" cy="210" r="88" fill="none" stroke="#1DB954" stroke-width="18"
+    stroke-dasharray="415" stroke-dashoffset="104"
+    stroke-linecap="round"
+    transform="rotate(-90 256 210)"/>
+  <!-- A letter -->
+  <text x="256" y="228" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif"
+    font-weight="800" font-size="80" fill="#ffffff" letter-spacing="-2">A</text>
+  <!-- ATHLETELOG label -->
+  <text x="256" y="360" text-anchor="middle" font-family="'Helvetica Neue', Arial, sans-serif"
+    font-weight="700" font-size="38" fill="#1DB954" letter-spacing="6">LOG</text>
+</svg>
