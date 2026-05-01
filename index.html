@@ -1778,7 +1778,7 @@ async function sendHomeAI() {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({ model:'claude-opus-4-6', max_tokens:512, stream:true, system:sys, messages:foodAiHistory })
+      body: JSON.stringify({ model:'claude-opus-4-5', max_tokens:512, stream:true, system:sys, messages:foodAiHistory })
     });
     if (!resp.ok) throw new Error('API error ' + resp.status);
     bubble.classList.remove('thinking'); bubble.innerHTML = '';
@@ -1910,7 +1910,7 @@ async function handlePhotoUpload(event) {
           'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
-          model: 'claude-opus-4-6',
+          model: 'claude-opus-4-5',
           max_tokens: 1024,
           messages: [{
             role: 'user',
@@ -2141,7 +2141,7 @@ Keep replies concise. Weight can be in lbs or kg as user specifies.`;
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({ model:'claude-opus-4-6', max_tokens:600, stream:true, system:sys, messages:gymAiHistory })
+      body:JSON.stringify({ model:'claude-opus-4-5', max_tokens:600, stream:true, system:sys, messages:gymAiHistory })
     });
     if (!resp.ok) throw new Error('API error ' + resp.status);
     bubble.classList.remove('thinking'); bubble.innerHTML='';
@@ -2374,7 +2374,7 @@ async function sendAIMessage() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-6',
+        model: 'claude-opus-4-5',
         max_tokens: 1024,
         stream: true,
         system: buildSystemPrompt(),
