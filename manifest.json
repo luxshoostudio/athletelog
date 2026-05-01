@@ -2,7 +2,7 @@
   "name": "AthleteLog",
   "short_name": "AthleteLog",
   "description": "Personal athlete training & nutrition tracker",
-  "start_url": "/index.html",
+  "start_url": "/athlete_log.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

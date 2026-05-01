@@ -1,7 +1,7 @@
 // AthleteLog Service Worker — Cache-first, offline-ready
 const CACHE = 'athletelog-v1';
 const ASSETS = [
-  '/index.html',
+  '/athlete_log.html',
   '/manifest.json',
   '/icon.svg',
   'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap'
@@ -46,7 +46,7 @@ self.addEventListener('fetch', e => {
       }).catch(() => {
         // Offline fallback — return app shell
         if (e.request.destination === 'document') {
-          return caches.match('/index.html');
+          return caches.match('/athlete_log.html');
         }
       });
     })
