@@ -1,54 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <!-- Neumorphic light background gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f0f3fa"/>
-      <stop offset="100%" stop-color="#dde2ee"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6b8eff"/>
+      <stop offset="100%" stop-color="#3d5ef5"/>
     </linearGradient>
-    <!-- Indigo accent gradient -->
-    <linearGradient id="accentGrad" x1="135deg" x2="0%" y1="0%" y2="100%">
-      <stop offset="0%" stop-color="#7c9bfc"/>
-      <stop offset="100%" stop-color="#4263eb"/>
+    <linearGradient id="arc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#c8d4ff" stop-opacity="0.7"/>
     </linearGradient>
-    <!-- Drop shadow filter (neumorphic light side) -->
-    <filter id="nmShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="6" dy="6" stdDeviation="10" flood-color="#c2c8d6" flood-opacity="0.8"/>
-      <feDropShadow dx="-4" dy="-4" stdDeviation="8" flood-color="#ffffff" flood-opacity="1"/>
-    </filter>
   </defs>
 
-  <!-- Background: rounded square with neumorphic feel -->
-  <rect width="512" height="512" rx="110" fill="url(#bgGrad)"/>
+  <!-- Background: indigo pill -->
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
 
-  <!-- Outer shadow plate -->
-  <rect x="32" y="32" width="448" height="448" rx="90" fill="url(#bgGrad)" filter="url(#nmShadow)"/>
+  <!-- Subtle inner highlight -->
+  <rect x="0" y="0" width="512" height="256" rx="120" fill="#ffffff" fill-opacity="0.07"/>
 
-  <!-- Indigo protein ring track -->
-  <circle cx="256" cy="220" r="100" fill="none" stroke="#d4d9e8" stroke-width="22"/>
+  <!-- Arc track -->
+  <circle cx="256" cy="238" r="108" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="20"/>
 
-  <!-- Protein arc (~75% filled) -->
-  <circle cx="256" cy="220" r="100" fill="none"
-    stroke="url(#accentGrad)" stroke-width="22"
-    stroke-dasharray="471" stroke-dashoffset="118"
+  <!-- Arc progress (~75%) -->
+  <circle cx="256" cy="238" r="108" fill="none"
+    stroke="url(#arc)" stroke-width="20"
+    stroke-dasharray="508" stroke-dashoffset="127"
     stroke-linecap="round"
-    transform="rotate(-90 256 220)"/>
+    transform="rotate(-90 256 238)"/>
 
-  <!-- Center "A" lettermark -->
-  <text x="256" y="248"
+  <!-- "A" lettermark -->
+  <text x="256" y="278"
     text-anchor="middle"
-    font-family="'Helvetica Neue', 'Arial', sans-serif"
+    font-family="'Helvetica Neue', Arial, sans-serif"
     font-weight="900"
-    font-size="88"
-    letter-spacing="-3"
-    fill="#2d3561">A</text>
-
-  <!-- "LOG" label below ring -->
-  <rect x="168" y="358" width="176" height="42" rx="21" fill="url(#accentGrad)"/>
-  <text x="256" y="386"
-    text-anchor="middle"
-    font-family="'Helvetica Neue', 'Arial', sans-serif"
-    font-weight="800"
-    font-size="26"
-    letter-spacing="7"
-    fill="#ffffff">LOG</text>
+    font-size="130"
+    letter-spacing="-4"
+    fill="#ffffff">A</text>
 </svg>

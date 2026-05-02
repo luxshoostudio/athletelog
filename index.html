@@ -1899,39 +1899,83 @@ function freqModalTap(name) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// VOICE INPUT — fresh instance each call (iOS Safari compat)
+// VOICE INPUT
 // ═══════════════════════════════════════════════════════════════
-const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function initVoice() {}
 
-function initVoice() { /* instances created on demand */ }
+function showToast(msg, dur = 3000) {
+  document.querySelectorAll('.nm-toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'nm-toast';
+  t.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:30px;font-size:13px;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.18);pointer-events:none;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
 
 function startVoice(targetInputId, btnId) {
-  if (!_SR) { alert('Voice not supported. Use Safari 14.5+ or Chrome.'); return; }
-  if (voiceActive) { stopVoice(); return; }
-  if (recognition) { try { recognition.abort(); } catch {} }
-  recognition = new _SR();
-  recognition.continuous = false;
-  recognition.interimResults = false;
-  recognition.lang = 'en-US';
-  voiceActive = true;
+  // Always reset stuck state first
+  voiceActive = false;
+  if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   const btn = document.getElementById(btnId);
-  if (btn) btn.classList.add('recording');
-  recognition.onresult = (e) => {
+  const input = document.getElementById(targetInputId);
+
+  if (!SpeechRec) {
+    showToast('🎤 Tap the mic key on your keyboard to dictate');
+    if (input) input.focus();
+    return;
+  }
+
+  const rec = new SpeechRec();
+  recognition = rec;
+  rec.continuous = false;
+  rec.interimResults = false;
+  rec.lang = 'en-US';
+
+  rec.onstart = () => {
+    voiceActive = true;
+    if (btn) { btn.classList.add('recording'); btn.innerHTML = '🔴'; }
+    showToast('🎤 Listening…', 10000);
+  };
+
+  rec.onresult = (e) => {
     const t = e.results[0][0].transcript;
-    const input = document.getElementById(targetInputId);
-    if (input) input.value = t;
+    if (input) { input.value = t; input.dispatchEvent(new Event('input')); }
+    showToast('✓ ' + t, 2000);
     stopVoice(btnId);
   };
-  recognition.onerror = () => stopVoice(btnId);
-  recognition.onend = () => stopVoice(btnId);
-  try { recognition.start(); } catch { stopVoice(btnId); }
+
+  rec.onerror = (e) => {
+    stopVoice(btnId);
+    if (e.error === 'not-allowed' || e.error === 'permission-denied') {
+      showToast('Mic blocked — Settings › Safari › Mic → Allow');
+    } else if (e.error === 'no-speech') {
+      showToast('No speech detected — try again');
+    } else {
+      showToast('🎤 Use mic on your keyboard to dictate');
+      if (input) input.focus();
+    }
+  };
+
+  rec.onend = () => stopVoice(btnId);
+
+  try {
+    rec.start();
+  } catch (err) {
+    stopVoice(btnId);
+    showToast('🎤 Tap mic key on keyboard to dictate');
+    if (input) input.focus();
+  }
 }
 
 function stopVoice(btnId) {
   voiceActive = false;
+  document.querySelectorAll('.nm-toast').forEach(t => t.remove());
   const id = btnId || 'voice-btn';
   const btn = document.getElementById(id);
-  if (btn) btn.classList.remove('recording');
+  if (btn) { btn.classList.remove('recording'); btn.innerHTML = '🎤'; }
   try { recognition && recognition.abort(); } catch {}
   recognition = null;
 }
