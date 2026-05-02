@@ -68,16 +68,19 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 /* TABS — neumorphic */
 #tabs {
   flex-shrink: 0; display: flex; background: var(--bg);
-  padding: 0 12px;
+  padding: 6px 12px 0;
   box-shadow: 0 3px 8px #c2c8d6;
 }
 .tab-btn {
-  flex: 1; padding: 12px 4px 10px; background: none; border: none;
-  color: var(--dim); font-size: 11px; font-weight: 700; cursor: pointer;
+  flex: 1; padding: 8px 4px 10px; background: none; border: none;
+  color: var(--dim); font-size: 9px; font-weight: 800; cursor: pointer;
   border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
-  font-family: var(--font); letter-spacing: 0.1em; text-transform: uppercase;
+  font-family: var(--font); letter-spacing: 0.08em; text-transform: uppercase;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
 }
+.tab-btn .tab-icon { font-size: 20px; line-height: 1; }
 .tab-btn.active { color: var(--sp-green); border-bottom-color: var(--sp-green); }
+.tab-btn.active .tab-icon { filter: drop-shadow(0 0 4px rgba(92,124,250,0.5)); }
 
 /* PANELS */
 #panels { flex: 1; overflow: hidden; position: relative; background: var(--bg); }
@@ -379,6 +382,21 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 }
 .outline-btn:active { box-shadow: var(--nm-inset-sm); color: var(--text2); }
 
+/* FEELING BADGE */
+.feeling-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 50%;
+  font-size: 11px; font-weight: 800; font-family: var(--mono);
+  background: var(--bg); box-shadow: var(--nm-raised-sm); color: var(--muted);
+  cursor: pointer; flex-shrink: 0; transition: color .15s, box-shadow .15s;
+}
+.feeling-badge.active { box-shadow: var(--nm-inset-sm); color: var(--sp-green); }
+.feeling-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.feeling-label { font-size: 9px; font-weight: 800; color: var(--muted); letter-spacing:.1em; text-transform:uppercase; margin-right: 4px; }
+
+/* SESSION SUGGESTIONS */
+#session-suggestions { padding: 12px 14px; background: var(--bg); border-radius: var(--radius-sm); box-shadow: var(--nm-raised-sm); }
+
 /* AUTOCOMPLETE — neumorphic dropdown */
 .autocomplete-list {
   background: var(--bg); border: none;
@@ -617,9 +635,9 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 
 <!-- TABS -->
 <nav id="tabs">
-  <button class="tab-btn active" data-tab="food">Food</button>
-  <button class="tab-btn" data-tab="gym">Gym</button>
-  <button class="tab-btn" data-tab="log">Log</button>
+  <button class="tab-btn active" data-tab="food"><span class="tab-icon">🥗</span>Food</button>
+  <button class="tab-btn" data-tab="gym"><span class="tab-icon">🏋️</span>Gym</button>
+  <button class="tab-btn" data-tab="log"><span class="tab-icon">📊</span>Summary</button>
 </nav>
 
 <!-- PANELS -->
@@ -645,7 +663,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
             </select>
           </div>
           <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food…" autocomplete="off" style="flex:1;">
-          <button class="icon-btn" id="home-voice-btn" onclick="toggleHomeVoice()" style="flex-shrink:0">🎤</button>
+          <button class="icon-btn" onclick="toggleFoodAI()" title="Nutrition AI" style="flex-shrink:0;font-size:18px;">🤖</button>
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">ADD</button>
         </div>
 
@@ -654,6 +672,17 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
           <button class="action-pill" onclick="openFreqModal()">⭐ Frequent</button>
           <button class="action-pill" onclick="openFoodBulkModal()">📋 Bulk</button>
           <button class="action-pill" onclick="triggerPhoto()">📷 Photo</button>
+        </div>
+
+        <!-- Water tracker -->
+        <div id="water-row" style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 14px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-raised-sm);">
+          <span style="font-size:18px;">💧</span>
+          <div style="flex:1;">
+            <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Water</div>
+            <div id="water-display" style="font-size:14px;font-weight:700;color:var(--blue);font-family:var(--mono);">0 ml</div>
+          </div>
+          <button class="action-pill" onclick="addWater(500)" style="flex:0 0 auto;padding:9px 16px;">+500 ml</button>
+          <button class="icon-btn" onclick="resetWater()" style="font-size:13px;color:var(--dim);" title="Reset water">↺</button>
         </div>
 
         <!-- Today's food entries (inline) -->
@@ -692,7 +721,6 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
       <!-- Input row (today only) -->
       <div class="food-input-row" id="food-input-row">
         <input type="text" class="food-text-input" id="food-text" placeholder="Search food…" autocomplete="off">
-        <button class="icon-btn" id="voice-btn" onclick="toggleVoice()">🎤</button>
         <button class="add-btn" onclick="handleAddFood()">ADD</button>
       </div>
     </div>
@@ -708,8 +736,10 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
             <option value="">— Choose session —</option>
           </select>
         </div>
-        <button class="icon-btn" onclick="openAI('gym')" style="margin-top:18px;">🤖</button>
       </div>
+
+      <!-- Session-based exercise suggestions -->
+      <div id="session-suggestions" class="hidden" style="margin-bottom:18px;"></div>
 
       <!-- Categorized Quick Select -->
       <div class="freq-ex-panel">
@@ -723,7 +753,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
       <!-- Exercise Input -->
       <div class="gym-input-wrap">
         <div style="position:relative;">
-          <input type="text" class="gym-text-input" id="gym-ex-name" placeholder="Exercise name…" autocomplete="off" oninput="onExNameInput()">
+          <input type="text" class="gym-text-input" id="gym-ex-name" placeholder="Exercise name…" autocomplete="off" oninput="onExNameInput(); updateGymInputMode();">
           <div class="autocomplete-list hidden" id="ex-autocomplete"></div>
         </div>
         <div class="gym-input-row">
@@ -731,6 +761,14 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
           <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
           <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
           <button class="green-btn" onclick="addExercise()">+ Add</button>
+        </div>
+        <!-- Feeling / RPE row -->
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span class="feeling-label">Feel</span>
+          <div class="feeling-row" id="feeling-row">
+            ${[5,6,7,8,9,10].map(n=>`<div class="feeling-badge" id="feel-${n}" onclick="setFeeling(${n})">${n}</div>`).join('')}
+          </div>
+          <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
         </div>
         <button class="outline-btn" onclick="openGymAI()">🤖 AI Coach…</button>
       </div>
@@ -747,16 +785,37 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     </div>
   </div>
 
-  <!-- LOG PANEL -->
+  <!-- SUMMARY PANEL -->
   <div id="log-panel" class="panel">
     <div class="panel-inner">
+      <!-- Date + export row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;"></div>
+        <button class="outline-btn" onclick="exportData()" style="padding:7px 14px;font-size:10px;">⬇ Export</button>
+      </div>
+
+      <!-- Metabolism card -->
+      <div class="card" style="margin-bottom:18px;">
+        <div class="card-header"><span class="card-title">⚡ Energy Balance</span></div>
+        <div class="card-body" id="metabolism-card"></div>
+      </div>
+
+      <!-- Nutrition macros -->
       <div class="macro-grid" id="macro-stats-grid"></div>
       <div class="card">
-        <div class="card-header"><span class="card-title">Goals</span></div>
+        <div class="card-header"><span class="card-title">🎯 Nutrition Goals</span></div>
         <div class="card-body" id="goal-bars"></div>
       </div>
+
+      <!-- Today's training -->
+      <div class="card" id="summary-training-card">
+        <div class="card-header"><span class="card-title">🏋️ Training</span></div>
+        <div class="card-body" id="summary-training-body"></div>
+      </div>
+
+      <!-- 14-day history -->
       <div class="card">
-        <div class="card-header"><span class="card-title">14-Day History</span></div>
+        <div class="card-header"><span class="card-title">📅 14-Day History</span></div>
         <div class="card-body" id="history-rows"></div>
       </div>
       <button class="copy-btn" onclick="copyToNotes()">📋 Copy to Notes</button>
@@ -908,7 +967,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS & DATA
 // ═══════════════════════════════════════════════════════════════
-const GOALS = { protein: 180, kcal: 2800, fat: 80, carbs: 300 };
+const GOALS = { protein: 120, kcal: 2800, fat: 80, carbs: 300 };
 const WATER_CUPS = 8;
 
 const SESSIONS = [
@@ -935,6 +994,17 @@ const EXERCISES = [
   'Kettlebell Swing','Turkish Get-Up','Clean','Power Clean','Snatch',
   'Muscle-Up','Ring Dip','100 Mixed Pushups'
 ];
+
+// Hold-type exercises (track seconds + rounds, not sets × reps)
+const HOLD_EXERCISES_LIST = [
+  'handstand hold','handstand walk','against-bench handstand hold',
+  'l-sit','l-sit hold','plank','wall sit','ab hold','hollow hold',
+  'dead hang','passive hang','wrist curl','bridge hold',
+];
+function isHoldExercise(name) {
+  const n = (name||'').toLowerCase();
+  return HOLD_EXERCISES_LIST.some(h => n.includes(h) || h.includes(n));
+}
 
 // Gym quick select — categorized from April gym log
 const GYM_QUICK = [
@@ -1090,9 +1160,11 @@ function getRecentKeys(n=14) {
 function loadState(key) {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return { food:[], gym:{session:'',exercises:[]}, water:0, period:false };
-    return JSON.parse(raw);
-  } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, period:false }; }
+    if (!raw) return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false };
+    const s = JSON.parse(raw);
+    if (s.waterMl === undefined) s.waterMl = 0;
+    return s;
+  } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
 
 function saveState() {
@@ -1239,6 +1311,7 @@ function renderDayList() {
 
   // Today's food entries inline
   renderHomeTodayFood();
+  renderWater();
 
   // Past days history
   const container = document.getElementById('day-history-list');
@@ -1737,12 +1810,32 @@ async function handleHomeAddFood() {
   }
 }
 
-function toggleHomeVoice() { startVoice('home-food-text', 'home-voice-btn'); }
-
 document.addEventListener('DOMContentLoaded', () => {
   const hft = document.getElementById('home-food-text');
   if (hft) hft.addEventListener('keydown', e => { if (e.key === 'Enter') handleHomeAddFood(); });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// WATER TRACKING
+// ═══════════════════════════════════════════════════════════════
+function addWater(ml) {
+  state.waterMl = (state.waterMl || 0) + ml;
+  saveState();
+  renderWater();
+}
+
+function resetWater() {
+  state.waterMl = 0;
+  saveState();
+  renderWater();
+}
+
+function renderWater() {
+  const el = document.getElementById('water-display');
+  if (!el) return;
+  const ml = state.waterMl || 0;
+  el.textContent = ml >= 1000 ? `${(ml/1000).toFixed(1)} L` : `${ml} ml`;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // INLINE FOOD AI (bottom drawer)
@@ -2102,6 +2195,7 @@ function initGymTab() {
     sel.innerHTML += `<option value="${escHtml(s)}">${escHtml(s)}</option>`;
   }
   sel.value = state.gym.session || '';
+  renderSessionSuggestions();
   renderExerciseList();
   renderFreqExercises();
 }
@@ -2109,6 +2203,41 @@ function initGymTab() {
 function onSessionChange() {
   state.gym.session = document.getElementById('session-select').value;
   saveState();
+  renderSessionSuggestions();
+}
+
+function renderSessionSuggestions() {
+  const el = document.getElementById('session-suggestions');
+  if (!el) return;
+  const session = state.gym.session;
+  if (!session) { el.classList.add('hidden'); el.innerHTML = ''; return; }
+
+  // Find exercises from previous days that used the same session
+  const counts = new Map();
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    if (key === todayKey()) continue;
+    try {
+      const s = JSON.parse(localStorage.getItem(key));
+      if (s && s.gym && s.gym.session === session && Array.isArray(s.gym.exercises)) {
+        for (const e of s.gym.exercises) {
+          if (e.name) counts.set(e.name, (counts.get(e.name)||0) + 1);
+        }
+      }
+    } catch {}
+  }
+
+  const suggestions = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name])=>name);
+  if (suggestions.length === 0) { el.classList.add('hidden'); return; }
+
+  el.classList.remove('hidden');
+  el.innerHTML = `
+    <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">
+      📋 Last ${escHtml(session)} — tap to add
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      ${suggestions.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')" style="font-size:11px;">${escHtml(name)}</div>`).join('')}
+    </div>`;
 }
 
 function onExNameInput() {
@@ -2133,7 +2262,12 @@ function addExercise() {
   const sets = document.getElementById('gym-sets').value.trim();
   const reps = document.getElementById('gym-reps').value.trim();
   const weight = document.getElementById('gym-weight').value.trim();
-  const exercise = { id: uid(), name, sets: sets||'', reps: reps||'', weight: weight||'' };
+  const hold = isHoldExercise(name);
+  const exercise = {
+    id: uid(), name,
+    sets: sets||'', reps: reps||'', weight: hold ? '' : (weight||''),
+    hold, feeling: currentFeeling || null
+  };
   state.gym.exercises.push(exercise);
   saveState();
   document.getElementById('gym-ex-name').value = '';
@@ -2141,6 +2275,8 @@ function addExercise() {
   document.getElementById('gym-reps').value = '';
   document.getElementById('gym-weight').value = '';
   document.getElementById('ex-autocomplete').classList.add('hidden');
+  setFeeling(null);
+  updateGymInputMode();
   renderExerciseList();
 }
 
@@ -2156,15 +2292,22 @@ function renderExerciseList() {
     list.innerHTML = '<div class="empty-state">No exercises yet</div>';
     return;
   }
-  list.innerHTML = state.gym.exercises.map(e => `
+  list.innerHTML = state.gym.exercises.map(e => {
+    const hold = e.hold || isHoldExercise(e.name);
+    const parts = hold
+      ? [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean)
+      : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
+    const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:var(--bg);box-shadow:var(--nm-flat);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
+    const holdTag = hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
+    return `
     <div class="exercise-row">
       <div class="exercise-info">
-        <div class="exercise-name">${escHtml(e.name)}</div>
-        <div class="exercise-sets">${[e.sets?e.sets+' sets':'',e.reps?e.reps+' reps':'',e.weight?e.weight+'kg':''].filter(Boolean).join(' · ')||'No details'}</div>
+        <div class="exercise-name">${escHtml(e.name)}${holdTag}</div>
+        <div class="exercise-sets">${parts.join(' · ')||'No details'}${feelBadge}</div>
       </div>
       <button class="exercise-delete" onclick="deleteExercise('${e.id}')">✕</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function toggleFreqEx() {
@@ -2196,9 +2339,41 @@ function renderFreqExercises() {
 
 function selectFreqEx(name) {
   document.getElementById('gym-ex-name').value = name;
+  updateGymInputMode();
   document.getElementById('gym-sets').focus();
-  // Close quick select after picking
   if (freqExOpen) toggleFreqEx();
+}
+
+// ─── FEELING / RPE ──────────────────────────────────────────────
+let currentFeeling = null;
+const FEEL_LABELS = { 5:'Very Light', 6:'Light', 7:'Moderate', 8:'Hard', 9:'Very Hard', 10:'Max Effort' };
+
+function setFeeling(val) {
+  currentFeeling = (currentFeeling === val) ? null : val;
+  [5,6,7,8,9,10].forEach(n => {
+    const el = document.getElementById('feel-' + n);
+    if (el) el.classList.toggle('active', n === currentFeeling);
+  });
+  const hint = document.getElementById('feel-hint');
+  if (hint) hint.textContent = currentFeeling ? FEEL_LABELS[currentFeeling] || '' : '';
+}
+
+// ─── HOLD EXERCISE MODE ─────────────────────────────────────────
+function updateGymInputMode() {
+  const name = (document.getElementById('gym-ex-name')||{}).value || '';
+  const repsEl = document.getElementById('gym-reps');
+  const setsEl = document.getElementById('gym-sets');
+  const weightEl = document.getElementById('gym-weight');
+  if (!repsEl) return;
+  if (isHoldExercise(name)) {
+    repsEl.placeholder = 'Secs';
+    setsEl.placeholder = 'Rounds';
+    weightEl.style.display = 'none';
+  } else {
+    repsEl.placeholder = 'Reps';
+    setsEl.placeholder = 'Sets';
+    weightEl.style.display = '';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2318,10 +2493,54 @@ Keep replies concise. Weight can be in lbs or kg as user specifies.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LOG TAB
+// SUMMARY TAB
 // ═══════════════════════════════════════════════════════════════
+
+// Estimated calories burned for each session type
+const SESSION_BURN = {
+  'Upper Body – Push': 280, 'Upper Body – Pull': 280,
+  'Lower Body – Squat': 350, 'Lower Body – Hinge': 350,
+  'Full Body': 420, 'Rugby Training': 700, 'Conditioning': 600,
+  'Marathon Run': 800, 'Long Run': 650, 'Tempo Run': 500,
+  'Interval Run': 480, 'Recovery Run': 320,
+  'Handstand Practice': 200, 'Mobility': 120, 'Rest Day': 0,
+};
+// Base metabolic rate (BMR) estimate — rough daily resting burn
+const BMR_ESTIMATE = 1800;
+
 function renderLogTab() {
   const m = sumMacros(state.food);
+  const d = new Date();
+  const lbl = document.getElementById('summary-date-label');
+  if (lbl) lbl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+
+  // ── Energy Balance card ──
+  const sessionBurn = SESSION_BURN[state.gym.session] || 0;
+  const totalBurn = BMR_ESTIMATE + sessionBurn;
+  const netKcal = Math.round(m.kcal) - totalBurn;
+  const netColor = netKcal > 200 ? 'var(--orange)' : netKcal < -300 ? 'var(--blue)' : 'var(--sp-green)';
+  const netLabel = netKcal > 0 ? `+${netKcal} surplus` : `${netKcal} deficit`;
+  const metEl = document.getElementById('metabolism-card');
+  if (metEl) metEl.innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
+        <div style="font-size:22px;font-weight:800;color:var(--yellow);font-family:var(--mono)">${Math.round(m.kcal)}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">In (eaten)</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
+        <div style="font-size:22px;font-weight:800;color:var(--orange);font-family:var(--mono)">${totalBurn}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">Out (burn)</div>
+      </div>
+      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
+        <div style="font-size:22px;font-weight:800;color:${netColor};font-family:var(--mono)">${netLabel}</div>
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">Net balance</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
+      BMR ~${BMR_ESTIMATE} kcal${state.gym.session ? ` + ${state.gym.session} ~${sessionBurn} kcal` : ' (no session today)'}
+    </div>`;
+
+  // ── Macro stats grid ──
   document.getElementById('macro-stats-grid').innerHTML = `
     <div class="macro-stat-card">
       <div class="macro-stat-val" style="color:var(--sp-green)">${Math.round(m.p)}g</div>
@@ -2338,14 +2557,14 @@ function renderLogTab() {
     <div class="macro-stat-card">
       <div class="macro-stat-val" style="color:var(--blue)">${Math.round(m.carbs)}g</div>
       <div class="macro-stat-lbl">Carbs</div>
-    </div>
-  `;
+    </div>`;
 
+  // ── Goal bars ──
   const goalsHtml = [
-    { key:'p', label:'Protein', val:m.p, goal:GOALS.protein, cls:'prot', unit:'g' },
-    { key:'kcal', label:'Calories', val:m.kcal, goal:GOALS.kcal, cls:'kcal', unit:' kcal' },
-    { key:'fat', label:'Fat', val:m.fat, goal:GOALS.fat, cls:'fat', unit:'g' },
-    { key:'carbs', label:'Carbs', val:m.carbs, goal:GOALS.carbs, cls:'carbs', unit:'g' },
+    { label:'Protein', val:m.p, goal:GOALS.protein, cls:'prot', unit:'g' },
+    { label:'Calories', val:m.kcal, goal:GOALS.kcal, cls:'kcal', unit:' kcal' },
+    { label:'Fat', val:m.fat, goal:GOALS.fat, cls:'fat', unit:'g' },
+    { label:'Carbs', val:m.carbs, goal:GOALS.carbs, cls:'carbs', unit:'g' },
   ].map(g => {
     const pct = Math.min(100, Math.round((g.val/g.goal)*100));
     return `<div class="goal-bar-wrap">
@@ -2358,19 +2577,80 @@ function renderLogTab() {
   }).join('');
   document.getElementById('goal-bars').innerHTML = goalsHtml;
 
-  // 14-day history
+  // ── Training summary ──
+  const trainingEl = document.getElementById('summary-training-body');
+  if (trainingEl) {
+    if (!state.gym.session && !state.gym.exercises.length) {
+      trainingEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No training logged today</div>';
+    } else {
+      let thtml = '';
+      if (state.gym.session) thtml += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">📋 ${escHtml(state.gym.session)}</div>`;
+      if (state.gym.exercises.length) {
+        thtml += state.gym.exercises.map(e => {
+          const isHold = isHoldExercise(e.name);
+          const detail = isHold
+            ? [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ')
+            : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ');
+          return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(0,0,0,0.06);">
+            <div style="font-size:13px;font-weight:600;color:var(--text2);">${escHtml(e.name)}</div>
+            <div style="font-size:11px;color:var(--muted);text-align:right;">${detail}</div>
+          </div>`;
+        }).join('');
+      }
+      trainingEl.innerHTML = thtml;
+    }
+  }
+
+  // ── 14-day history ──
   const keys = getRecentKeys(14);
   let histHtml = '';
   for (const key of keys) {
     const s = loadState(key);
     const dm = sumMacros(s.food||[]);
     if (!s.food || s.food.length === 0) continue;
+    const gymNote = s.gym && s.gym.session ? ` · 🏋️ ${s.gym.session.split('–')[0].trim()}` : '';
     histHtml += `<div class="history-row">
-      <div class="history-date">${formatKey(key)}</div>
+      <div class="history-date">${formatKey(key)}${gymNote}</div>
       <div class="history-macros"><span class="prot-hi">${Math.round(dm.p)}g</span> · ${Math.round(dm.kcal)} kcal</div>
     </div>`;
   }
   document.getElementById('history-rows').innerHTML = histHtml || '<div class="empty-state">No history yet</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA EXPORT (for weekly backup)
+// ═══════════════════════════════════════════════════════════════
+function exportData() {
+  const allData = {};
+  for (const key of Object.keys(localStorage)) {
+    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key) || key === 'claude_api_key') {
+      if (key !== 'claude_api_key') allData[key] = JSON.parse(localStorage.getItem(key));
+    }
+  }
+  const json = JSON.stringify(allData, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `athletelog-backup-${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  // Record last backup date
+  localStorage.setItem('alog_last_backup', dateStr);
+  showToast('✓ Data exported! Save the file to your files app or email it.', 4000);
+}
+
+// Check if weekly backup is due (show reminder after 7 days)
+function checkBackupReminder() {
+  const last = localStorage.getItem('alog_last_backup');
+  if (!last) return;
+  const daysSince = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  if (daysSince >= 7) {
+    setTimeout(() => showToast('📦 Weekly backup due — tap Export in Summary tab', 5000), 3000);
+  }
 }
 
 function buildText() {
@@ -2645,6 +2925,7 @@ function init() {
   initVoice();
   renderHeader();
   renderDayList();
+  checkBackupReminder();
 
   // Populate gym sessions
   const sel = document.getElementById('session-select');
