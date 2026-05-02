@@ -68,19 +68,16 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 /* TABS — neumorphic */
 #tabs {
   flex-shrink: 0; display: flex; background: var(--bg);
-  padding: 6px 12px 0;
+  padding: 0 12px;
   box-shadow: 0 3px 8px #c2c8d6;
 }
 .tab-btn {
-  flex: 1; padding: 8px 4px 10px; background: none; border: none;
-  color: var(--dim); font-size: 9px; font-weight: 800; cursor: pointer;
+  flex: 1; padding: 13px 4px 11px; background: none; border: none;
+  color: var(--dim); font-size: 11px; font-weight: 800; cursor: pointer;
   border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
-  font-family: var(--font); letter-spacing: 0.08em; text-transform: uppercase;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-family: var(--font); letter-spacing: 0.12em; text-transform: uppercase;
 }
-.tab-btn .tab-icon { font-size: 20px; line-height: 1; }
 .tab-btn.active { color: var(--sp-green); border-bottom-color: var(--sp-green); }
-.tab-btn.active .tab-icon { filter: drop-shadow(0 0 4px rgba(92,124,250,0.5)); }
 
 /* PANELS */
 #panels { flex: 1; overflow: hidden; position: relative; background: var(--bg); }
@@ -635,9 +632,9 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 
 <!-- TABS -->
 <nav id="tabs">
-  <button class="tab-btn active" data-tab="food"><span class="tab-icon">🥗</span>Food</button>
-  <button class="tab-btn" data-tab="gym"><span class="tab-icon">🏋️</span>Gym</button>
-  <button class="tab-btn" data-tab="log"><span class="tab-icon">📊</span>Summary</button>
+  <button class="tab-btn active" data-tab="food">Food</button>
+  <button class="tab-btn" data-tab="gym">Gym</button>
+  <button class="tab-btn" data-tab="log">Summary</button>
 </nav>
 
 <!-- PANELS -->
@@ -648,13 +645,6 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <!-- PRIMARY: Day List -->
     <div id="food-day-list">
       <div class="day-list-inner">
-        <!-- Hero card -->
-        <div id="today-hero" class="today-hero-card">
-          <div class="today-hero-date" id="hero-date-label"></div>
-          <div class="today-hero-title">Today's Food</div>
-          <div class="today-hero-stats" id="hero-stats"></div>
-        </div>
-
         <!-- Home text input -->
         <div class="home-add-row" id="home-add-row">
           <div class="quick-add-wrapper" style="margin-bottom:0;flex:0 0 auto;width:44px;position:relative">
@@ -693,20 +683,6 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
         <div id="day-history-list"></div>
       </div>
 
-      <!-- Inline AI Chat at bottom -->
-      <div class="home-ai-drawer" id="home-ai-drawer">
-        <div class="home-ai-toggle" onclick="toggleFoodAI()">
-          <span>🤖 Nutrition AI</span>
-          <span id="home-ai-chevron" style="transition:transform .2s">▲</span>
-        </div>
-        <div class="home-ai-body" id="home-ai-body">
-          <div class="ai-messages" id="home-ai-messages" style="max-height:240px;min-height:80px;padding:10px 14px;"></div>
-          <div class="ai-input-row" style="padding:8px 14px 12px;">
-            <textarea class="ai-text-input" id="home-ai-input" placeholder="Ask about your nutrition…" rows="1" onkeydown="homeAiKeydown(event)"></textarea>
-            <button class="ai-send-btn" id="home-ai-send" onclick="sendHomeAI()">➤</button>
-          </div>
-        </div>
-      </div>
     </div>
     <!-- SECONDARY: Day Detail -->
     <div id="food-day-detail">
@@ -762,12 +738,10 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
           <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
           <button class="green-btn" onclick="addExercise()">+ Add</button>
         </div>
-        <!-- Feeling / RPE row -->
+        <!-- Feeling / RPE row (populated by JS) -->
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
           <span class="feeling-label">Feel</span>
-          <div class="feeling-row" id="feeling-row">
-            ${[5,6,7,8,9,10].map(n=>`<div class="feeling-badge" id="feel-${n}" onclick="setFeeling(${n})">${n}</div>`).join('')}
-          </div>
+          <div class="feeling-row" id="feeling-row"></div>
           <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
         </div>
         <button class="outline-btn" onclick="openGymAI()">🤖 AI Coach…</button>
@@ -789,9 +763,10 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
   <div id="log-panel" class="panel">
     <div class="panel-inner">
       <!-- Date + export row -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;"></div>
-        <button class="outline-btn" onclick="exportData()" style="padding:7px 14px;font-size:10px;">⬇ Export</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;">
+        <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
+        <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">☁️ Sync</button>
+        <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">⬇ Save</button>
       </div>
 
       <!-- Metabolism card -->
@@ -915,6 +890,25 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeFoodBulkModal()">Cancel</button>
       <button class="green-btn" onclick="confirmFoodBulkEntry()">Add All</button>
+    </div>
+  </div>
+</div>
+
+<!-- GITHUB GIST BACKUP MODAL -->
+<div class="modal-overlay" id="gist-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">☁️ Weekly Cloud Backup</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+      Your data backs up to a <strong>private GitHub Gist</strong> — only you can see it.<br>
+      Get a token at <strong>github.com → Settings → Developer Settings → Fine-grained tokens</strong><br>
+      Permission needed: <em>Gists → Read & Write</em>
+    </p>
+    <label class="modal-label">GitHub Personal Access Token</label>
+    <input type="password" class="modal-input" id="gist-token-input" placeholder="github_pat_...">
+    <div id="gist-status" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:18px;"></div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeGistModal()">Cancel</button>
+      <button class="green-btn" onclick="saveGistToken()">Save & Sync Now</button>
     </div>
   </div>
 </div>
@@ -1291,13 +1285,6 @@ function renderHeader() {
 // DAY LIST VIEW (Primary)
 // ═══════════════════════════════════════════════════════════════
 function renderDayList() {
-  const m = sumMacros(state.food);
-  document.getElementById('hero-date-label').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('hero-stats').innerHTML = `
-    <div class="today-stat"><span class="today-stat-val">${Math.round(m.p)}g</span><span class="today-stat-lbl">Protein</span></div>
-    <div class="today-stat"><span class="today-stat-val">${Math.round(m.kcal)}</span><span class="today-stat-lbl">Kcal</span></div>
-    <div class="today-stat"><span class="today-stat-val">${state.food.length}</span><span class="today-stat-lbl">Items</span></div>
-  `;
 
   // Populate home quick-add select with QUICK foods
   const homeQS = document.getElementById('home-quick-select');
@@ -2188,6 +2175,19 @@ function closePhotoModal() {
 // ═══════════════════════════════════════════════════════════════
 // GYM TAB
 // ═══════════════════════════════════════════════════════════════
+function renderFeelingRow() {
+  const row = document.getElementById('feeling-row');
+  if (!row || row.children.length > 0) return; // only build once
+  [5,6,7,8,9,10].forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'feeling-badge';
+    d.id = 'feel-' + n;
+    d.textContent = n;
+    d.onclick = () => setFeeling(n);
+    row.appendChild(d);
+  });
+}
+
 function initGymTab() {
   const sel = document.getElementById('session-select');
   sel.innerHTML = '<option value="">— Choose session —</option>';
@@ -2195,6 +2195,7 @@ function initGymTab() {
     sel.innerHTML += `<option value="${escHtml(s)}">${escHtml(s)}</option>`;
   }
   sel.value = state.gym.session || '';
+  renderFeelingRow();
   renderSessionSuggestions();
   renderExerciseList();
   renderFreqExercises();
@@ -2505,8 +2506,8 @@ const SESSION_BURN = {
   'Interval Run': 480, 'Recovery Run': 320,
   'Handstand Practice': 200, 'Mobility': 120, 'Rest Day': 0,
 };
-// Base metabolic rate (BMR) estimate — rough daily resting burn
-const BMR_ESTIMATE = 1800;
+// RMR measured by DEXA scan (BodySpec, May 1 2026) — 1,357 kcal/day
+const BMR_ESTIMATE = 1357;
 
 function renderLogTab() {
   const m = sumMacros(state.food);
@@ -2514,30 +2515,67 @@ function renderLogTab() {
   const lbl = document.getElementById('summary-date-label');
   if (lbl) lbl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-  // ── Energy Balance card ──
+  // ── Energy Balance card — visual graph ──
   const sessionBurn = SESSION_BURN[state.gym.session] || 0;
   const totalBurn = BMR_ESTIMATE + sessionBurn;
-  const netKcal = Math.round(m.kcal) - totalBurn;
-  const netColor = netKcal > 200 ? 'var(--orange)' : netKcal < -300 ? 'var(--blue)' : 'var(--sp-green)';
-  const netLabel = netKcal > 0 ? `+${netKcal} surplus` : `${netKcal} deficit`;
+  const eaten = Math.round(m.kcal);
+  const netKcal = eaten - totalBurn;
+  const surplus = netKcal > 0;
+  const netAbs = Math.abs(netKcal);
+  const netColor = surplus ? '#f97316' : '#3b82f6';
+  const netLabel = surplus ? `+${netKcal} surplus` : `−${netAbs} deficit`;
+  // Arc gauge: 0–totalBurn mapped to 0–270deg (3/4 circle)
+  const pct = Math.min(1.2, eaten / totalBurn); // allow up to 120%
+  const cx = 80, cy = 80, r = 62;
+  const totalAngle = 270; // degrees (3/4 circle)
+  const startAngle = 135; // start bottom-left
+  function polarToXY(angleDeg, radius) {
+    const rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + radius * Math.cos(rad), y: cy + radius * Math.sin(rad) };
+  }
+  function arcPath(startDeg, endDeg, radius) {
+    const s = polarToXY(startDeg, radius);
+    const e = polarToXY(endDeg, radius);
+    const large = (endDeg - startDeg) > 180 ? 1 : 0;
+    return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} 1 ${e.x} ${e.y}`;
+  }
+  const trackStart = startAngle;
+  const trackEnd = startAngle + totalAngle;
+  const fillEnd = startAngle + Math.min(pct, 1) * totalAngle;
+  const overflowEnd = pct > 1 ? startAngle + Math.min(pct - 1, 0.2) * totalAngle : null;
   const metEl = document.getElementById('metabolism-card');
   if (metEl) metEl.innerHTML = `
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
-        <div style="font-size:22px;font-weight:800;color:var(--yellow);font-family:var(--mono)">${Math.round(m.kcal)}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">In (eaten)</div>
-      </div>
-      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
-        <div style="font-size:22px;font-weight:800;color:var(--orange);font-family:var(--mono)">${totalBurn}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">Out (burn)</div>
-      </div>
-      <div style="flex:1;min-width:0;text-align:center;padding:12px;background:var(--bg);border-radius:var(--radius-sm);box-shadow:var(--nm-inset-sm);">
-        <div style="font-size:22px;font-weight:800;color:${netColor};font-family:var(--mono)">${netLabel}</div>
-        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;">Net balance</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <!-- SVG Arc Gauge -->
+      <svg width="160" height="160" viewBox="0 0 160 160" style="flex-shrink:0;">
+        <!-- Track -->
+        <path d="${arcPath(trackStart, trackEnd, r)}" fill="none" stroke="#d4d9e8" stroke-width="14" stroke-linecap="round"/>
+        <!-- Fill: calories eaten -->
+        <path d="${arcPath(trackStart, fillEnd, r)}" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round"/>
+        ${overflowEnd ? `<path d="${arcPath(trackStart, overflowEnd, r)}" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" stroke-dasharray="4 4"/>` : ''}
+        <!-- Center labels -->
+        <text x="${cx}" y="${cy - 10}" text-anchor="middle" font-family="'Space Mono',monospace" font-size="24" font-weight="700" fill="#f59e0b">${eaten}</text>
+        <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-family="'Nunito',sans-serif" font-size="9" font-weight="800" fill="#8891b0" letter-spacing="1">KCAL</text>
+        <text x="${cx}" y="${cy + 26}" text-anchor="middle" font-family="'Space Mono',monospace" font-size="11" font-weight="700" fill="${netColor}">${netLabel}</text>
+      </svg>
+      <!-- Stats column -->
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Calories in</div>
+          <div style="font-size:20px;font-weight:800;color:var(--yellow);font-family:var(--mono);">${eaten}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Budget (burn)</div>
+          <div style="font-size:20px;font-weight:800;color:var(--orange);font-family:var(--mono);">${totalBurn}</div>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Net balance</div>
+          <div style="font-size:18px;font-weight:800;font-family:var(--mono);color:${netColor};">${netLabel}</div>
+        </div>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--muted);line-height:1.5;">
-      BMR ~${BMR_ESTIMATE} kcal${state.gym.session ? ` + ${state.gym.session} ~${sessionBurn} kcal` : ' (no session today)'}
+    <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.06);">
+      RMR ${BMR_ESTIMATE} kcal (DEXA)${state.gym.session ? ` + ${escHtml(state.gym.session)} ~${sessionBurn} kcal` : ' · no session today'}
     </div>`;
 
   // ── Macro stats grid ──
@@ -2643,13 +2681,102 @@ function exportData() {
   showToast('✓ Data exported! Save the file to your files app or email it.', 4000);
 }
 
-// Check if weekly backup is due (show reminder after 7 days)
+// Check if weekly backup is due (auto-sync if token available, else remind)
 function checkBackupReminder() {
   const last = localStorage.getItem('alog_last_backup');
   if (!last) return;
   const daysSince = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
   if (daysSince >= 7) {
-    setTimeout(() => showToast('📦 Weekly backup due — tap Export in Summary tab', 5000), 3000);
+    const token = localStorage.getItem('github_gist_token');
+    if (token) {
+      // Auto-sync silently
+      setTimeout(() => syncToGist(true), 5000);
+    } else {
+      setTimeout(() => showToast('☁️ Weekly backup due — tap Sync in Summary tab', 5000), 3000);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GITHUB GIST CLOUD SYNC
+// ═══════════════════════════════════════════════════════════════
+function openGistModal() {
+  const existing = localStorage.getItem('github_gist_token');
+  if (existing) document.getElementById('gist-token-input').value = existing;
+  document.getElementById('gist-status').textContent = '';
+  document.getElementById('gist-modal').classList.add('open');
+}
+function closeGistModal() {
+  document.getElementById('gist-modal').classList.remove('open');
+}
+function saveGistToken() {
+  const token = document.getElementById('gist-token-input').value.trim();
+  if (!token) { document.getElementById('gist-status').textContent = 'Please enter a token'; return; }
+  localStorage.setItem('github_gist_token', token);
+  closeGistModal();
+  syncToGist();
+}
+
+function getAllLogData() {
+  const data = {};
+  for (const key of Object.keys(localStorage)) {
+    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) {
+      try { data[key] = JSON.parse(localStorage.getItem(key)); } catch {}
+    }
+  }
+  return data;
+}
+
+async function syncToGist(silent = false) {
+  const token = localStorage.getItem('github_gist_token');
+  if (!token) { openGistModal(); return; }
+
+  const syncBtn = document.getElementById('sync-btn');
+  if (syncBtn) { syncBtn.textContent = '⟳ Syncing…'; syncBtn.disabled = true; }
+
+  try {
+    const allData = getAllLogData();
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: allData }, null, 2);
+
+    let gistId = localStorage.getItem('github_gist_id');
+    let url = 'https://api.github.com/gists';
+    let method = 'POST';
+    if (gistId) { url += '/' + gistId; method = 'PATCH'; }
+
+    const resp = await fetch(url, {
+      method,
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: `AthleteLog Backup — ${dateStr}`,
+        public: false,
+        files: { 'athletelog-backup.json': { content } }
+      })
+    });
+
+    if (resp.status === 404 && gistId) {
+      // Gist was deleted — create a new one
+      localStorage.removeItem('github_gist_id');
+      return syncToGist(silent);
+    }
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.message || 'HTTP ' + resp.status);
+    }
+
+    const result = await resp.json();
+    localStorage.setItem('github_gist_id', result.id);
+    localStorage.setItem('alog_last_backup', dateStr);
+    if (!silent) showToast(`✓ Synced to GitHub Gist — ${Object.keys(allData).length} days backed up`, 4000);
+  } catch(err) {
+    if (!silent) showToast('Sync failed: ' + err.message, 4000);
+    else console.warn('Auto-sync failed:', err.message);
+    if (err.message.includes('401') || err.message.includes('403')) {
+      localStorage.removeItem('github_gist_token');
+      if (!silent) openGistModal();
+    }
+  } finally {
+    if (syncBtn) { syncBtn.textContent = '☁️ Sync'; syncBtn.disabled = false; }
   }
 }
 
@@ -2891,6 +3018,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       if (overlay.id === 'photo-modal') closePhotoModal();
       if (overlay.id === 'gym-ai-modal') closeGymAI();
       if (overlay.id === 'food-bulk-modal') closeFoodBulkModal();
+      if (overlay.id === 'gist-modal') closeGistModal();
     }
   });
 });
