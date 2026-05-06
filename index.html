@@ -112,6 +112,33 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
 #food-day-detail.slide-in { transform: translateX(0); }
 .day-list-inner { flex: 1; }
 
+/* GYM TWO-LEVEL NAVIGATION */
+#gym-panel { position: absolute; inset: 0; overflow: hidden; }
+#gym-day-list, #gym-day-detail {
+  position: absolute; inset: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+#gym-day-list { transform: translateX(0); }
+#gym-day-list.slide-left { transform: translateX(-100%); }
+#gym-day-detail { transform: translateX(100%); }
+#gym-day-detail.slide-in { transform: translateX(0); }
+.gym-history-card {
+  background: var(--bg); border: none; border-radius: var(--radius);
+  box-shadow: var(--nm-raised-sm);
+  padding: 14px 16px; margin-bottom: 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: box-shadow .15s;
+}
+.gym-history-card:active { box-shadow: var(--nm-inset-sm); }
+.gym-history-session { font-size: 13px; font-weight: 700; color: var(--text2); }
+.gym-history-meta { font-size: 10px; color: var(--dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+.gym-detail-exercise {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.gym-detail-exercise:last-child { border-bottom: none; }
+
 /* HOME ADD ROW */
 .home-add-row {
   display: flex; gap: 8px; align-items: center; margin-bottom: 12px;
@@ -702,60 +729,75 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     </div>
   </div>
 
-  <!-- GYM PANEL -->
+  <!-- GYM PANEL (two-level nav) -->
   <div id="gym-panel" class="panel">
-    <div class="panel-inner">
-      <div class="session-bar">
-        <div style="flex:1">
-          <div class="session-label">Session</div>
-          <select class="session-select" id="session-select" onchange="onSessionChange()">
-            <option value="">— Choose session —</option>
-          </select>
+    <!-- PRIMARY: Today + History -->
+    <div id="gym-day-list">
+      <div class="panel-inner">
+        <div class="session-bar">
+          <div style="flex:1">
+            <div class="session-label">Session</div>
+            <select class="session-select" id="session-select" onchange="onSessionChange()">
+              <option value="">— Choose session —</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <!-- Session-based exercise suggestions -->
-      <div id="session-suggestions" class="hidden" style="margin-bottom:18px;"></div>
+        <!-- Session-based exercise suggestions -->
+        <div id="session-suggestions" class="hidden" style="margin-bottom:18px;"></div>
 
-      <!-- Categorized Quick Select -->
-      <div class="freq-ex-panel">
-        <div class="freq-ex-header" onclick="toggleFreqEx()">
-          <span class="freq-ex-title">⚡ Quick Select</span>
-          <span id="freq-ex-toggle">▼</span>
+        <!-- Categorized Quick Select -->
+        <div class="freq-ex-panel">
+          <div class="freq-ex-header" onclick="toggleFreqEx()">
+            <span class="freq-ex-title">⚡ Quick Select</span>
+            <span id="freq-ex-toggle">▼</span>
+          </div>
+          <div id="freq-ex-body" class="hidden" style="padding:10px 0 4px;"></div>
         </div>
-        <div id="freq-ex-body" class="hidden" style="padding:10px 0 4px;"></div>
-      </div>
 
-      <!-- Exercise Input -->
-      <div class="gym-input-wrap">
-        <div style="position:relative;">
-          <input type="text" class="gym-text-input" id="gym-ex-name" placeholder="Exercise name…" autocomplete="off" oninput="onExNameInput(); updateGymInputMode();">
-          <div class="autocomplete-list hidden" id="ex-autocomplete"></div>
+        <!-- Exercise Input -->
+        <div class="gym-input-wrap">
+          <div style="position:relative;">
+            <input type="text" class="gym-text-input" id="gym-ex-name" placeholder="Exercise name…" autocomplete="off" oninput="onExNameInput(); updateGymInputMode();">
+            <div class="autocomplete-list hidden" id="ex-autocomplete"></div>
+          </div>
+          <div class="gym-input-row">
+            <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets">
+            <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
+            <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
+            <button class="green-btn" onclick="addExercise()">+ Add</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span class="feeling-label">Feel</span>
+            <div class="feeling-row" id="feeling-row"></div>
+            <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
+          </div>
+          <button class="outline-btn" onclick="openGymAI()">🤖 AI Coach…</button>
         </div>
-        <div class="gym-input-row">
-          <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets">
-          <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
-          <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
-          <button class="green-btn" onclick="addExercise()">+ Add</button>
-        </div>
-        <!-- Feeling / RPE row (populated by JS) -->
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span class="feeling-label">Feel</span>
-          <div class="feeling-row" id="feeling-row"></div>
-          <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
-        </div>
-        <button class="outline-btn" onclick="openGymAI()">🤖 AI Coach…</button>
-      </div>
 
-      <!-- Exercise List -->
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Exercises</span>
+        <!-- Today's Exercise List -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Today's Exercises</span>
+          </div>
+          <div class="card-body" id="exercise-list">
+            <div class="empty-state">No exercises yet</div>
+          </div>
         </div>
-        <div class="card-body" id="exercise-list">
-          <div class="empty-state">No exercises yet</div>
-        </div>
+
+        <!-- Past gym sessions history -->
+        <div class="section-label" style="margin-top:8px">History</div>
+        <div id="gym-history-list"></div>
       </div>
+    </div>
+
+    <!-- SECONDARY: Day Detail (read-only) -->
+    <div id="gym-day-detail">
+      <div class="detail-header">
+        <button class="back-btn" onclick="backToGymList()">← Back</button>
+        <div class="detail-title" id="gym-detail-title">Session</div>
+      </div>
+      <div class="detail-inner" id="gym-detail-inner" style="padding:16px 16px 90px;"></div>
     </div>
   </div>
 
@@ -765,6 +807,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
       <!-- Date + export row -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;">
         <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
+        <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">⌚ Garmin</button>
         <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">☁️ Sync</button>
         <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">⬇ Save</button>
       </div>
@@ -909,6 +952,23 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeGistModal()">Cancel</button>
       <button class="green-btn" onclick="saveGistToken()">Save & Sync Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- GARMIN MODAL -->
+<div class="modal-overlay" id="garmin-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">⌚ Garmin Active Calories</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+      Open <strong>Garmin Connect</strong> → Today → Performance Stats → <strong>Active Calories</strong> and enter the value below. This replaces the session estimate in your energy balance.
+    </p>
+    <label class="modal-label">Active Calories from Garmin (kcal)</label>
+    <input type="number" class="modal-input" id="garmin-kcal-input" placeholder="e.g. 620" inputmode="numeric">
+    <div id="garmin-status" style="font-size:12px;color:var(--sp-green);margin-bottom:8px;min-height:18px;"></div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeGarminModal()">Cancel</button>
+      <button class="green-btn" onclick="saveGarminKcal()">Save</button>
     </div>
   </div>
 </div>
@@ -1157,6 +1217,7 @@ function loadState(key) {
     if (!raw) return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false };
     const s = JSON.parse(raw);
     if (s.waterMl === undefined) s.waterMl = 0;
+    if (s.garminKcal === undefined) s.garminKcal = 0;
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -2199,6 +2260,7 @@ function initGymTab() {
   renderSessionSuggestions();
   renderExerciseList();
   renderFreqExercises();
+  renderGymHistory();
 }
 
 function onSessionChange() {
@@ -2343,6 +2405,73 @@ function selectFreqEx(name) {
   updateGymInputMode();
   document.getElementById('gym-sets').focus();
   if (freqExOpen) toggleFreqEx();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GYM HISTORY (two-level nav)
+// ═══════════════════════════════════════════════════════════════
+function renderGymHistory() {
+  const container = document.getElementById('gym-history-list');
+  if (!container) return;
+  const keys = getRecentKeys(14);
+  const todayK = todayKey();
+  let html = '';
+  for (let i = 1; i < keys.length; i++) {
+    const key = keys[i];
+    const s = loadState(key);
+    if (!s || (!s.gym?.session && (!s.gym?.exercises || s.gym.exercises.length === 0))) continue;
+    const exCount = (s.gym?.exercises || []).length;
+    const sessionName = s.gym?.session || 'Session';
+    const exLabel = exCount > 0 ? `${exCount} exercise${exCount > 1 ? 's' : ''}` : 'No exercises logged';
+    html += `<div class="gym-history-card" onclick="showGymDayDetail('${key}')">
+      <div>
+        <div class="gym-history-session">${escHtml(sessionName)}</div>
+        <div class="gym-history-meta">${formatKey(key)} · ${exLabel}</div>
+      </div>
+      <div class="chevron-right">›</div>
+    </div>`;
+  }
+  container.innerHTML = html || '<div style="color:var(--muted);font-size:13px;padding:12px 0;">No gym history yet</div>';
+}
+
+function showGymDayDetail(key) {
+  const s = loadState(key);
+  document.getElementById('gym-detail-title').textContent = formatKey(key);
+  const inner = document.getElementById('gym-detail-inner');
+  const exercises = s.gym?.exercises || [];
+  const session = s.gym?.session || '';
+  let html = '';
+  if (session) {
+    html += `<div class="card" style="margin-bottom:14px;"><div class="card-body">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;">Session</div>
+      <div style="font-size:16px;font-weight:800;color:var(--text);">${escHtml(session)}</div>
+    </div></div>`;
+  }
+  if (exercises.length === 0) {
+    html += `<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No exercises logged</div>`;
+  } else {
+    html += `<div class="card"><div class="card-header"><span class="card-title">Exercises</span></div><div class="card-body">`;
+    for (const e of exercises) {
+      const hold = e.hold || isHoldExercise(e.name);
+      const parts = hold
+        ? [e.sets ? e.sets + ' rounds' : '', e.reps ? e.reps + 's' : ''].filter(Boolean)
+        : [e.sets ? e.sets + ' sets' : '', e.reps ? e.reps + ' reps' : '', e.weight ? '@' + e.weight : ''].filter(Boolean);
+      const feelBadge = e.feeling ? ` · Feel ${e.feeling}/10` : '';
+      html += `<div class="gym-detail-exercise">
+        <div style="font-size:14px;font-weight:700;color:var(--text2);">${escHtml(e.name)}</div>
+        <div style="font-size:11px;color:var(--muted);text-align:right;">${parts.join(' · ') || '—'}${feelBadge}</div>
+      </div>`;
+    }
+    html += `</div></div>`;
+  }
+  inner.innerHTML = html;
+  document.getElementById('gym-day-list').classList.add('slide-left');
+  document.getElementById('gym-day-detail').classList.add('slide-in');
+}
+
+function backToGymList() {
+  document.getElementById('gym-day-list').classList.remove('slide-left');
+  document.getElementById('gym-day-detail').classList.remove('slide-in');
 }
 
 // ─── FEELING / RPE ──────────────────────────────────────────────
@@ -2497,13 +2626,13 @@ Keep replies concise. Weight can be in lbs or kg as user specifies.`;
 // SUMMARY TAB
 // ═══════════════════════════════════════════════════════════════
 
-// Estimated calories burned for each session type
+// Estimated active calories burned per session type
 const SESSION_BURN = {
   'Upper Body – Push': 280, 'Upper Body – Pull': 280,
-  'Lower Body – Squat': 350, 'Lower Body – Hinge': 350,
-  'Full Body': 420, 'Rugby Training': 700, 'Conditioning': 600,
-  'Marathon Run': 800, 'Long Run': 650, 'Tempo Run': 500,
-  'Interval Run': 480, 'Recovery Run': 320,
+  'Lower Body – Squat': 380, 'Lower Body – Hinge': 380,
+  'Full Body': 450, 'Rugby Training': 750, 'Conditioning': 620,
+  'Marathon Run': 2600, 'Long Run': 900, 'Tempo Run': 600,
+  'Interval Run': 520, 'Recovery Run': 350,
   'Handstand Practice': 200, 'Mobility': 120, 'Rest Day': 0,
 };
 // RMR measured by DEXA scan (BodySpec, May 1 2026) — 1,357 kcal/day
@@ -2516,7 +2645,13 @@ function renderLogTab() {
   if (lbl) lbl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
   // ── Energy Balance card — visual graph ──
-  const sessionBurn = SESSION_BURN[state.gym.session] || 0;
+  const garminKcal = state.garminKcal || 0;
+  const sessionBurn = garminKcal > 0 ? garminKcal
+    : (SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
+    : (state.gym.exercises && state.gym.exercises.length > 0 ? 300 : 0));
+  const burnSource = garminKcal > 0 ? '⌚ Garmin'
+    : state.gym.session ? escHtml(state.gym.session)
+    : state.gym.exercises && state.gym.exercises.length > 0 ? 'exercises logged' : null;
   const totalBurn = BMR_ESTIMATE + sessionBurn;
   const eaten = Math.round(m.kcal);
   const netKcal = eaten - totalBurn;
@@ -2575,7 +2710,7 @@ function renderLogTab() {
       </div>
     </div>
     <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-top:12px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.06);">
-      RMR ${BMR_ESTIMATE} kcal (DEXA)${state.gym.session ? ` + ${escHtml(state.gym.session)} ~${sessionBurn} kcal` : ' · no session today'}
+      RMR ${BMR_ESTIMATE} kcal (DEXA)${burnSource ? ` + ${burnSource} ~${sessionBurn} kcal` : ' · no training today'}
     </div>`;
 
   // ── Macro stats grid ──
@@ -2709,6 +2844,32 @@ function openGistModal() {
 function closeGistModal() {
   document.getElementById('gist-modal').classList.remove('open');
 }
+
+// ═══════════════════════════════════════════════════════════════
+// GARMIN MANUAL OVERRIDE
+// ═══════════════════════════════════════════════════════════════
+function openGarminModal() {
+  const existing = state.garminKcal || '';
+  document.getElementById('garmin-kcal-input').value = existing || '';
+  const status = document.getElementById('garmin-status');
+  status.textContent = existing ? `Currently set: ${existing} kcal` : '';
+  document.getElementById('garmin-modal').classList.add('open');
+  setTimeout(() => document.getElementById('garmin-kcal-input').focus(), 200);
+}
+function closeGarminModal() {
+  document.getElementById('garmin-modal').classList.remove('open');
+}
+function saveGarminKcal() {
+  const val = parseInt(document.getElementById('garmin-kcal-input').value) || 0;
+  state.garminKcal = val;
+  saveState();
+  closeGarminModal();
+  renderLogTab();
+  const btn = document.getElementById('garmin-btn');
+  if (btn) btn.style.color = val > 0 ? 'var(--sp-green)' : '';
+  showToast(val > 0 ? `⌚ Garmin: ${val} kcal saved` : '⌚ Garmin data cleared');
+}
+
 function saveGistToken() {
   const token = document.getElementById('gist-token-input').value.trim();
   if (!token) { document.getElementById('gist-status').textContent = 'Please enter a token'; return; }
@@ -3054,6 +3215,11 @@ function init() {
   renderHeader();
   renderDayList();
   checkBackupReminder();
+  // Highlight Garmin button if data already set for today
+  if (state.garminKcal > 0) {
+    const btn = document.getElementById('garmin-btn');
+    if (btn) btn.style.color = 'var(--sp-green)';
+  }
 
   // Populate gym sessions
   const sel = document.getElementById('session-select');

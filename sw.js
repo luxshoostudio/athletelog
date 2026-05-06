@@ -1,10 +1,11 @@
 // AthleteLog Service Worker — Cache-first, offline-ready
-const CACHE = 'athletelog-v6';
+const CACHE = 'athletelog-v7';
 const ASSETS = [
-  '/athlete_log.html',
-  '/manifest.json',
-  '/icon.svg',
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon.svg',
+  'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap'
 ];
 
 // Install: pre-cache core assets
@@ -27,8 +28,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Always network for Claude API / Open Food Facts
-  if (url.hostname === 'api.anthropic.com' || url.hostname.includes('openfoodfacts')) {
+  // Always network for Claude API / Open Food Facts / GitHub
+  if (url.hostname === 'api.anthropic.com' || url.hostname.includes('openfoodfacts') || url.hostname === 'api.github.com') {
     return;
   }
 
@@ -37,16 +38,14 @@ self.addEventListener('fetch', e => {
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(res => {
-        // Cache successful GET responses
         if (e.request.method === 'GET' && res.status === 200) {
           const clone = res.clone();
           caches.open(CACHE).then(cache => cache.put(e.request, clone));
         }
         return res;
       }).catch(() => {
-        // Offline fallback — return app shell
         if (e.request.destination === 'document') {
-          return caches.match('/athlete_log.html');
+          return caches.match('./index.html');
         }
       });
     })
