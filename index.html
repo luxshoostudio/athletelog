@@ -1051,8 +1051,44 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
   </div>
 </div>
 
-<!-- Hidden file input -->
+<!-- RESTORE MODAL (shown on fresh install / empty storage) -->
+<div class="modal-overlay" id="restore-modal" style="z-index:500;">
+  <div class="modal-sheet">
+    <div class="modal-title">Restore Your Data</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
+      No data found — this can happen when adding the app to your home screen for the first time. Restore from a backup to get your history back.
+    </p>
+
+    <!-- Option A: file upload -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Option 1 — Upload backup file</div>
+      <button class="outline-btn" style="width:100%;padding:13px;" onclick="document.getElementById('restore-file-input').click()">
+        📁 Choose athletelog-backup.json
+      </button>
+    </div>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <div style="flex:1;height:1px;background:rgba(0,0,0,0.08);"></div>
+      <span style="font-size:11px;color:var(--dim);font-weight:700;">OR</span>
+      <div style="flex:1;height:1px;background:rgba(0,0,0,0.08);"></div>
+    </div>
+
+    <!-- Option B: Gist restore -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Option 2 — Restore from GitHub Gist</div>
+      <input type="password" class="modal-input" id="restore-gist-token" placeholder="GitHub token (github_pat_…)" style="margin-bottom:8px;">
+      <button class="green-btn" style="width:100%;padding:13px;" onclick="restoreFromGist()">☁️ Restore from Gist</button>
+    </div>
+
+    <div id="restore-status" style="font-size:12px;color:var(--muted);min-height:18px;margin-bottom:10px;text-align:center;"></div>
+    <button class="outline-btn" style="width:100%;padding:12px;" onclick="closeRestoreModal()">Start Fresh</button>
+  </div>
+</div>
+
+<!-- Hidden file inputs -->
 <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
+<input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleBackupFileRestore(event)">
 
 <script>
 'use strict';
@@ -2889,6 +2925,113 @@ function renderLogTab() {
 // ═══════════════════════════════════════════════════════════════
 // DATA EXPORT (for weekly backup)
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// RESTORE / IMPORT
+// ═══════════════════════════════════════════════════════════════
+function hasAnyLogData() {
+  return Object.keys(localStorage).some(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k));
+}
+
+function checkFirstRun() {
+  if (!hasAnyLogData()) {
+    document.getElementById('restore-modal').classList.add('open');
+  }
+}
+
+function closeRestoreModal() {
+  document.getElementById('restore-modal').classList.remove('open');
+}
+
+function _importData(data) {
+  let count = 0;
+  for (const [key, val] of Object.entries(data)) {
+    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) {
+      localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+      count++;
+    }
+  }
+  return count;
+}
+
+function handleBackupFileRestore(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // Support both raw format {alog_…: {…}} and wrapped {data: {alog_…: {…}}}
+      const payload = parsed.data || parsed;
+      const count = _importData(payload);
+      if (count === 0) throw new Error('No log data found in file');
+      closeRestoreModal();
+      // Reload state from today
+      state = loadState(todayKey());
+      renderHeader();
+      renderDayList();
+      renderLogTab();
+      showToast(`✓ Restored ${count} days of data`, 4000);
+    } catch(err) {
+      document.getElementById('restore-status').textContent = 'Error: ' + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+async function restoreFromGist() {
+  const token = document.getElementById('restore-gist-token').value.trim();
+  if (!token) {
+    document.getElementById('restore-status').textContent = 'Enter your GitHub token first';
+    return;
+  }
+  const status = document.getElementById('restore-status');
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Looking for backup…';
+
+  try {
+    // Find the most recent AthleteLog backup gist
+    const listResp = await fetch('https://api.github.com/gists?per_page=30', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!listResp.ok) throw new Error('GitHub auth failed — check your token');
+    const gists = await listResp.json();
+    const backup = gists.find(g =>
+      g.description && g.description.includes('AthleteLog') &&
+      g.files && g.files['athletelog-backup.json']
+    );
+    if (!backup) throw new Error('No AthleteLog backup found in your Gists');
+
+    status.textContent = 'Found backup, downloading…';
+    const gistResp = await fetch(`https://api.github.com/gists/${backup.id}`, {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!gistResp.ok) throw new Error('Could not fetch backup file');
+    const gistData = await gistResp.json();
+    const raw = gistData.files['athletelog-backup.json']?.content;
+    if (!raw) throw new Error('Backup file is empty');
+
+    const parsed = JSON.parse(raw);
+    const payload = parsed.data || parsed;
+    const count = _importData(payload);
+    if (count === 0) throw new Error('No log entries found in backup');
+
+    // Save token + gist ID for future syncs
+    localStorage.setItem('github_gist_token', token);
+    localStorage.setItem('github_gist_id', backup.id);
+
+    closeRestoreModal();
+    state = loadState(todayKey());
+    renderHeader();
+    renderDayList();
+    renderLogTab();
+    showToast(`✓ Restored ${count} days from Gist`, 4000);
+  } catch(err) {
+    status.style.color = 'var(--red)';
+    status.textContent = err.message;
+  }
+}
+
 function exportData() {
   const allData = {};
   for (const key of Object.keys(localStorage)) {
@@ -3514,6 +3657,7 @@ function init() {
     if (btn) btn.style.color = 'var(--sp-green)';
   }
   // Handle Strava OAuth callback if returning from auth redirect
+  checkFirstRun();
   handleStravaCallback();
   updateStravaBtn();
   // Auto-fetch Strava calories on load if connected
