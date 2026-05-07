@@ -765,6 +765,8 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
             <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets">
             <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
             <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
+            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal">
+            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none">
             <button class="green-btn" onclick="addExercise()">+ Add</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1085,6 +1087,30 @@ const EXERCISES = [
   'Kettlebell Swing','Turkish Get-Up','Clean','Power Clean','Snatch',
   'Muscle-Up','Ring Dip','100 Mixed Pushups'
 ];
+
+// Run-type exercises (track distance + time, not sets × reps)
+const RUN_EXERCISES_LIST = [
+  'run','running','jog','jogging','sprint','marathon','long run','tempo run',
+  'interval run','recovery run','easy run','trail run','5k','10k','half marathon',
+  'treadmill','race','parkrun','fartlek',
+];
+function isRunExercise(name) {
+  const n = (name || '').toLowerCase();
+  return RUN_EXERCISES_LIST.some(r => n.includes(r));
+}
+
+function calcPacePerMile(miles, timeStr) {
+  if (!miles || !timeStr) return '';
+  const parts = String(timeStr).split(':').map(Number);
+  let mins = 0;
+  if (parts.length === 3) mins = parts[0] * 60 + parts[1] + parts[2] / 60;
+  else if (parts.length === 2) mins = parts[0] * 60 + parts[1];
+  else mins = parts[0];
+  if (!mins || !parseFloat(miles)) return '';
+  const pace = mins / parseFloat(miles);
+  const m = Math.floor(pace), s = Math.round((pace - m) * 60);
+  return `${m}:${String(s).padStart(2,'0')}/mi`;
+}
 
 // Hold-type exercises (track seconds + rounds, not sets × reps)
 const HOLD_EXERCISES_LIST = [
@@ -2360,21 +2386,27 @@ function selectExAutocomplete(name) {
 function addExercise() {
   const name = document.getElementById('gym-ex-name').value.trim();
   if (!name) return;
-  const sets = document.getElementById('gym-sets').value.trim();
-  const reps = document.getElementById('gym-reps').value.trim();
-  const weight = document.getElementById('gym-weight').value.trim();
-  const hold = isHoldExercise(name);
-  const exercise = {
-    id: uid(), name,
-    sets: sets||'', reps: reps||'', weight: hold ? '' : (weight||''),
-    hold, feeling: currentFeeling || null
-  };
+  const run  = isRunExercise(name);
+  const hold = !run && isHoldExercise(name);
+  const exercise = { id: uid(), name, feeling: currentFeeling || null };
+  if (run) {
+    exercise.distance = document.getElementById('gym-distance').value.trim();
+    exercise.runTime  = document.getElementById('gym-run-time').value.trim();
+    exercise.run = true;
+  } else {
+    exercise.sets   = document.getElementById('gym-sets').value.trim();
+    exercise.reps   = document.getElementById('gym-reps').value.trim();
+    exercise.weight = hold ? '' : document.getElementById('gym-weight').value.trim();
+    exercise.hold   = hold;
+  }
   state.gym.exercises.push(exercise);
   saveState();
-  document.getElementById('gym-ex-name').value = '';
-  document.getElementById('gym-sets').value = '';
-  document.getElementById('gym-reps').value = '';
-  document.getElementById('gym-weight').value = '';
+  document.getElementById('gym-ex-name').value   = '';
+  document.getElementById('gym-sets').value       = '';
+  document.getElementById('gym-reps').value       = '';
+  document.getElementById('gym-weight').value     = '';
+  document.getElementById('gym-distance').value   = '';
+  document.getElementById('gym-run-time').value   = '';
   document.getElementById('ex-autocomplete').classList.add('hidden');
   setFeeling(null);
   updateGymInputMode();
@@ -2394,16 +2426,28 @@ function renderExerciseList() {
     return;
   }
   list.innerHTML = state.gym.exercises.map(e => {
-    const hold = e.hold || isHoldExercise(e.name);
-    const parts = hold
-      ? [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean)
-      : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
+    const run  = e.run  || isRunExercise(e.name);
+    const hold = !run && (e.hold || isHoldExercise(e.name));
+    let parts;
+    if (run) {
+      const pace = calcPacePerMile(e.distance, e.runTime);
+      parts = [
+        e.distance ? e.distance + ' mi' : '',
+        e.runTime  ? e.runTime           : '',
+        pace       ? pace                : '',
+      ].filter(Boolean);
+    } else if (hold) {
+      parts = [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean);
+    } else {
+      parts = [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
+    }
     const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:var(--bg);box-shadow:var(--nm-flat);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
-    const holdTag = hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
+    const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
+              : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
     return `
     <div class="exercise-row">
       <div class="exercise-info">
-        <div class="exercise-name">${escHtml(e.name)}${holdTag}</div>
+        <div class="exercise-name">${escHtml(e.name)}${tag}</div>
         <div class="exercise-sets">${parts.join(' · ')||'No details'}${feelBadge}</div>
       </div>
       <button class="exercise-delete" onclick="deleteExercise('${e.id}')">✕</button>
@@ -2490,10 +2534,17 @@ function showGymDayDetail(key) {
   } else {
     html += `<div class="card"><div class="card-header"><span class="card-title">Exercises</span></div><div class="card-body">`;
     for (const e of exercises) {
-      const hold = e.hold || isHoldExercise(e.name);
-      const parts = hold
-        ? [e.sets ? e.sets + ' rounds' : '', e.reps ? e.reps + 's' : ''].filter(Boolean)
-        : [e.sets ? e.sets + ' sets' : '', e.reps ? e.reps + ' reps' : '', e.weight ? '@' + e.weight : ''].filter(Boolean);
+      const run  = e.run  || isRunExercise(e.name);
+      const hold = !run && (e.hold || isHoldExercise(e.name));
+      let parts;
+      if (run) {
+        const pace = calcPacePerMile(e.distance, e.runTime);
+        parts = [e.distance ? e.distance+' mi' : '', e.runTime || '', pace].filter(Boolean);
+      } else if (hold) {
+        parts = [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean);
+      } else {
+        parts = [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
+      }
       const feelBadge = e.feeling ? ` · Feel ${e.feeling}/10` : '';
       html += `<div class="gym-detail-exercise">
         <div style="font-size:14px;font-weight:700;color:var(--text2);">${escHtml(e.name)}</div>
@@ -2529,19 +2580,22 @@ function setFeeling(val) {
 // ─── HOLD EXERCISE MODE ─────────────────────────────────────────
 function updateGymInputMode() {
   const name = (document.getElementById('gym-ex-name')||{}).value || '';
-  const repsEl = document.getElementById('gym-reps');
-  const setsEl = document.getElementById('gym-sets');
-  const weightEl = document.getElementById('gym-weight');
+  const setsEl     = document.getElementById('gym-sets');
+  const repsEl     = document.getElementById('gym-reps');
+  const weightEl   = document.getElementById('gym-weight');
+  const distEl     = document.getElementById('gym-distance');
+  const timeEl     = document.getElementById('gym-run-time');
   if (!repsEl) return;
-  if (isHoldExercise(name)) {
-    repsEl.placeholder = 'Secs';
-    setsEl.placeholder = 'Rounds';
-    weightEl.style.display = 'none';
-  } else {
-    repsEl.placeholder = 'Reps';
-    setsEl.placeholder = 'Sets';
-    weightEl.style.display = '';
-  }
+  const run  = isRunExercise(name);
+  const hold = !run && isHoldExercise(name);
+  // run mode: distance + time only
+  setsEl.style.display   = run ? 'none' : '';
+  repsEl.style.display   = run ? 'none' : '';
+  weightEl.style.display = (run || hold) ? 'none' : '';
+  distEl.style.display   = run ? '' : 'none';
+  timeEl.style.display   = run ? '' : 'none';
+  if (hold) { setsEl.placeholder = 'Rounds'; repsEl.placeholder = 'Secs'; }
+  else      { setsEl.placeholder = 'Sets';   repsEl.placeholder = 'Reps'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2934,14 +2988,21 @@ function saveStravaAndConnect() {
   startStravaOAuth();
 }
 
+function stravaRedirectUri() {
+  // Always use the exact deployed URL — no trailing slash ambiguity
+  const path = window.location.pathname.endsWith('/')
+    ? window.location.pathname
+    : window.location.pathname + '/';
+  return window.location.origin + path;
+}
+
 function startStravaOAuth() {
   const clientId = localStorage.getItem('strava_client_id');
   if (!clientId) { openStravaModal(); return; }
-  const redirectUri = window.location.origin + window.location.pathname.replace(/\/$/, '') + '/';
   const params = new URLSearchParams({
     client_id:       clientId,
     response_type:   'code',
-    redirect_uri:    redirectUri,
+    redirect_uri:    stravaRedirectUri(),
     approval_prompt: 'auto',
     scope:           'activity:read',
   });
@@ -2966,10 +3027,11 @@ async function handleStravaCallback() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
-                             code, grant_type: 'authorization_code' }),
+                             code, redirect_uri: stravaRedirectUri(),
+                             grant_type: 'authorization_code' }),
     });
     const data = await resp.json();
-    if (!data.access_token) throw new Error(data.message || 'Token exchange failed');
+    if (!data.access_token) throw new Error(data.message || data.error || JSON.stringify(data));
     _stravaStoreTokens(data);
     showToast('✓ Strava connected!');
     updateStravaBtn();
