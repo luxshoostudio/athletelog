@@ -807,6 +807,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
       <!-- Date + export row -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;">
         <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
+        <button class="outline-btn" onclick="openStravaModal()" style="padding:7px 12px;font-size:10px;" id="strava-btn">⚡ Strava</button>
         <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">⌚ Garmin</button>
         <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">☁️ Sync</button>
         <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">⬇ Save</button>
@@ -952,6 +953,42 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; 
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeGistModal()">Cancel</button>
       <button class="green-btn" onclick="saveGistToken()">Save & Sync Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- STRAVA MODAL -->
+<div class="modal-overlay" id="strava-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">⚡ Strava</div>
+    <div id="strava-connected-view" style="display:none;">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 0 16px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:#fc4c02;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);" id="strava-athlete-label">Connected</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="strava-sync-label">Tap Sync to fetch today's calories</div>
+        </div>
+      </div>
+      <div class="modal-btn-row">
+        <button class="outline-btn" onclick="closeStravaModal()">Close</button>
+        <button class="outline-btn" onclick="stravaDisconnect()" style="color:var(--red);">Disconnect</button>
+        <button class="green-btn" onclick="stravaSync()">⟳ Sync Now</button>
+      </div>
+    </div>
+    <div id="strava-setup-view">
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+        Enter your Strava API credentials from<br>
+        <strong>strava.com/settings/api</strong>
+      </p>
+      <label class="modal-label">Client ID</label>
+      <input type="text" class="modal-input" id="strava-client-id" placeholder="e.g. 123456" inputmode="numeric">
+      <label class="modal-label">Client Secret</label>
+      <input type="password" class="modal-input" id="strava-client-secret" placeholder="abc123…">
+      <div id="strava-status" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px;"></div>
+      <div class="modal-btn-row">
+        <button class="outline-btn" onclick="closeStravaModal()">Cancel</button>
+        <button class="green-btn" onclick="saveStravaAndConnect()">Connect →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1218,6 +1255,7 @@ function loadState(key) {
     const s = JSON.parse(raw);
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
+    if (s.stravaKcal === undefined) s.stravaKcal = 0;
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -2645,11 +2683,15 @@ function renderLogTab() {
   if (lbl) lbl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
   // ── Energy Balance card — visual graph ──
+  // Priority: manual Garmin override → Strava auto-sync → session estimate → exercise count fallback
   const garminKcal = state.garminKcal || 0;
+  const stravaKcal = state.stravaKcal || 0;
   const sessionBurn = garminKcal > 0 ? garminKcal
+    : stravaKcal > 0 ? stravaKcal
     : (SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
     : (state.gym.exercises && state.gym.exercises.length > 0 ? 300 : 0));
-  const burnSource = garminKcal > 0 ? '⌚ Garmin'
+  const burnSource = garminKcal > 0 ? '⌚ Garmin override'
+    : stravaKcal > 0 ? '⚡ Strava'
     : state.gym.session ? escHtml(state.gym.session)
     : state.gym.exercises && state.gym.exercises.length > 0 ? 'exercises logged' : null;
   const totalBurn = BMR_ESTIMATE + sessionBurn;
@@ -2843,6 +2885,192 @@ function openGistModal() {
 }
 function closeGistModal() {
   document.getElementById('gist-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STRAVA OAUTH + ACTIVITY SYNC
+// ═══════════════════════════════════════════════════════════════
+const STRAVA_AUTH_URL  = 'https://www.strava.com/oauth/authorize';
+const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
+const STRAVA_API_URL   = 'https://www.strava.com/api/v3';
+
+function stravaIsConnected() {
+  return !!(localStorage.getItem('strava_access_token') &&
+            localStorage.getItem('strava_client_id'));
+}
+
+function openStravaModal() {
+  const connected = stravaIsConnected();
+  document.getElementById('strava-connected-view').style.display = connected ? '' : 'none';
+  document.getElementById('strava-setup-view').style.display    = connected ? 'none' : '';
+  if (connected) {
+    const name = localStorage.getItem('strava_athlete_name') || 'Athlete';
+    document.getElementById('strava-athlete-label').textContent = `Connected as ${name}`;
+    const kcal = state.stravaKcal || 0;
+    document.getElementById('strava-sync-label').textContent =
+      kcal > 0 ? `Today: ${kcal} kcal synced from Strava` : 'Tap Sync to fetch today\'s calories';
+  } else {
+    document.getElementById('strava-client-id').value = localStorage.getItem('strava_client_id') || '';
+    document.getElementById('strava-client-secret').value = '';
+    document.getElementById('strava-status').textContent = '';
+  }
+  document.getElementById('strava-modal').classList.add('open');
+}
+
+function closeStravaModal() {
+  document.getElementById('strava-modal').classList.remove('open');
+}
+
+function saveStravaAndConnect() {
+  const clientId     = document.getElementById('strava-client-id').value.trim();
+  const clientSecret = document.getElementById('strava-client-secret').value.trim();
+  if (!clientId || !clientSecret) {
+    document.getElementById('strava-status').textContent = 'Both fields are required';
+    return;
+  }
+  localStorage.setItem('strava_client_id',     clientId);
+  localStorage.setItem('strava_client_secret', clientSecret);
+  closeStravaModal();
+  startStravaOAuth();
+}
+
+function startStravaOAuth() {
+  const clientId = localStorage.getItem('strava_client_id');
+  if (!clientId) { openStravaModal(); return; }
+  const redirectUri = window.location.origin + window.location.pathname.replace(/\/$/, '') + '/';
+  const params = new URLSearchParams({
+    client_id:       clientId,
+    response_type:   'code',
+    redirect_uri:    redirectUri,
+    approval_prompt: 'auto',
+    scope:           'activity:read',
+  });
+  window.location.href = `${STRAVA_AUTH_URL}?${params}`;
+}
+
+async function handleStravaCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const error = params.get('error');
+  // Clean URL regardless
+  if (code || error) history.replaceState({}, '', window.location.pathname);
+  if (error || !code) return;
+
+  const clientId     = localStorage.getItem('strava_client_id');
+  const clientSecret = localStorage.getItem('strava_client_secret');
+  if (!clientId || !clientSecret) { showToast('Strava credentials missing — reconnect'); return; }
+
+  showToast('⚡ Connecting to Strava…', 5000);
+  try {
+    const resp = await fetch(STRAVA_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
+                             code, grant_type: 'authorization_code' }),
+    });
+    const data = await resp.json();
+    if (!data.access_token) throw new Error(data.message || 'Token exchange failed');
+    _stravaStoreTokens(data);
+    showToast('✓ Strava connected!');
+    updateStravaBtn();
+    await fetchTodayStravaCalories();
+  } catch(e) {
+    showToast('Strava error: ' + e.message, 5000);
+  }
+}
+
+function _stravaStoreTokens(data) {
+  localStorage.setItem('strava_access_token',  data.access_token);
+  localStorage.setItem('strava_refresh_token', data.refresh_token);
+  localStorage.setItem('strava_token_expires', data.expires_at);
+  if (data.athlete?.firstname) {
+    localStorage.setItem('strava_athlete_name',
+      [data.athlete.firstname, data.athlete.lastname].filter(Boolean).join(' '));
+  }
+}
+
+async function _stravaEnsureToken() {
+  const expires = parseInt(localStorage.getItem('strava_token_expires') || '0');
+  if (Math.floor(Date.now() / 1000) < expires - 120) return true; // still valid
+
+  const refreshToken = localStorage.getItem('strava_refresh_token');
+  const clientId     = localStorage.getItem('strava_client_id');
+  const clientSecret = localStorage.getItem('strava_client_secret');
+  if (!refreshToken || !clientId || !clientSecret) return false;
+
+  try {
+    const resp = await fetch(STRAVA_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
+                             refresh_token: refreshToken, grant_type: 'refresh_token' }),
+    });
+    const data = await resp.json();
+    if (!data.access_token) return false;
+    _stravaStoreTokens(data);
+    return true;
+  } catch { return false; }
+}
+
+async function fetchTodayStravaCalories(silent = true) {
+  if (!stravaIsConnected()) return;
+  const ok = await _stravaEnsureToken();
+  if (!ok) { if (!silent) showToast('Strava token expired — reconnect'); return; }
+
+  const token = localStorage.getItem('strava_access_token');
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const after = Math.floor(todayStart.getTime() / 1000);
+
+  try {
+    const resp = await fetch(`${STRAVA_API_URL}/athlete/activities?per_page=10&after=${after}`,
+      { headers: { 'Authorization': `Bearer ${token}` } });
+    if (!resp.ok) throw new Error('API ' + resp.status);
+    const activities = await resp.json();
+    if (!Array.isArray(activities)) return;
+
+    const totalKcal = activities.reduce((sum, a) => sum + (a.calories || 0), 0);
+    const names = activities.map(a => a.name || a.sport_type || a.type).filter(Boolean);
+
+    state.stravaKcal = totalKcal;
+    saveState();
+    renderLogTab();
+    updateStravaBtn();
+    if (!silent) {
+      showToast(totalKcal > 0
+        ? `⚡ Strava: ${totalKcal} kcal from ${activities.length} activit${activities.length > 1 ? 'ies' : 'y'}`
+        : '⚡ Strava: no activities today yet', 4000);
+    }
+  } catch(e) {
+    if (!silent) showToast('Strava sync failed: ' + e.message, 4000);
+  }
+}
+
+async function stravaSync() {
+  closeStravaModal();
+  await fetchTodayStravaCalories(false);
+}
+
+function stravaDisconnect() {
+  ['strava_access_token','strava_refresh_token','strava_token_expires',
+   'strava_client_id','strava_client_secret','strava_athlete_name'].forEach(k => localStorage.removeItem(k));
+  state.stravaKcal = 0;
+  saveState();
+  closeStravaModal();
+  updateStravaBtn();
+  renderLogTab();
+  showToast('Strava disconnected');
+}
+
+function updateStravaBtn() {
+  const btn = document.getElementById('strava-btn');
+  if (!btn) return;
+  if (stravaIsConnected()) {
+    btn.style.color = '#fc4c02';
+    btn.textContent = '⚡ Strava';
+  } else {
+    btn.style.color = '';
+    btn.textContent = '⚡ Strava';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3163,7 +3391,10 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const panel = document.getElementById(tab + '-panel');
     if (panel) panel.classList.add('active');
     if (tab === 'gym') initGymTab();
-    if (tab === 'log') renderLogTab();
+    if (tab === 'log') {
+      renderLogTab();
+      if (stravaIsConnected()) fetchTodayStravaCalories();
+    }
     if (tab === 'food') renderDayList();
   };
 });
@@ -3220,6 +3451,11 @@ function init() {
     const btn = document.getElementById('garmin-btn');
     if (btn) btn.style.color = 'var(--sp-green)';
   }
+  // Handle Strava OAuth callback if returning from auth redirect
+  handleStravaCallback();
+  updateStravaBtn();
+  // Auto-fetch Strava calories on load if connected
+  if (stravaIsConnected()) fetchTodayStravaCalories();
 
   // Populate gym sessions
   const sel = document.getElementById('session-select');
