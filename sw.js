@@ -1,5 +1,5 @@
 // AthleteLog Service Worker — Cache-first, offline-ready
-const CACHE = 'athletelog-v10';
+const CACHE = 'athletelog-v11';
 const ASSETS = [
   './',
   './index.html',
