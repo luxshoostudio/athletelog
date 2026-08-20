@@ -885,9 +885,14 @@ body {
 
 /* Gym */
 .organic-segment-label { margin-bottom:8px; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
-.organic-segments { display:grid; grid-template-columns:repeat(4,1fr); padding:3px; margin-bottom:18px; border:1px solid var(--glass-border); border-radius:999px; }
+.organic-segments { display:grid; grid-template-columns:repeat(var(--segment-count,4),minmax(0,1fr)); padding:3px; margin-bottom:14px; border:1px solid var(--glass-border); border-radius:999px; }
 .organic-segment { min-width:0; padding:9px 8px; border:0; border-radius:999px; background:transparent; color:var(--text2); font:700 12px var(--font); cursor:pointer; }
 .organic-segment.active { background:#c67139; color:#201e1d; }
+.organic-more-wrap { position:relative; min-width:0; }
+.organic-more-select { width:100%; height:100%; padding:9px 18px 9px 7px; border:0; border-radius:999px; background:transparent; color:var(--text2); font:700 12px var(--font); text-align:center; appearance:none; -webkit-appearance:none; cursor:pointer; }
+.organic-more-wrap::after { content:'\203A'; position:absolute; right:8px; top:50%; transform:translateY(-52%) rotate(90deg); color:var(--muted); pointer-events:none; }
+.organic-more-wrap.active { background:#c67139; border-radius:999px; }
+.organic-more-wrap.active .organic-more-select { color:#201e1d; }
 .session-bar { display:none; }
 .freq-ex-panel { padding:0; margin:0 0 18px; background:transparent; border:0; box-shadow:none; }
 .freq-ex-header { cursor:default; border:0; padding:0 0 8px; }
@@ -902,8 +907,26 @@ body {
 .gym-num-input { width:100%; }
 .gym-input-row .green-btn { min-width:44px; width:48px; padding:0; font-size:0; }
 .gym-input-row .green-btn::after { content:'+'; font-family:var(--display); font-size:18px; }
+.gym-last-hint { min-height:15px; margin-top:-4px; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.gym-num-input.suggested-value { color:var(--muted); }
 .feeling-label, #feeling-row, #feel-hint { margin-top:4px; }
 #exercise-list.card-body { padding:0; }
+.exercise-row { display:grid; grid-template-columns:32px minmax(0,1fr) 28px; align-items:start; gap:10px; }
+.exercise-row.is-complete { background:#e4e8d8 !important; }
+.exercise-check { width:28px; height:28px; margin-top:1px; border:1.5px solid #8c8173; border-radius:999px; background:transparent; color:transparent; font:800 15px var(--font); cursor:pointer; }
+.exercise-check[aria-checked="true"] { border-color:#65734c; background:#7a8a5e; color:#201e1d; }
+.exercise-name-line { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.exercise-name { min-width:0; }
+.exercise-last { flex-shrink:0; color:var(--muted); font-size:10px; font-variant-numeric:tabular-nums; }
+.exercise-fields { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin-top:8px; }
+.exercise-field { width:100%; min-width:0; padding:7px 5px; border:1px solid rgba(32,30,29,.16); border-radius:10px; background:rgba(255,255,255,.35); color:var(--text); font:600 12px var(--font); font-variant-numeric:tabular-nums; text-align:center; outline:none; }
+.exercise-field.suggested-value { color:var(--muted); }
+.exercise-field:focus { border-color:#7a8a5e; background:rgba(255,255,255,.7); color:var(--text); }
+.exercise-status { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.exercise-delete { width:28px; height:28px; padding:0; }
+.template-note { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; line-height:1.4; }
+.template-note-dot { width:7px; height:7px; border-radius:999px; background:#7a8a5e; flex:0 0 auto; }
+#session-suggestions { padding:0; background:transparent; border:0; border-radius:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card { margin-bottom:16px; background:var(--surface); border:0; border-radius:24px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card-header { padding:16px 18px 8px; border:0; }
 .card-title { color:var(--muted); font-size:11px; }
@@ -956,6 +979,7 @@ body {
   .organic-header-actions { max-width:136px; }
   .today-action-row .action-pill { padding-inline:7px; font-size:11px; }
   .gym-input-row { grid-template-columns:repeat(3,minmax(0,1fr)) 44px; }
+  .organic-segment, .organic-more-select { font-size:11px; padding-left:5px; padding-right:5px; }
   .summary-tools { width:100%; justify-content:flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
@@ -1073,12 +1097,7 @@ body {
     <div id="gym-day-list">
       <div class="panel-inner">
         <div class="organic-segment-label">Session</div>
-        <div class="organic-segments" id="organic-session-segments">
-          <button class="organic-segment" data-session="Upper Body - Push" onclick="selectOrganicSession('Upper Body - Push')">Push</button>
-          <button class="organic-segment" data-session="Upper Body - Pull" onclick="selectOrganicSession('Upper Body - Pull')">Pull</button>
-          <button class="organic-segment" data-session="Lower Body - Squat" onclick="selectOrganicSession('Lower Body - Squat')">Legs</button>
-          <button class="organic-segment" data-session="Conditioning" onclick="selectOrganicSession('Conditioning')">Cardio</button>
-        </div>
+        <div class="organic-segments" id="organic-session-segments" aria-label="Session templates"></div>
         <div class="session-bar">
           <div style="flex:1">
             <div class="session-label">Session</div>
@@ -1106,13 +1125,14 @@ body {
             <input type="text" class="gym-text-input" id="gym-ex-name" placeholder="Exercise name…" autocomplete="off" oninput="onExNameInput(); updateGymInputMode();">
             <div class="autocomplete-list hidden" id="ex-autocomplete"></div>
           </div>
+          <div class="gym-last-hint" id="gym-last-hint" aria-live="polite"></div>
           <div class="gym-input-row">
-            <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets">
-            <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps">
-            <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg">
-            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal">
-            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none">
-            <button class="green-btn" onclick="addExercise()">+ Add</button>
+            <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets" inputmode="numeric" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps" inputmode="text" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg" inputmode="text" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none" onfocus="markPrefillEdited(this)">
+            <button class="green-btn" aria-label="Add exercise" onclick="addExercise()">+ Add</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="feeling-label">Feel</span>
@@ -1125,7 +1145,8 @@ body {
         <!-- Today's Exercise List -->
         <div class="card">
           <div class="card-header">
-            <span class="card-title">Today's Exercises</span>
+            <span class="card-title">Today's Plan</span>
+            <span class="exercise-status" id="exercise-status">0 completed / 0 planned</span>
           </div>
           <div class="card-body" id="exercise-list">
             <div class="empty-state">No exercises yet</div>
@@ -1453,29 +1474,11 @@ body {
 const GOALS = { protein: 160, kcal: 2400, fat: 70, carbs: 220 };
 const WATER_GOAL_ML = 2500;
 
-const SESSIONS = [
-  'Upper Body - Push', 'Upper Body - Pull', 'Lower Body - Squat',
-  'Lower Body - Hinge', 'Full Body', 'Rugby Training', 'Conditioning',
-  'Marathon Run', 'Long Run', 'Tempo Run', 'Interval Run', 'Recovery Run',
-  'Handstand Practice', 'Mobility', 'Rest Day'
-];
-
-const EXERCISES = [
-  'Squat','Back Squat','Front Squat','Wide Stance Squat','Goblet Squat',
-  'Bench Press','Incline Bench Press','Overhead Press','Overhead Thruster',
-  'Narrow Grip Pull-Up','Wide Grip Pull-Up','Pull-Up','Chin-Up',
-  'Lat Pulldown','Seated Row','Bent Over Row','Barbell Row',
-  'Deadlift','RDL','Single Leg Deadlift','Sumo Deadlift','Hex Bar Deadlift',
-  'Dips','Narrow Pushups','Wide Pushups','Pike Pushups','Push-Up',
-  'Toe to Bar','L-Sit','L-Sit Hold','Handstand Hold','Handstand Walk',
-  'Handstand Shoulder Taps','Against-Bench Handstand Hold','Wrist Curl',
-  'Hamstring Curl','Side Lunge with KB','Kneeling to Box Jump','Box Jump',
-  'Hip Thrust','Glute Bridge','Lunge','Bulgarian Split Squat','Step-Up',
-  'Leg Press','Leg Extension','Calf Raise','Face Pull','Band Pull-Apart',
-  'Bicep Curl','Hammer Curl','Tricep Pushdown','Shrug',
-  'Plank','Ab Wheel','Russian Twist','Sled Push','Farmer Carry',
-  'Kettlebell Swing','Turkish Get-Up','Clean','Power Clean','Snatch',
-  'Muscle-Up','Ring Dip','100 Mixed Pushups'
+const STARTER_TEMPLATES = [
+  { name:'Push', exercises:['Bench Press','Overhead Press','Dips','Pushups'] },
+  { name:'Pull', exercises:['Bent Over Row','Pull-Ups','Lat Pulldown'] },
+  { name:'Legs', exercises:['Squat','Deadlift','Lunge','RDL'] },
+  { name:'Full Body', exercises:['Squat','Bent Over Row','Overhead Press','Plank'] },
 ];
 
 // Run-type exercises (track distance + time, not sets × reps)
@@ -1513,15 +1516,6 @@ function isHoldExercise(name) {
   if (!n) return false;
   return HOLD_EXERCISES_LIST.some(h => n.includes(h) || h.includes(n));
 }
-
-// Gym quick select, categorized from April gym log
-const GYM_QUICK = [
-  { cat: '🔼 Pull Day', items: ['Narrow Grip Pull-Up','Wide Grip Pull-Up','Bent Over Row','Overhead Thruster','Lat Pulldown'] },
-  { cat: '🔽 Push Day', items: ['Narrow Pushups','Wide Pushups','Dips','Pike Pushups','Overhead Thruster'] },
-  { cat: '🏋️ Lower Body', items: ['RDL','Deadlift','Single Leg Deadlift','Front Squat','Wide Stance Squat','Hamstring Curl','Side Lunge with KB','Kneeling to Box Jump'] },
-  { cat: '🤸 Handstand', items: ['Handstand Hold','Handstand Walk','Handstand Shoulder Taps','Against-Bench Handstand Hold','L-Sit','L-Sit Hold','Wrist Curl'] },
-  { cat: '⚡ Core / Calisthenics', items: ['Toe to Bar','L-Sit','Plank','Ab Wheel','Muscle-Up','Ring Dip'] },
-];
 
 // Sourced from April Food Log, ranked by frequency
 const QUICK = [
@@ -1672,6 +1666,10 @@ function loadState(key) {
     const s = JSON.parse(raw);
     if (!s.gym || typeof s.gym !== 'object') s.gym = {session:'',exercises:[]};
     if (!Array.isArray(s.gym.exercises)) s.gym.exercises = [];
+    s.gym.exercises.forEach(e => {
+      if (e.completed === undefined) e.completed = true;
+      if (!e.id) e.id = uid();
+    });
     if (s.gym.session) s.gym.session = s.gym.session.replace(/[\u2013\u2014]/g, '-');
     if (!Array.isArray(s.food)) s.food = [];
     if (s.waterMl === undefined) s.waterMl = 0;
@@ -1764,6 +1762,7 @@ function getFreqExercises() {
   const counts = new Map();
   for (const key of Object.keys(localStorage)) {
     if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    if (key === todayKey()) continue;
     try {
       const s = JSON.parse(localStorage.getItem(key));
       if (s && s.gym && Array.isArray(s.gym.exercises)) {
@@ -1813,7 +1812,7 @@ function calculateStreak() {
   for (const key of getRecentKeys(365)) {
     const day = loadState(key);
     const hasFood = Array.isArray(day.food) && day.food.length > 0;
-    const hasGym = Array.isArray(day.gym?.exercises) && day.gym.exercises.length > 0;
+    const hasGym = Array.isArray(day.gym?.exercises) && day.gym.exercises.some(exercise => exercise.completed !== false);
     const hasWater = (day.waterMl || 0) > 0;
     if (!hasFood && !hasGym && !hasWater) break;
     streak++;
@@ -2632,11 +2631,143 @@ function renderFeelingRow() {
   });
 }
 
+function normalizeExerciseName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/\b(with|the|a|db|dumbbell|bb|barbell|kb|kettlebell)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function storedGymDays(maxAgeDays = null) {
+  const cutoff = maxAgeDays == null ? null : Date.now() - maxAgeDays * 86400000;
+  return Object.keys(localStorage)
+    .filter(key => /^alog_\d{4}_\d{2}_\d{2}$/.test(key) && key !== todayKey())
+    .filter(key => cutoff == null || keyToDate(key).getTime() >= cutoff)
+    .sort().reverse()
+    .map(key => ({ key, date:keyToDate(key), gym:loadState(key).gym }))
+    .filter(day => day.gym && (day.gym.session || day.gym.exercises.length));
+}
+
+function getSessionTemplates() {
+  const allDays = storedGymDays();
+  if (allDays.length < 4) return STARTER_TEMPLATES;
+
+  const groups = new Map();
+  for (const day of storedGymDays(183)) {
+    const session = String(day.gym.session || '').trim();
+    if (!session) continue;
+    if (!groups.has(session)) groups.set(session, { name:session, count:0, recent30:0, lastKey:day.key, exercises:new Map() });
+    const group = groups.get(session);
+    group.count++;
+    if (day.date.getTime() >= Date.now() - 30 * 86400000) group.recent30++;
+    if (day.key > group.lastKey) group.lastKey = day.key;
+    const seen = new Set();
+    for (const exercise of day.gym.exercises || []) {
+      const normalized = normalizeExerciseName(exercise.name);
+      if (!normalized || seen.has(normalized)) continue;
+      seen.add(normalized);
+      const current = group.exercises.get(normalized) || { name:exercise.name, count:0 };
+      current.count++;
+      group.exercises.set(normalized, current);
+    }
+  }
+
+  const derived = [...groups.values()]
+    .filter(group => group.count >= 4)
+    .map(group => ({
+      name:group.name,
+      recent30:group.recent30,
+      lastKey:group.lastKey,
+      count:group.count,
+      exercises:[...group.exercises.values()]
+        .filter(exercise => exercise.count / group.count >= 0.3)
+        .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
+        .map(exercise => exercise.name),
+    }))
+    .filter(template => template.exercises.length)
+    .sort((a,b) => b.recent30 - a.recent30 || b.lastKey.localeCompare(a.lastKey) || b.count - a.count);
+
+  return derived.length ? derived : STARTER_TEMPLATES;
+}
+
+function shortSessionLabel(name) {
+  const fixed = {
+    'Full Body':'Full', 'Lower Body':'Lower', 'Lat & Back':'Back',
+    'Handstand Drill':'Handstand', 'Shoulder & Arm':'Arms',
+  };
+  if (fixed[name]) return fixed[name];
+  return name.replace(/Upper Body\s*-\s*/i,'').replace(/Lower Body\s*-\s*/i,'').split(' ')[0];
+}
+
+function getExerciseCatalog() {
+  const catalog = new Map();
+  for (const day of storedGymDays()) {
+    for (const exercise of day.gym.exercises || []) {
+      const normalized = normalizeExerciseName(exercise.name);
+      if (!normalized) continue;
+      const current = catalog.get(normalized) || { name:exercise.name, count:0, lastKey:day.key };
+      current.count++;
+      if (day.key > current.lastKey) { current.name = exercise.name; current.lastKey = day.key; }
+      catalog.set(normalized, current);
+    }
+  }
+  for (const template of getSessionTemplates()) {
+    for (const name of template.exercises) {
+      const normalized = normalizeExerciseName(name);
+      if (!catalog.has(normalized)) catalog.set(normalized, { name, count:0, lastKey:'' });
+    }
+  }
+  return [...catalog.values()].sort((a,b) => b.count - a.count || b.lastKey.localeCompare(a.lastKey)).map(item => item.name);
+}
+
+function getLastExerciseRecord(name) {
+  const target = normalizeExerciseName(name);
+  if (!target) return null;
+  for (const day of storedGymDays()) {
+    const match = (day.gym.exercises || []).find(exercise => normalizeExerciseName(exercise.name) === target);
+    if (match) return { ...match, key:day.key };
+  }
+  return null;
+}
+
+function shortLogDate(key) {
+  const [, , month, day] = String(key || '').split('_');
+  return month && day ? `${month}-${day}` : '';
+}
+
+function makePlannedExercise(name) {
+  const last = getLastExerciseRecord(name);
+  const run = isRunExercise(name);
+  const hold = !run && isHoldExercise(name);
+  const exercise = { id:uid(), name, completed:false, run, hold };
+  if (last) {
+    ['sets','reps','weight','distance','runTime'].forEach(field => exercise[field] = String(last[field] || ''));
+    exercise.lastDate = last.key;
+    exercise.suggested = true;
+  }
+  return exercise;
+}
+
+function loadTemplatePlan(template) {
+  const existing = new Set(state.gym.exercises.map(exercise => normalizeExerciseName(exercise.name)));
+  let added = 0;
+  for (const name of template.exercises) {
+    const normalized = normalizeExerciseName(name);
+    if (!normalized || existing.has(normalized)) continue;
+    state.gym.exercises.push(makePlannedExercise(name));
+    existing.add(normalized);
+    added++;
+  }
+  return added;
+}
+
 function initGymTab() {
   const sel = document.getElementById('session-select');
   sel.innerHTML = '<option value="">Choose session</option>';
-  for (const s of SESSIONS) {
-    sel.innerHTML += `<option value="${escHtml(s)}">${escHtml(s)}</option>`;
+  for (const template of getSessionTemplates()) {
+    sel.innerHTML += `<option value="${escHtml(template.name)}">${escHtml(template.name)}</option>`;
   }
   sel.value = state.gym.session || '';
   renderOrganicSessionSegments();
@@ -2648,24 +2779,44 @@ function initGymTab() {
 }
 
 function onSessionChange() {
-  state.gym.session = document.getElementById('session-select').value;
-  saveState();
-  renderOrganicSessionSegments();
-  renderSessionSuggestions();
-  renderFreqExercises();
+  selectOrganicSession(document.getElementById('session-select').value);
 }
 
 function selectOrganicSession(session) {
+  if (!session) return;
+  const template = getSessionTemplates().find(item => item.name === session);
+  const switchingSession = Boolean(state.gym.session && state.gym.session !== session);
+  if (switchingSession) {
+    state.gym.exercises = state.gym.exercises.filter(exercise => exercise.completed);
+  }
+  state.gym.session = session;
+  if (template) loadTemplatePlan(template);
   const sel = document.getElementById('session-select');
-  sel.value = session;
-  onSessionChange();
+  if (sel) sel.value = session;
+  saveState();
+  renderOrganicSessionSegments();
+  renderSessionSuggestions();
+  renderExerciseList();
+  renderFreqExercises();
 }
 
 function renderOrganicSessionSegments() {
-  const activeSession = state.gym.session || 'Upper Body - Push';
-  document.querySelectorAll('.organic-segment').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.session === activeSession);
-  });
+  const container = document.getElementById('organic-session-segments');
+  if (!container) return;
+  const templates = getSessionTemplates();
+  const visible = templates.slice(0,4);
+  const extra = templates.slice(4);
+  const activeSession = state.gym.session || '';
+  container.style.setProperty('--segment-count', String(visible.length + (extra.length ? 1 : 0)));
+  container.innerHTML = visible.map(template => `
+    <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
+  `).join('') + (extra.length ? `
+    <div class="organic-more-wrap${extra.some(template => template.name === activeSession) ? ' active' : ''}">
+      <select class="organic-more-select" aria-label="More session templates" onchange="selectOrganicSession(this.value)">
+        <option value="">More</option>
+        ${extra.map(template => `<option value="${escHtml(template.name)}"${template.name === activeSession ? ' selected' : ''}>${escHtml(template.name)}</option>`).join('')}
+      </select>
+    </div>` : '');
 }
 
 function renderSessionSuggestions() {
@@ -2674,57 +2825,70 @@ function renderSessionSuggestions() {
   const session = state.gym.session;
   if (!session) { el.classList.add('hidden'); el.innerHTML = ''; return; }
 
-  // Find exercises from previous days that used the same session
-  const counts = new Map();
-  for (const key of Object.keys(localStorage)) {
-    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
-    if (key === todayKey()) continue;
-    try {
-      const s = JSON.parse(localStorage.getItem(key));
-      if (s && s.gym && s.gym.session === session && Array.isArray(s.gym.exercises)) {
-        for (const e of s.gym.exercises) {
-          if (e.name) counts.set(e.name, (counts.get(e.name)||0) + 1);
-        }
-      }
-    } catch {}
-  }
-
-  const suggestions = [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(([name])=>name);
-  if (suggestions.length === 0) { el.classList.add('hidden'); return; }
-
   el.classList.remove('hidden');
-  el.innerHTML = `
-    <div style="font-size:9px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">
-      Last ${escHtml(session)}: tap to add
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;">
-      ${suggestions.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')" style="font-size:11px;">${escHtml(name)}</div>`).join('')}
-    </div>`;
+  const completed = state.gym.exercises.filter(exercise => exercise.completed).length;
+  el.innerHTML = `<div class="template-note"><span class="template-note-dot"></span><span>${state.gym.exercises.length} planned · ${completed} completed. Check each exercise as you train.</span></div>`;
 }
 
 function onExNameInput() {
   const val = document.getElementById('gym-ex-name').value.trim().toLowerCase();
   const ac = document.getElementById('ex-autocomplete');
+  document.getElementById('gym-last-hint').textContent = '';
   if (!val) { ac.classList.add('hidden'); return; }
-  const matches = EXERCISES.filter(e => e.toLowerCase().includes(val)).slice(0,6);
+  const matches = getExerciseCatalog().filter(e => e.toLowerCase().includes(val)).slice(0,6);
   if (matches.length === 0) { ac.classList.add('hidden'); return; }
-  ac.innerHTML = matches.map(e => `<div class="autocomplete-item" onclick="selectExAutocomplete('${escHtml(e)}')">${escHtml(e)}</div>`).join('');
+  ac.innerHTML = matches.map(e => `<div class="autocomplete-item" data-exercise="${escHtml(e)}" onclick="selectExAutocomplete(this.dataset.exercise)">${escHtml(e)}</div>`).join('');
   ac.classList.remove('hidden');
 }
 
 function selectExAutocomplete(name) {
   document.getElementById('gym-ex-name').value = name;
   document.getElementById('ex-autocomplete').classList.add('hidden');
-  document.getElementById('gym-sets').focus();
+  prefillGymInputs(name);
+}
+
+let activeGymPrefill = null;
+
+function markPrefillEdited(input) {
+  input.classList.remove('suggested-value');
+}
+
+function prefillGymInputs(name) {
+  updateGymInputMode();
+  const last = getLastExerciseRecord(name);
+  activeGymPrefill = last ? { name:normalizeExerciseName(name), key:last.key } : null;
+  const values = {
+    'gym-sets':last?.sets || '', 'gym-reps':last?.reps || '', 'gym-weight':last?.weight || '',
+    'gym-distance':last?.distance || '', 'gym-run-time':last?.runTime || '',
+  };
+  for (const [id, value] of Object.entries(values)) {
+    const input = document.getElementById(id);
+    input.value = value;
+    input.classList.toggle('suggested-value', Boolean(last && value));
+  }
+  document.getElementById('gym-last-hint').textContent = last ? `Last ${shortLogDate(last.key)} · values prefilled` : 'No previous entry';
+  const firstVisible = ['gym-sets','gym-distance'].map(id => document.getElementById(id)).find(input => input.style.display !== 'none');
+  if (firstVisible) firstVisible.focus();
+}
+
+function resetGymEntryForm() {
+  ['gym-ex-name','gym-sets','gym-reps','gym-weight','gym-distance','gym-run-time'].forEach(id => {
+    const input = document.getElementById(id);
+    input.value = '';
+    input.classList.remove('suggested-value');
+  });
+  document.getElementById('gym-last-hint').textContent = '';
+  document.getElementById('ex-autocomplete').classList.add('hidden');
+  activeGymPrefill = null;
 }
 
 function addExercise() {
   const name = document.getElementById('gym-ex-name').value.trim();
   if (!name) return;
-  if (!state.gym.session) state.gym.session = 'Upper Body - Push';
+  if (!state.gym.session) state.gym.session = getSessionTemplates()[0]?.name || 'Session';
   const run  = isRunExercise(name);
   const hold = !run && isHoldExercise(name);
-  const exercise = { id: uid(), name, feeling: currentFeeling || null };
+  const exercise = { id: uid(), name, feeling: currentFeeling || null, completed:false };
   if (run) {
     exercise.distance = document.getElementById('gym-distance').value.trim();
     exercise.runTime  = document.getElementById('gym-run-time').value.trim();
@@ -2735,58 +2899,91 @@ function addExercise() {
     exercise.weight = hold ? '' : document.getElementById('gym-weight').value.trim();
     exercise.hold   = hold;
   }
+  if (activeGymPrefill && activeGymPrefill.name === normalizeExerciseName(name)) {
+    exercise.lastDate = activeGymPrefill.key;
+    exercise.suggested = true;
+  }
   state.gym.exercises.push(exercise);
   saveState();
-  document.getElementById('gym-ex-name').value   = '';
-  document.getElementById('gym-sets').value       = '';
-  document.getElementById('gym-reps').value       = '';
-  document.getElementById('gym-weight').value     = '';
-  document.getElementById('gym-distance').value   = '';
-  document.getElementById('gym-run-time').value   = '';
-  document.getElementById('ex-autocomplete').classList.add('hidden');
+  resetGymEntryForm();
   setFeeling(null);
   updateGymInputMode();
   renderExerciseList();
+  renderSessionSuggestions();
 }
 
 function deleteExercise(id) {
   state.gym.exercises = state.gym.exercises.filter(e => e.id !== id);
   saveState();
   renderExerciseList();
+  renderSessionSuggestions();
+}
+
+function toggleExerciseCompleted(id) {
+  const exercise = state.gym.exercises.find(item => item.id === id);
+  if (!exercise) return;
+  exercise.completed = !exercise.completed;
+  saveState();
+  renderExerciseList();
+  renderSessionSuggestions();
+}
+
+function markExerciseEditing(id, input) {
+  input.classList.remove('suggested-value');
+  const exercise = state.gym.exercises.find(item => item.id === id);
+  if (exercise && exercise.suggested) { exercise.suggested = false; saveState(); }
+}
+
+function updateExerciseField(id, field, value) {
+  const exercise = state.gym.exercises.find(item => item.id === id);
+  if (!exercise || !['sets','reps','weight','distance','runTime'].includes(field)) return;
+  exercise[field] = value.trim();
+  exercise.suggested = false;
+  saveState();
 }
 
 function renderExerciseList() {
   const list = document.getElementById('exercise-list');
+  const completed = state.gym.exercises.filter(exercise => exercise.completed).length;
+  const status = document.getElementById('exercise-status');
+  if (status) status.textContent = `${completed} completed / ${state.gym.exercises.length} planned`;
   if (!state.gym.exercises.length) {
-    list.innerHTML = '<div class="empty-state">No exercises yet</div>';
+    list.innerHTML = '<div class="empty-state">Choose a session to load today’s plan</div>';
     return;
   }
   list.innerHTML = state.gym.exercises.map(e => {
     const run  = e.run  || isRunExercise(e.name);
     const hold = !run && (e.hold || isHoldExercise(e.name));
-    let parts;
+    const suggestedClass = e.suggested ? ' suggested-value' : '';
+    let fields;
     if (run) {
-      const pace = calcPacePerMile(e.distance, e.runTime);
-      parts = [
-        e.distance ? e.distance + ' mi' : '',
-        e.runTime  ? e.runTime           : '',
-        pace       ? pace                : '',
-      ].filter(Boolean);
+      fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.distance || '')}" placeholder="Miles" aria-label="${escHtml(e.name)} distance" oninput="updateExerciseField('${e.id}','distance',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.runTime || '')}" placeholder="Time" aria-label="${escHtml(e.name)} time" oninput="updateExerciseField('${e.id}','runTime',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+      </div>`;
     } else if (hold) {
-      parts = [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean);
+      fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.sets || '')}" placeholder="Rounds" aria-label="${escHtml(e.name)} rounds" oninput="updateExerciseField('${e.id}','sets',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.reps || '')}" placeholder="Secs" aria-label="${escHtml(e.name)} seconds" oninput="updateExerciseField('${e.id}','reps',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+      </div>`;
     } else {
-      parts = [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
+      fields = `<div class="exercise-fields">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.sets || '')}" placeholder="Sets" aria-label="${escHtml(e.name)} sets" oninput="updateExerciseField('${e.id}','sets',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.reps || '')}" placeholder="Reps" aria-label="${escHtml(e.name)} reps" oninput="updateExerciseField('${e.id}','reps',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.weight || '')}" placeholder="lbs/kg" aria-label="${escHtml(e.name)} weight" oninput="updateExerciseField('${e.id}','weight',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+      </div>`;
     }
     const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
     const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
               : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
     return `
-    <div class="exercise-row">
+    <div class="exercise-row${e.completed ? ' is-complete' : ''}">
+      <button class="exercise-check" role="checkbox" aria-checked="${e.completed ? 'true' : 'false'}" aria-label="Mark ${escHtml(e.name)} ${e.completed ? 'planned' : 'completed'}" onclick="toggleExerciseCompleted('${e.id}')">✓</button>
       <div class="exercise-info">
-        <div class="exercise-name">${escHtml(e.name)}${tag}</div>
-        <div class="exercise-sets">${parts.join(' · ')||'No details'}${feelBadge}</div>
+        <div class="exercise-name-line"><div class="exercise-name">${escHtml(e.name)}${tag}${feelBadge}</div>${e.lastDate ? `<span class="exercise-last">Last ${shortLogDate(e.lastDate)}</span>` : ''}</div>
+        ${fields}
       </div>
-      <button class="exercise-delete" onclick="deleteExercise('${e.id}')">✕</button>
+      <button class="exercise-delete" aria-label="Delete ${escHtml(e.name)}" onclick="deleteExercise('${e.id}')">✕</button>
     </div>`;
   }).join('');
 }
@@ -2807,20 +3004,14 @@ function renderFreqExercises() {
   let html = '';
   if (logged.length > 0) {
     html += '<span class="gym-cat-label">Recent</span><div class="gym-cat-pills">';
-    html += logged.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')">${escHtml(name)}</div>`).join('');
+    html += logged.slice(0,6).map(name => `<button class="freq-pill" data-exercise="${escHtml(name)}" onclick="selectFreqEx(this.dataset.exercise)">${escHtml(name)}</button>`).join('');
     html += '</div>';
   }
-  const session = state.gym.session || 'Upper Body - Push';
-  const categoryIndex = session.includes('Pull') ? 0
-    : session.includes('Push') ? 1
-    : session.includes('Lower') ? 2
-    : session.includes('Handstand') ? 3
-    : 4;
-  const categories = [GYM_QUICK[categoryIndex]];
-  for (const cat of categories) {
-    const label = cat.cat.replace(/^\S+\s+/, '');
-    html += `<span class="gym-cat-label">${label}</span><div class="gym-cat-pills">`;
-    html += cat.items.map(name => `<div class="freq-pill" onclick="selectFreqEx('${escHtml(name)}')">${escHtml(name)}</div>`).join('');
+  const templates = getSessionTemplates();
+  const template = templates.find(item => item.name === state.gym.session) || templates[0];
+  if (template) {
+    html += `<span class="gym-cat-label">${escHtml(template.name)}</span><div class="gym-cat-pills">`;
+    html += template.exercises.map(name => `<button class="freq-pill" data-exercise="${escHtml(name)}" onclick="selectFreqEx(this.dataset.exercise)">${escHtml(name)}</button>`).join('');
     html += '</div>';
   }
   body.innerHTML = html || '<span style="color:var(--muted);font-size:13px;">No exercises</span>';
@@ -2828,8 +3019,7 @@ function renderFreqExercises() {
 
 function selectFreqEx(name) {
   document.getElementById('gym-ex-name').value = name;
-  updateGymInputMode();
-  document.getElementById('gym-sets').focus();
+  prefillGymInputs(name);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2845,9 +3035,11 @@ function renderGymHistory() {
     const key = keys[i];
     const s = loadState(key);
     if (!s || (!s.gym?.session && (!s.gym?.exercises || s.gym.exercises.length === 0))) continue;
-    const exCount = (s.gym?.exercises || []).length;
+    const exercises = s.gym?.exercises || [];
+    const exCount = exercises.length;
+    const completedCount = exercises.filter(exercise => exercise.completed !== false).length;
     const sessionName = s.gym?.session || 'Session';
-    const exLabel = exCount > 0 ? `${exCount} exercise${exCount > 1 ? 's' : ''}` : 'No exercises logged';
+    const exLabel = exCount > 0 ? `${completedCount} completed / ${exCount} planned` : 'No exercises logged';
     html += `<div class="gym-history-card" onclick="showGymDayDetail('${key}')">
       <div>
         <div class="gym-history-session">${escHtml(sessionName)}</div>
@@ -2890,7 +3082,7 @@ function showGymDayDetail(key) {
       }
       const feelBadge = e.feeling ? ` · Feel ${e.feeling}/10` : '';
       html += `<div class="gym-detail-exercise">
-        <div style="font-size:14px;font-weight:700;color:var(--text2);">${escHtml(e.name)}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text2);">${e.completed === false ? '○' : '✓'} ${escHtml(e.name)}</div>
         <div style="font-size:11px;color:var(--muted);text-align:right;">${parts.join(' · ') || 'No details'}${feelBadge}</div>
       </div>`;
     }
@@ -3034,7 +3226,7 @@ Keep replies concise. Weight can be in lbs or kg as user specifies.`;
         let added = 0;
         for (const ex of exercises) {
           if (!ex.name) continue;
-          state.gym.exercises.push({ id:uid(), name:ex.name, sets:String(ex.sets||''), reps:String(ex.reps||''), weight:String(ex.weight||'') });
+          state.gym.exercises.push({ id:uid(), name:ex.name, sets:String(ex.sets||''), reps:String(ex.reps||''), weight:String(ex.weight||''), completed:false });
           added++;
         }
         if (added > 0) {
@@ -3083,14 +3275,16 @@ function renderLogTab() {
   // Priority: manual Garmin override → Strava auto-sync → session estimate → exercise count fallback
   const garminKcal = state.garminKcal || 0;
   const stravaKcal = state.stravaKcal || 0;
+  const completedExercises = (state.gym.exercises || []).filter(exercise => exercise.completed !== false);
+  const hasCompletedTraining = completedExercises.length > 0;
   const sessionBurn = garminKcal > 0 ? garminKcal
     : stravaKcal > 0 ? stravaKcal
-    : (SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
-    : (state.gym.exercises && state.gym.exercises.length > 0 ? 300 : 0));
+    : hasCompletedTraining && SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
+    : hasCompletedTraining ? 300 : 0;
   const burnSource = garminKcal > 0 ? '⌚ Garmin override'
     : stravaKcal > 0 ? '⚡ Strava'
-    : state.gym.session ? escHtml(state.gym.session)
-    : state.gym.exercises && state.gym.exercises.length > 0 ? 'exercises logged' : null;
+    : hasCompletedTraining && state.gym.session ? escHtml(state.gym.session)
+    : hasCompletedTraining ? 'completed exercises' : null;
   const totalBurn = BMR_ESTIMATE + sessionBurn;
   const eaten = Math.round(m.kcal);
   const netKcal = eaten - totalBurn;
@@ -3150,7 +3344,10 @@ function renderLogTab() {
       trainingEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No training logged today</div>';
     } else {
       let thtml = '';
-      if (state.gym.session) thtml += `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">📋 ${escHtml(state.gym.session)}</div>`;
+      if (state.gym.session) {
+        const completed = state.gym.exercises.filter(exercise => exercise.completed !== false).length;
+        thtml += `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;"><span>${escHtml(state.gym.session)}</span><span style="color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;">${completed} completed / ${state.gym.exercises.length} planned</span></div>`;
+      }
       if (state.gym.exercises.length) {
         thtml += state.gym.exercises.map(e => {
           const isHold = isHoldExercise(e.name);
@@ -3158,7 +3355,7 @@ function renderLogTab() {
             ? [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ')
             : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ');
           return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.62);">
-            <div style="font-size:13px;font-weight:600;color:var(--text2);">${escHtml(e.name)}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text2);">${e.completed === false ? '○' : '✓'} ${escHtml(e.name)}</div>
             <div style="font-size:11px;color:var(--muted);text-align:right;">${detail}</div>
           </div>`;
         }).join('');
@@ -3654,7 +3851,7 @@ function buildText() {
   if (state.gym.exercises.length) {
     text += `GYM | ${state.gym.session||'Session'}\n`;
     for (const e of state.gym.exercises) {
-      text += `  ${e.name}${e.sets?' '+e.sets+'×':''}${e.reps?e.reps:''}${e.weight?' @'+e.weight+'kg':''}\n`;
+      text += `  - [${e.completed === false ? ' ' : 'x'}] ${e.name}${e.sets?' '+e.sets+'×':''}${e.reps?e.reps:''}${e.weight?' @'+e.weight:''}\n`;
     }
   }
   return text;
@@ -3925,9 +4122,9 @@ function init() {
   // Populate gym sessions
   const sel = document.getElementById('session-select');
   sel.innerHTML = '<option value="">Choose session</option>';
-  for (const s of SESSIONS) {
+  for (const template of getSessionTemplates()) {
     const opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
+    opt.value = template.name; opt.textContent = template.name;
     sel.appendChild(opt);
   }
 }
