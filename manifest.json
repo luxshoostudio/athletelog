@@ -6,8 +6,8 @@
   "scope": "/athletelog/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#e8ecf3",
-  "theme_color": "#5c7cfa",
+  "background_color": "#f5ead8",
+  "theme_color": "#c67139",
   "categories": ["health", "fitness", "lifestyle"],
   "icons": [
     {
