@@ -1,11 +1,11 @@
-// AthleteLog Service Worker — Cache-first, offline-ready
-const CACHE = 'athletelog-v11';
+// AthleteLog Service Worker: fresh navigations with offline fallback
+const CACHE = 'athletelog-v13';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
-  'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
 ];
 
 // Install: pre-cache core assets
@@ -24,7 +24,8 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Fetch: cache-first for local, network-first for APIs
+// Fetch: network-first for navigation so installed PWAs do not get stuck on
+// an old index.html; cache-first for versioned/static assets.
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
@@ -33,7 +34,17 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for everything else
+  if (e.request.mode === 'navigate' || e.request.destination === 'document') {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) caches.open(CACHE).then(cache => cache.put('./index.html', res.clone()));
+        return res;
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Cache-first for static assets
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
