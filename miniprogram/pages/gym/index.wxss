@@ -103,7 +103,7 @@
 }
 
 .exercise-card {
-  padding: 24rpx;
+  padding: 18rpx 20rpx;
   transition: opacity 160ms ease;
 }
 
@@ -119,9 +119,9 @@
 .check-button {
   display: flex;
   box-sizing: border-box;
-  width: 62rpx;
-  height: 62rpx;
-  margin: 0 18rpx 0 0;
+  width: 48rpx;
+  height: 48rpx;
+  margin: 0 16rpx 0 0;
   padding: 0;
   align-items: center;
   justify-content: center;
@@ -130,7 +130,7 @@
   border-radius: 50%;
   background: transparent;
   color: #fffaf0;
-  font-size: 30rpx;
+  font-size: 24rpx;
   font-weight: 700;
 }
 
@@ -143,7 +143,7 @@
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  font-size: 29rpx;
+  font-size: 27rpx;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -151,8 +151,8 @@
 
 .remove-button {
   display: flex;
-  width: 70rpx;
-  height: 70rpx;
+  width: 52rpx;
+  height: 52rpx;
   margin: 0;
   padding: 0;
   align-items: center;
@@ -160,13 +160,13 @@
   border-radius: 50%;
   background: transparent;
   color: #9d715e;
-  font-size: 38rpx;
+  font-size: 30rpx;
 }
 
 .exercise-fields {
   display: flex;
-  margin-top: 22rpx;
-  gap: 12rpx;
+  margin-top: 14rpx;
+  gap: 10rpx;
 }
 
 .metric-field {
@@ -181,9 +181,9 @@
 }
 
 .metric-field text {
-  margin: 0 0 8rpx 6rpx;
+  margin: 0 0 4rpx 6rpx;
   color: #7b7369;
-  font-size: 19rpx;
+  font-size: 18rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
 }
@@ -191,11 +191,11 @@
 .metric-field input {
   box-sizing: border-box;
   width: 100%;
-  height: 76rpx;
-  padding: 0 18rpx;
-  border-radius: 22rpx;
+  height: 62rpx;
+  padding: 0 16rpx;
+  border-radius: 20rpx;
   background: #eee7da;
-  font-size: 27rpx;
+  font-size: 26rpx;
   text-align: center;
 }
 

@@ -296,13 +296,14 @@
   inset: 0;
   display: flex;
   align-items: flex-end;
-  background: rgba(24, 22, 20, 0.52);
+  background: rgba(24, 22, 20, 0.64);
 }
 
 .food-sheet {
   box-sizing: border-box;
   width: 100%;
-  padding: 18rpx 34rpx calc(36rpx + env(safe-area-inset-bottom));
+  min-height: 380rpx;
+  padding: 26rpx 34rpx calc(36rpx + env(safe-area-inset-bottom));
   border-radius: 42rpx 42rpx 0 0;
   background: #fff3df;
 }
@@ -457,6 +458,12 @@
   color: #5f584f;
   font-size: 24rpx;
   line-height: 1.5;
+}
+
+.macro-preview-sub {
+  margin-top: 8rpx;
+  color: #7a7269;
+  font-size: 22rpx;
 }
 
 @media (max-width: 350px) {
