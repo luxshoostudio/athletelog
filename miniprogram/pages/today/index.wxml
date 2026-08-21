@@ -64,7 +64,7 @@
           {{item.name}}
           <text wx:if="{{item.time}}" class="food-time">{{item.time}}</text>
         </view>
-        <view class="food-macros">{{item.protein}}g蛋白 · {{item.fat}}g脂肪 · {{item.calories}}千卡</view>
+        <view class="food-macros">{{item.protein}}g蛋白 · {{item.fat}}g脂肪<text wx:if="{{item.fiber}}"> · {{item.fiber}}g纤维</text> · {{item.calories}}千卡</view>
       </view>
       <button class="delete-button" data-id="{{item.id}}" bindtap="deleteFood" aria-label="删除 {{item.name}}">×</button>
     </view>
@@ -115,7 +115,14 @@
             </picker>
           </view>
         </view>
-        <view class="macro-preview">预估：蛋白质 {{foodMacros.protein}}g · 脂肪 {{foodMacros.fat}}g · 碳水 {{foodMacros.carbs}}g · {{foodMacros.calories}} 千卡</view>
+        <view class="macro-preview">
+          <view>预估：蛋白质 {{foodMacros.protein}}g · 脂肪 {{foodMacros.fat}}g · 碳水 {{foodMacros.carbs}}g · {{foodMacros.calories}} 千卡</view>
+          <view wx:if="{{foodMacros.fiber || foodMacros.vitaminC}}" class="macro-preview-sub">
+            <text wx:if="{{foodMacros.fiber}}">纤维 {{foodMacros.fiber}}g</text>
+            <text wx:if="{{foodMacros.fiber && foodMacros.vitaminC}}"> · </text>
+            <text wx:if="{{foodMacros.vitaminC}}">维C {{foodMacros.vitaminC}}mg</text>
+          </view>
+        </view>
         <button class="primary-button sheet-save" bindtap="saveFood">保存</button>
         <button class="sheet-cancel" bindtap="closeFoodSheet">取消</button>
       </view>

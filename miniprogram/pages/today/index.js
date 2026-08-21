@@ -59,7 +59,7 @@ Page({
     foodAmount: '',
     foodUnit: '克',
     foodTime: '',
-    foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
+    foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0, fiber: 0, vitaminC: 0 }
   },
 
   onLoad: function () {
@@ -88,6 +88,8 @@ Page({
         protein: Number(f.protein) || 0,
         fat: Number(f.fat) || 0,
         calories: Number(f.calories) || 0,
+        fiber: Number(f.fiber) || 0,
+        vitaminC: Number(f.vitaminC) || 0,
         time: f.time || ''
       };
     });
@@ -228,7 +230,7 @@ Page({
       foodAmount: '',
       foodUnit: '克',
       foodTime: nowTime(),
-      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
+      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0, fiber: 0, vitaminC: 0 }
     });
   },
 
@@ -252,7 +254,7 @@ Page({
       foodSearch: food.name,
       foodUnit: food.unit,
       foodAmount: '',
-      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
+      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0, fiber: 0, vitaminC: 0 }
     });
   },
 
@@ -290,7 +292,9 @@ Page({
         protein: Math.round(food.protein * ratio),
         fat: Math.round(food.fat * ratio),
         carbs: Math.round(food.carbs * ratio),
-        calories: Math.round(food.calories * ratio)
+        calories: Math.round(food.calories * ratio),
+        fiber: Math.round((food.fiber || 0) * ratio),
+        vitaminC: Math.round((food.vitaminC || 0) * ratio)
       }
     });
   },
@@ -316,6 +320,8 @@ Page({
       fat: Math.round(food.fat * ratio),
       carbs: Math.round(food.carbs * ratio),
       calories: Math.round(food.calories * ratio),
+      fiber: Math.round((food.fiber || 0) * ratio),
+      vitaminC: Math.round((food.vitaminC || 0) * ratio),
       time: this.data.foodTime
     });
     this.closeFoodSheet();
@@ -333,6 +339,8 @@ Page({
       fat: Number(food.fat) || 0,
       carbs: Number(food.carbs) || 0,
       calories: Number(food.calories) || 0,
+      fiber: Number(food.fiber) || 0,
+      vitaminC: Number(food.vitaminC) || 0,
       time: food.time || nowTime(),
       createdAt: new Date().toISOString()
     });
