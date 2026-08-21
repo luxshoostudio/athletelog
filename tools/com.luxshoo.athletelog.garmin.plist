@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Install:
+    cp tools/com.luxshoo.athletelog.garmin.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.luxshoo.athletelog.garmin.plist
+
+  Runs at 07:00 and 22:00. Credentials live in this file, so keep it at 600:
+    chmod 600 ~/Library/LaunchAgents/com.luxshoo.athletelog.garmin.plist
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.luxshoo.athletelog.garmin</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/luxshoo/.venvs/athletelog/bin/python</string>
+    <string>/Users/luxshoo/athletelog/tools/garmin_sync.py</string>
+    <string>--days</string>
+    <string>3</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>GARMIN_EMAIL</key>
+    <string>REPLACE_ME</string>
+    <key>GARMIN_PASSWORD</key>
+    <string>REPLACE_ME</string>
+    <key>GITHUB_TOKEN</key>
+    <string>REPLACE_ME</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>22</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/athletelog-garmin.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/athletelog-garmin.err</string>
+</dict>
+</plist>

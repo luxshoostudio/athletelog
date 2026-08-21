@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AthleteLog">
@@ -982,6 +982,81 @@ body {
   .organic-segment, .organic-more-select { font-size:11px; padding-left:5px; padding-right:5px; }
   .summary-tools { width:100%; justify-content:flex-start; }
 }
+.search-group-label {
+  margin: 12px 0 2px; color: var(--muted);
+  font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+}
+.search-group-label:first-child { margin-top: 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
+   Three separate iOS behaviours were shifting the canvas:
+     1. double-tap / pinch zoom on any tap target
+     2. auto-zoom when focusing a control whose font-size < 16px
+     3. rubber-band scrolling the document behind the fixed shell
+   ══════════════════════════════════════════════════════════════ */
+html {
+  height: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+body {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* Text still needs to be selectable inside fields and log rows. */
+input, textarea, [contenteditable], .ai-bubble, .energy-value, .exercise-name {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* Panels are the only scrollers; they must not hand scroll back to the page. */
+.panel, #food-day-list, #gym-day-list, .ai-body, .modal-sheet {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+/* The two-level detail panes are parked at translateX(100%), which leaves the
+   panel 200% wide. A focus() inside a parked pane then scrolled the whole
+   canvas 375px sideways with no way back. The scrolling belongs to the inner
+   lists, so the panels themselves are pinned shut; the parked pane also stops
+   taking hits. (overflow-x:clip is not usable here — the spec downgrades it to
+   hidden whenever the other axis scrolls.) */
+.panel, #food-panel, #gym-panel, #log-panel {
+  overflow-x: hidden;
+}
+#food-panel, #gym-panel { overflow-y: hidden; }
+#food-day-detail:not(.slide-in), #gym-day-detail:not(.slide-in) {
+  pointer-events: none;
+}
+/* iOS zooms the whole page whenever a focused field renders under 16px.
+   Every text-entry control is pinned at 16px; pill heights are unchanged
+   because they are driven by min-height + padding, not by font-size. */
+input, select, textarea {
+  font-size: 16px !important;
+  line-height: 1.25;
+}
+.exercise-field, .gym-num-input { letter-spacing: -0.01em; }
+/* Buttons never trigger focus zoom, but they do trigger double-tap zoom. */
+button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
+.water-mark, .search-result-item, .past-day-card, .gym-history-card {
+  touch-action: manipulation;
+}
+/* Fixed overlays reflow with the keyboard instead of floating off-screen. */
+.modal-overlay, .time-edit-overlay, .ai-overlay {
+  height: 100%;
+  height: 100dvh;
+}
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 </style>
 </head>
@@ -1176,8 +1251,8 @@ body {
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
           <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
           <div class="summary-tools">
-            <button class="outline-btn" onclick="openStravaModal()" style="padding:7px 12px;font-size:10px;" id="strava-btn">Strava</button>
             <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">Garmin</button>
+            <button class="outline-btn" onclick="openGymIoModal()" style="padding:7px 12px;font-size:10px;" id="gymio-btn">Gym log</button>
             <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">Sync</button>
             <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">Save</button>
           </div>
@@ -1257,7 +1332,7 @@ body {
       <label class="modal-label">Time (HH:MM)</label>
       <input type="time" class="modal-input" id="qty-time">
     </div>
-    <div class="modal-btn-row">
+    <div class="modal-btn-row" id="qty-btn-row">
       <button class="outline-btn" onclick="closeQtyModal()">Cancel</button>
       <button class="green-btn" onclick="confirmAddFood()">Add to Log</button>
     </div>
@@ -1334,55 +1409,69 @@ body {
   </div>
 </div>
 
-<!-- STRAVA MODAL -->
-<div class="modal-overlay" id="strava-modal">
-  <div class="modal-sheet">
-    <div class="modal-title">⚡ Strava</div>
-    <div id="strava-connected-view" style="display:none;">
-      <div style="display:flex;align-items:center;gap:10px;padding:12px 0 16px;">
-        <div style="width:10px;height:10px;border-radius:50%;background:#fc4c02;flex-shrink:0;"></div>
-        <div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);" id="strava-athlete-label">Connected</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="strava-sync-label">Tap Sync to fetch today's calories</div>
-        </div>
-      </div>
-      <div class="modal-btn-row">
-        <button class="outline-btn" onclick="closeStravaModal()">Close</button>
-        <button class="outline-btn" onclick="stravaDisconnect()" style="color:var(--red);">Disconnect</button>
-        <button class="green-btn" onclick="stravaSync()">⟳ Sync Now</button>
-      </div>
-    </div>
-    <div id="strava-setup-view">
-      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
-        Enter your Strava API credentials from<br>
-        <strong>strava.com/settings/api</strong>
-      </p>
-      <label class="modal-label">Client ID</label>
-      <input type="text" class="modal-input" id="strava-client-id" placeholder="e.g. 123456" inputmode="numeric">
-      <label class="modal-label">Client Secret</label>
-      <input type="password" class="modal-input" id="strava-client-secret" placeholder="abc123…">
-      <div id="strava-status" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:8px;"></div>
-      <div class="modal-btn-row">
-        <button class="outline-btn" onclick="closeStravaModal()">Cancel</button>
-        <button class="green-btn" onclick="saveStravaAndConnect()">Connect →</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- GARMIN MODAL -->
 <div class="modal-overlay" id="garmin-modal">
   <div class="modal-sheet">
-    <div class="modal-title">⌚ Garmin Active Calories</div>
-    <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
-      Open <strong>Garmin Connect</strong> → Today → Performance Stats → <strong>Active Calories</strong> and enter the value below. This replaces the session estimate in your energy balance.
-    </p>
-    <label class="modal-label">Active Calories from Garmin (kcal)</label>
+    <div class="modal-title">⌚ Garmin</div>
+    <div id="garmin-auto-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;margin-bottom:14px;background:var(--surface-raised);border-radius:16px;">
+      <div style="min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);" id="garmin-auto-title">Auto-sync off</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="garmin-auto-sub">Connect a Gist relay to pull daily active calories</div>
+      </div>
+      <button class="outline-btn" onclick="garminAutoSync(false)" style="flex-shrink:0;">⟳ Sync</button>
+    </div>
+
+    <label class="modal-label">Override today (kcal)</label>
     <input type="number" class="modal-input" id="garmin-kcal-input" placeholder="e.g. 620" inputmode="numeric">
+    <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:10px;">
+      Leave empty to use the auto-synced value. Anything typed here wins for today only.
+    </div>
+
+    <details style="margin-bottom:12px;">
+      <summary style="font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;">How auto-sync works</summary>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;">
+        Garmin has no public API a browser can call, so a relay writes
+        <strong>athletelog-garmin.json</strong> into your GitHub Gist and this app reads it.
+        Set up either relay once — the Mac <code>garmin_sync.py</code> LaunchAgent, or an
+        iOS Shortcuts automation that posts Active Energy from Apple Health.
+        Uses the same token as Gist backup.
+      </p>
+    </details>
+
     <div id="garmin-status" style="font-size:12px;color:var(--sp-green);margin-bottom:8px;min-height:18px;"></div>
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeGarminModal()">Cancel</button>
       <button class="green-btn" onclick="saveGarminKcal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- GYM LOG IMPORT / EXPORT MODAL -->
+<div class="modal-overlay" id="gymio-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Gym log ↔ Obsidian</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+      Import your existing month files or <code>Training.csv</code> to seed session
+      templates and last-time prefill. Export writes the same Markdown back, so the
+      handwritten log stays the record.
+    </p>
+
+    <div class="modal-label">Import</div>
+    <button class="outline-btn" onclick="triggerGymImport()" style="width:100%;margin-bottom:8px;">Choose .md or .csv files…</button>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:14px;cursor:pointer;">
+      <input type="checkbox" id="gymio-overwrite" style="width:auto;margin:0;">
+      Overwrite days that already have gym data
+    </label>
+
+    <div class="modal-label">Export this month</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="outline-btn" onclick="copyGymMarkdown()" style="flex:1;">Copy Markdown</button>
+      <button class="outline-btn" onclick="exportGymMarkdown()" style="flex:1;">Download .md</button>
+    </div>
+
+    <div id="gymio-status" style="font-size:12px;color:var(--muted);margin-bottom:8px;min-height:18px;"></div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeGymIoModal()">Close</button>
     </div>
   </div>
 </div>
@@ -1464,6 +1553,7 @@ body {
 <!-- Hidden file inputs -->
 <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(event)">
 <input type="file" id="restore-file-input" accept="application/json,.json" style="display:none" onchange="handleBackupFileRestore(event)">
+<input type="file" id="gym-import-input" accept=".md,.markdown,.csv,text/markdown,text/csv" multiple style="display:none" onchange="handleGymImport(event)">
 
 <script>
 'use strict';
@@ -1537,73 +1627,290 @@ const QUICK = [
 ];
 
 // Food database (name → {p, kcal, fat, carbs, fiber, unit, qty})
+// ═══════════════════════════════════════════════════════════════
+// FOOD DATABASE
+// Whole foods and staples, USDA FoodData Central values.
+// `unit:'g'`/`'ml'` entries are per 100; every other unit is per piece.
+// This is the first place a query is answered — Open Food Facts is only
+// consulted when nothing here matches, because it is a barcode catalogue
+// of packaged goods and answers "strawberry" with strawberry jam.
+// ═══════════════════════════════════════════════════════════════
 const DB = {
-  'eggs': {p:6,kcal:70,fat:5,carbs:0.5,fiber:0,unit:'egg',qty:1},
-  'egg': {p:6,kcal:70,fat:5,carbs:0.5,fiber:0,unit:'egg',qty:1},
-  'chicken breast': {p:31,kcal:165,fat:3.6,carbs:0,fiber:0,unit:'g',qty:100},
-  'chicken': {p:31,kcal:165,fat:3.6,carbs:0,fiber:0,unit:'g',qty:100},
-  'tuna': {p:30,kcal:132,fat:0.5,carbs:0,fiber:0,unit:'g',qty:100},
-  'tuna can': {p:30,kcal:132,fat:0.5,carbs:0,fiber:0,unit:'can',qty:1},
+  'egg': {p:6.3,kcal:72,fat:4.8,carbs:0.4,fiber:0,unit:'egg',qty:1},
+  'egg white': {p:3.6,kcal:17,fat:0.1,carbs:0.2,fiber:0,unit:'white',qty:1},
+  'egg yolk': {p:2.7,kcal:55,fat:4.5,carbs:0.6,fiber:0,unit:'yolk',qty:1},
+  'boiled egg': {p:6.3,kcal:78,fat:5.3,carbs:0.6,fiber:0,unit:'egg',qty:1},
+  'scrambled eggs': {p:13,kcal:149,fat:11,carbs:1.6,fiber:0,unit:'serving (2 eggs)',qty:1},
+  'whole milk': {p:3.3,kcal:61,fat:3.3,carbs:4.8,fiber:0,unit:'ml',qty:100},
+  'skim milk': {p:3.4,kcal:34,fat:0.2,carbs:5,fiber:0,unit:'ml',qty:100},
+  'soy milk': {p:3.3,kcal:43,fat:1.8,carbs:3,fiber:0.4,unit:'ml',qty:100},
+  'oat milk': {p:1,kcal:45,fat:1.5,carbs:6.7,fiber:0.8,unit:'ml',qty:100},
+  'almond milk': {p:0.4,kcal:15,fat:1.1,carbs:0.6,fiber:0.3,unit:'ml',qty:100},
   'greek yogurt': {p:10,kcal:59,fat:0.4,carbs:3.6,fiber:0,unit:'g',qty:100},
-  'yogurt': {p:10,kcal:59,fat:0.4,carbs:3.6,fiber:0,unit:'g',qty:100},
-  'cottage cheese': {p:11,kcal:98,fat:4.3,carbs:3.4,fiber:0,unit:'g',qty:100},
-  'oats': {p:17,kcal:389,fat:7,carbs:66,fiber:11,unit:'g',qty:100},
-  'porridge': {p:2.5,kcal:71,fat:1.4,carbs:12,fiber:1,unit:'g',qty:100},
-  'banana': {p:1.1,kcal:89,fat:0.3,carbs:23,fiber:2.6,unit:'banana',qty:1},
-  'rice': {p:2.7,kcal:130,fat:0.3,carbs:28,fiber:0.4,unit:'g',qty:100},
-  'brown rice': {p:2.6,kcal:112,fat:0.9,carbs:24,fiber:1.8,unit:'g',qty:100},
-  'broccoli': {p:2.8,kcal:34,fat:0.4,carbs:7,fiber:2.6,unit:'g',qty:100},
-  'avocado': {p:2,kcal:160,fat:15,carbs:9,fiber:7,unit:'avocado',qty:1},
-  'blueberries': {p:0.7,kcal:57,fat:0.3,carbs:14,fiber:2.4,unit:'g',qty:100},
-  'peanut butter': {p:25,kcal:588,fat:50,carbs:20,fiber:6,unit:'tbsp',qty:1},
-  'beef mince': {p:26,kcal:215,fat:13,carbs:0,fiber:0,unit:'g',qty:100},
-  'beef': {p:26,kcal:215,fat:13,carbs:0,fiber:0,unit:'g',qty:100},
-  'sweet potato': {p:1.6,kcal:86,fat:0.1,carbs:20,fiber:3,unit:'g',qty:100},
-  'hummus': {p:7.9,kcal:177,fat:11,carbs:14,fiber:6,unit:'g',qty:100},
-  'protein shake': {p:25,kcal:120,fat:2,carbs:5,fiber:0,unit:'scoop',qty:1},
-  'whey protein': {p:25,kcal:120,fat:2,carbs:5,fiber:0,unit:'scoop',qty:1},
-  'milk': {p:3.4,kcal:61,fat:3.3,carbs:4.8,fiber:0,unit:'ml',qty:100},
-  'almond milk': {p:0.4,kcal:13,fat:1.1,carbs:0.3,fiber:0,unit:'ml',qty:100},
-  'salmon': {p:20,kcal:208,fat:13,carbs:0,fiber:0,unit:'g',qty:100},
-  'turkey': {p:29,kcal:189,fat:7,carbs:0,fiber:0,unit:'g',qty:100},
-  'bread': {p:9,kcal:265,fat:3.2,carbs:49,fiber:2.7,unit:'slice',qty:1},
-  'wholegrain bread': {p:9,kcal:247,fat:4,carbs:43,fiber:7,unit:'slice',qty:1},
-  'pasta': {p:5,kcal:131,fat:1.1,carbs:25,fiber:1.8,unit:'g',qty:100},
-  'quinoa': {p:4.4,kcal:120,fat:1.9,carbs:21,fiber:2.8,unit:'g',qty:100},
-  'lentils': {p:9,kcal:116,fat:0.4,carbs:20,fiber:7.9,unit:'g',qty:100},
-  'chickpeas': {p:8.9,kcal:164,fat:2.6,carbs:27,fiber:7.6,unit:'g',qty:100},
-  'black beans': {p:8.9,kcal:132,fat:0.5,carbs:24,fiber:8.7,unit:'g',qty:100},
-  'edamame': {p:11,kcal:121,fat:5,carbs:10,fiber:5,unit:'g',qty:100},
-  'tofu': {p:8,kcal:76,fat:4.8,carbs:1.9,fiber:0.3,unit:'g',qty:100},
-  'cheddar': {p:25,kcal:403,fat:33,carbs:1.3,fiber:0,unit:'g',qty:100},
-  'mozzarella': {p:22,kcal:300,fat:22,carbs:2.2,fiber:0,unit:'g',qty:100},
-  'apple': {p:0.3,kcal:52,fat:0.2,carbs:14,fiber:2.4,unit:'apple',qty:1},
-  'orange': {p:0.9,kcal:47,fat:0.1,carbs:12,fiber:2.4,unit:'orange',qty:1},
-  'strawberries': {p:0.7,kcal:32,fat:0.3,carbs:7.7,fiber:2,unit:'g',qty:100},
-  'almonds': {p:21,kcal:579,fat:50,carbs:22,fiber:12.5,unit:'g',qty:100},
-  'walnuts': {p:15,kcal:654,fat:65,carbs:14,fiber:6.7,unit:'g',qty:100},
-  'olive oil': {p:0,kcal:884,fat:100,carbs:0,fiber:0,unit:'tbsp',qty:1},
-  'coffee': {p:0.3,kcal:2,fat:0,carbs:0,fiber:0,unit:'cup',qty:1},
-  'protein bar': {p:20,kcal:200,fat:7,carbs:22,fiber:5,unit:'bar',qty:1},
-  'think protein bar': {p:20,kcal:230,fat:8,carbs:24,fiber:7,unit:'bar',qty:1},
-  'think! protein bar': {p:20,kcal:230,fat:8,carbs:24,fiber:7,unit:'bar',qty:1},
-  'whole milk': {p:3.4,kcal:61,fat:3.3,carbs:4.8,fiber:0,unit:'ml',qty:100},
-  'whole milk 400ml': {p:14,kcal:244,fat:13,carbs:19,fiber:0,unit:'serving',qty:1},
-  'protein shake': {p:30,kcal:160,fat:3,carbs:5,fiber:0,unit:'scoop',qty:1},
-  'raspberries': {p:1.2,kcal:53,fat:0.7,carbs:12,fiber:6.5,unit:'g',qty:100},
-  'raspberry': {p:1.2,kcal:53,fat:0.7,carbs:12,fiber:6.5,unit:'g',qty:100},
-  'air-fried salmon': {p:20,kcal:180,fat:10,carbs:0,fiber:0,unit:'g',qty:100},
-  'salmon': {p:20,kcal:180,fat:10,carbs:0,fiber:0,unit:'g',qty:100},
-  'air-fried tofu': {p:10,kcal:120,fat:7,carbs:2,fiber:0.5,unit:'g',qty:100},
-  'tofu': {p:8,kcal:76,fat:4.8,carbs:1.9,fiber:0.3,unit:'g',qty:100},
-  'boiled eggs': {p:13,kcal:155,fat:11,carbs:1.1,fiber:0,unit:'serving (2)',qty:1},
-  'noodles': {p:5,kcal:220,fat:1.5,carbs:45,fiber:2,unit:'g',qty:100},
-  'steamed rice': {p:2.7,kcal:130,fat:0.3,carbs:28,fiber:0.4,unit:'g',qty:100},
+  'plain yogurt': {p:3.5,kcal:61,fat:3.3,carbs:4.7,fiber:0,unit:'g',qty:100},
+  'skyr': {p:11,kcal:63,fat:0.2,carbs:4,fiber:0,unit:'g',qty:100},
+  'cottage cheese': {p:11.1,kcal:98,fat:4.3,carbs:3.4,fiber:0,unit:'g',qty:100},
+  'cheddar': {p:24.9,kcal:403,fat:33.1,carbs:1.3,fiber:0,unit:'g',qty:100},
+  'mozzarella': {p:22.2,kcal:300,fat:22.4,carbs:2.2,fiber:0,unit:'g',qty:100},
+  'parmesan': {p:35.8,kcal:392,fat:25.8,carbs:3.2,fiber:0,unit:'g',qty:100},
+  'feta': {p:14.2,kcal:264,fat:21.3,carbs:4.1,fiber:0,unit:'g',qty:100},
+  'cream cheese': {p:5.9,kcal:342,fat:34.2,carbs:5.5,fiber:0,unit:'g',qty:100},
+  'butter': {p:0.9,kcal:717,fat:81.1,carbs:0.1,fiber:0,unit:'g',qty:100},
+  'heavy cream': {p:2.1,kcal:340,fat:36.1,carbs:2.8,fiber:0,unit:'g',qty:100},
+  'whey protein': {p:24,kcal:120,fat:1.5,carbs:3,fiber:0.5,unit:'scoop',qty:1},
+  'casein protein': {p:24,kcal:110,fat:1,carbs:3,fiber:1,unit:'scoop',qty:1},
+  'protein shake': {p:30,kcal:160,fat:3,carbs:5,fiber:0,unit:'shake',qty:1},
+  'chicken breast': {p:31,kcal:165,fat:3.6,carbs:0,fiber:0,unit:'g',qty:100},
+  'chicken thigh': {p:24.8,kcal:209,fat:10.9,carbs:0,fiber:0,unit:'g',qty:100},
+  'chicken wing': {p:30.5,kcal:254,fat:16.6,carbs:0,fiber:0,unit:'g',qty:100},
+  'ground chicken': {p:23.8,kcal:143,fat:5.2,carbs:0,fiber:0,unit:'g',qty:100},
+  'turkey breast': {p:29,kcal:135,fat:1.7,carbs:0,fiber:0,unit:'g',qty:100},
+  'ground turkey': {p:27.4,kcal:203,fat:10.4,carbs:0,fiber:0,unit:'g',qty:100},
+  'beef mince': {p:26.1,kcal:215,fat:12.7,carbs:0,fiber:0,unit:'g',qty:100},
+  'beef steak': {p:27.3,kcal:217,fat:11.8,carbs:0,fiber:0,unit:'g',qty:100},
+  'beef brisket': {p:26.9,kcal:251,fat:15,carbs:0,fiber:0,unit:'g',qty:100},
+  'pork loin': {p:27.3,kcal:187,fat:7.1,carbs:0,fiber:0,unit:'g',qty:100},
+  'pork belly': {p:13.5,kcal:518,fat:53,carbs:0,fiber:0,unit:'g',qty:100},
+  'bacon': {p:37,kcal:541,fat:41.8,carbs:1.4,fiber:0,unit:'g',qty:100},
+  'ham': {p:18,kcal:145,fat:6.5,carbs:1.5,fiber:0,unit:'g',qty:100},
+  'lamb': {p:25.6,kcal:258,fat:16.5,carbs:0,fiber:0,unit:'g',qty:100},
+  'duck breast': {p:23.5,kcal:201,fat:11.2,carbs:0,fiber:0,unit:'g',qty:100},
+  'salmon': {p:20.4,kcal:208,fat:13.4,carbs:0,fiber:0,unit:'g',qty:100},
+  'smoked salmon': {p:18.3,kcal:117,fat:4.3,carbs:0,fiber:0,unit:'g',qty:100},
+  'tuna': {p:29.9,kcal:132,fat:0.6,carbs:0,fiber:0,unit:'g',qty:100},
+  'canned tuna': {p:25.5,kcal:116,fat:0.8,carbs:0,fiber:0,unit:'can (142g)',qty:1},
+  'cod': {p:17.8,kcal:82,fat:0.7,carbs:0,fiber:0,unit:'g',qty:100},
+  'tilapia': {p:26.2,kcal:129,fat:2.7,carbs:0,fiber:0,unit:'g',qty:100},
+  'sea bass': {p:18.4,kcal:97,fat:2,carbs:0,fiber:0,unit:'g',qty:100},
+  'mackerel': {p:18.6,kcal:205,fat:13.9,carbs:0,fiber:0,unit:'g',qty:100},
+  'sardines': {p:24.6,kcal:208,fat:11.5,carbs:0,fiber:0,unit:'g',qty:100},
+  'shrimp': {p:20.1,kcal:85,fat:0.5,carbs:0.9,fiber:0,unit:'g',qty:100},
+  'squid': {p:15.6,kcal:92,fat:1.4,carbs:3.1,fiber:0,unit:'g',qty:100},
+  'scallops': {p:16.8,kcal:88,fat:0.8,carbs:2.4,fiber:0,unit:'g',qty:100},
+  'mussels': {p:23.8,kcal:172,fat:4.5,carbs:7.4,fiber:0,unit:'g',qty:100},
+  'oysters': {p:9.5,kcal:81,fat:2.9,carbs:4.9,fiber:0,unit:'g',qty:100},
+  'crab': {p:18.5,kcal:87,fat:1.1,carbs:0,fiber:0,unit:'g',qty:100},
+  'firm tofu': {p:17.3,kcal:144,fat:8.7,carbs:2.8,fiber:2.3,unit:'g',qty:100},
+  'tofu': {p:8.1,kcal:76,fat:4.8,carbs:1.9,fiber:0.3,unit:'g',qty:100},
+  'silken tofu': {p:5,kcal:55,fat:2.7,carbs:2,fiber:0.2,unit:'g',qty:100},
+  'tempeh': {p:20.3,kcal:192,fat:10.8,carbs:7.6,fiber:0,unit:'g',qty:100},
+  'natto': {p:17.7,kcal:211,fat:11,carbs:12.7,fiber:5.4,unit:'g',qty:100},
+  'edamame': {p:11.9,kcal:121,fat:5.2,carbs:8.9,fiber:5.2,unit:'g',qty:100},
+  'seitan': {p:75.2,kcal:370,fat:1.9,carbs:14,fiber:0.6,unit:'g',qty:100},
+  'lentils': {p:9,kcal:116,fat:0.4,carbs:20.1,fiber:7.9,unit:'g',qty:100},
+  'chickpeas': {p:8.9,kcal:164,fat:2.6,carbs:27.4,fiber:7.6,unit:'g',qty:100},
+  'black beans': {p:8.9,kcal:132,fat:0.5,carbs:23.7,fiber:8.7,unit:'g',qty:100},
+  'kidney beans': {p:8.7,kcal:127,fat:0.5,carbs:22.8,fiber:6.4,unit:'g',qty:100},
+  'mung beans': {p:7,kcal:105,fat:0.4,carbs:19.2,fiber:7.6,unit:'g',qty:100},
+  'red beans': {p:7.5,kcal:128,fat:0.5,carbs:22.8,fiber:7.3,unit:'g',qty:100},
+  'hummus': {p:7.9,kcal:177,fat:8.6,carbs:20.1,fiber:6,unit:'g',qty:100},
+  'white rice': {p:2.7,kcal:130,fat:0.3,carbs:28.2,fiber:0.4,unit:'g',qty:100},
+  'brown rice': {p:2.6,kcal:112,fat:0.9,carbs:23.5,fiber:1.8,unit:'g',qty:100},
+  'congee': {p:1.2,kcal:46,fat:0.1,carbs:10,fiber:0.2,unit:'g',qty:100},
+  'oats': {p:13.2,kcal:379,fat:6.5,carbs:67.7,fiber:10.1,unit:'g',qty:100},
+  'porridge': {p:2.4,kcal:68,fat:1.4,carbs:12,fiber:1.7,unit:'g',qty:100},
+  'overnight oats': {p:6.5,kcal:145,fat:4,carbs:21,fiber:3,unit:'g',qty:100},
+  'quinoa': {p:4.4,kcal:120,fat:1.9,carbs:21.3,fiber:2.8,unit:'g',qty:100},
+  'couscous': {p:3.8,kcal:112,fat:0.2,carbs:23.2,fiber:1.4,unit:'g',qty:100},
+  'barley': {p:2.3,kcal:123,fat:0.4,carbs:28.2,fiber:3.8,unit:'g',qty:100},
+  'buckwheat': {p:3.4,kcal:92,fat:0.6,carbs:19.9,fiber:2.7,unit:'g',qty:100},
+  'pasta': {p:5.8,kcal:158,fat:0.9,carbs:30.9,fiber:1.8,unit:'g',qty:100},
+  'soba noodles': {p:5.1,kcal:99,fat:0.1,carbs:21.4,fiber:0,unit:'g',qty:100},
+  'udon': {p:4.6,kcal:127,fat:0.2,carbs:26.5,fiber:1.3,unit:'g',qty:100},
+  'rice noodles': {p:1.8,kcal:109,fat:0.2,carbs:24.9,fiber:1,unit:'g',qty:100},
+  'ramen noodles': {p:5.9,kcal:436,fat:17.1,carbs:63.4,fiber:2.3,unit:'pack',qty:1},
+  'wheat noodles': {p:5,kcal:138,fat:0.6,carbs:27.9,fiber:1.5,unit:'g',qty:100},
+  'white bread': {p:9,kcal:265,fat:3.2,carbs:49,fiber:2.7,unit:'slice',qty:1},
+  'wholegrain bread': {p:13,kcal:247,fat:3.5,carbs:41,fiber:7,unit:'slice',qty:1},
+  'sourdough': {p:11,kcal:260,fat:1.7,carbs:51,fiber:2.4,unit:'slice',qty:1},
+  'bagel': {p:10.5,kcal:257,fat:1.7,carbs:50.5,fiber:2.1,unit:'bagel',qty:1},
+  'tortilla': {p:8.1,kcal:306,fat:7.9,carbs:51.4,fiber:3,unit:'tortilla',qty:1},
+  'mantou': {p:7.5,kcal:223,fat:0.5,carbs:47,fiber:1.5,unit:'piece',qty:1},
+  'baozi': {p:7,kcal:227,fat:6.5,carbs:34,fiber:1.5,unit:'piece',qty:1},
+  'dumplings': {p:7.5,kcal:220,fat:8,carbs:28,fiber:1.5,unit:'serving (6)',qty:1},
+  'potato': {p:2,kcal:77,fat:0.1,carbs:17.5,fiber:2.2,unit:'g',qty:100},
+  'sweet potato': {p:1.6,kcal:86,fat:0.1,carbs:20.1,fiber:3,unit:'g',qty:100},
+  'corn': {p:3.3,kcal:96,fat:1.5,carbs:21,fiber:2.4,unit:'g',qty:100},
+  'lotus root': {p:2.6,kcal:74,fat:0.1,carbs:17.2,fiber:4.9,unit:'g',qty:100},
+  'broccoli': {p:2.8,kcal:34,fat:0.4,carbs:6.6,fiber:2.6,unit:'g',qty:100},
+  'cauliflower': {p:1.9,kcal:25,fat:0.3,carbs:5,fiber:2,unit:'g',qty:100},
   'spinach': {p:2.9,kcal:23,fat:0.4,carbs:3.6,fiber:2.2,unit:'g',qty:100},
-  'kale': {p:4.3,kcal:49,fat:0.9,carbs:9,fiber:3.6,unit:'g',qty:100},
+  'kale': {p:4.3,kcal:49,fat:0.9,carbs:8.8,fiber:3.6,unit:'g',qty:100},
+  'bok choy': {p:1.5,kcal:13,fat:0.2,carbs:2.2,fiber:1,unit:'g',qty:100},
+  'napa cabbage': {p:1.2,kcal:16,fat:0.2,carbs:3.2,fiber:1.2,unit:'g',qty:100},
+  'cabbage': {p:1.3,kcal:25,fat:0.1,carbs:5.8,fiber:2.5,unit:'g',qty:100},
+  'gai lan': {p:3,kcal:22,fat:0.4,carbs:4,fiber:2.6,unit:'g',qty:100},
+  'water spinach': {p:2.6,kcal:19,fat:0.2,carbs:3.1,fiber:2.1,unit:'g',qty:100},
+  'lettuce': {p:1.4,kcal:15,fat:0.2,carbs:2.9,fiber:1.3,unit:'g',qty:100},
   'cucumber': {p:0.7,kcal:16,fat:0.1,carbs:3.6,fiber:0.5,unit:'g',qty:100},
   'tomato': {p:0.9,kcal:18,fat:0.2,carbs:3.9,fiber:1.2,unit:'g',qty:100},
+  'cherry tomatoes': {p:0.9,kcal:18,fat:0.2,carbs:3.9,fiber:1.2,unit:'g',qty:100},
+  'carrot': {p:0.9,kcal:41,fat:0.2,carbs:9.6,fiber:2.8,unit:'g',qty:100},
+  'bell pepper': {p:1,kcal:31,fat:0.3,carbs:6,fiber:2.1,unit:'g',qty:100},
+  'zucchini': {p:1.2,kcal:17,fat:0.3,carbs:3.1,fiber:1,unit:'g',qty:100},
+  'eggplant': {p:1,kcal:25,fat:0.2,carbs:5.9,fiber:3,unit:'g',qty:100},
+  'asparagus': {p:2.2,kcal:20,fat:0.1,carbs:3.9,fiber:2.1,unit:'g',qty:100},
+  'green beans': {p:1.8,kcal:31,fat:0.2,carbs:7,fiber:2.7,unit:'g',qty:100},
+  'peas': {p:5.4,kcal:81,fat:0.4,carbs:14.5,fiber:5.7,unit:'g',qty:100},
+  'mushrooms': {p:3.1,kcal:22,fat:0.3,carbs:3.3,fiber:1,unit:'g',qty:100},
+  'shiitake': {p:2.2,kcal:34,fat:0.5,carbs:6.8,fiber:2.5,unit:'g',qty:100},
+  'onion': {p:1.1,kcal:40,fat:0.1,carbs:9.3,fiber:1.7,unit:'g',qty:100},
+  'garlic': {p:6.4,kcal:149,fat:0.5,carbs:33.1,fiber:2.1,unit:'g',qty:100},
+  'celery': {p:0.7,kcal:14,fat:0.2,carbs:3,fiber:1.6,unit:'g',qty:100},
+  'pumpkin': {p:1,kcal:26,fat:0.1,carbs:6.5,fiber:0.5,unit:'g',qty:100},
+  'okra': {p:1.9,kcal:33,fat:0.2,carbs:7.5,fiber:3.2,unit:'g',qty:100},
+  'bean sprouts': {p:3,kcal:30,fat:0.2,carbs:5.9,fiber:1.8,unit:'g',qty:100},
+  'seaweed': {p:1.7,kcal:45,fat:0.6,carbs:9.6,fiber:0.3,unit:'g',qty:100},
+  'kimchi': {p:1.1,kcal:15,fat:0.5,carbs:2.4,fiber:1.6,unit:'g',qty:100},
+  'avocado': {p:2,kcal:160,fat:14.7,carbs:8.5,fiber:6.7,unit:'avocado',qty:1},
+  'strawberries': {p:0.7,kcal:32,fat:0.3,carbs:7.7,fiber:2,unit:'g',qty:100},
+  'blueberries': {p:0.7,kcal:57,fat:0.3,carbs:14.5,fiber:2.4,unit:'g',qty:100},
+  'raspberries': {p:1.2,kcal:52,fat:0.7,carbs:11.9,fiber:6.5,unit:'g',qty:100},
+  'blackberries': {p:1.4,kcal:43,fat:0.5,carbs:9.6,fiber:5.3,unit:'g',qty:100},
+  'banana': {p:1.3,kcal:105,fat:0.4,carbs:27,fiber:3.1,unit:'banana',qty:1},
+  'apple': {p:0.3,kcal:95,fat:0.3,carbs:25.1,fiber:4.4,unit:'apple',qty:1},
+  'orange': {p:1.2,kcal:62,fat:0.2,carbs:15.4,fiber:3.1,unit:'orange',qty:1},
+  'mandarin': {p:0.6,kcal:47,fat:0.3,carbs:11.7,fiber:1.6,unit:'mandarin',qty:1},
+  'grapes': {p:0.7,kcal:69,fat:0.2,carbs:18.1,fiber:0.9,unit:'g',qty:100},
+  'watermelon': {p:0.6,kcal:30,fat:0.2,carbs:7.6,fiber:0.4,unit:'g',qty:100},
+  'cantaloupe': {p:0.8,kcal:34,fat:0.2,carbs:8.2,fiber:0.9,unit:'g',qty:100},
+  'mango': {p:0.8,kcal:60,fat:0.4,carbs:15,fiber:1.6,unit:'g',qty:100},
+  'pineapple': {p:0.5,kcal:50,fat:0.1,carbs:13.1,fiber:1.4,unit:'g',qty:100},
+  'peach': {p:0.9,kcal:39,fat:0.3,carbs:9.5,fiber:1.5,unit:'g',qty:100},
+  'pear': {p:0.4,kcal:57,fat:0.1,carbs:15.2,fiber:3.1,unit:'g',qty:100},
+  'plum': {p:0.7,kcal:46,fat:0.3,carbs:11.4,fiber:1.4,unit:'g',qty:100},
+  'cherries': {p:1.1,kcal:63,fat:0.2,carbs:16,fiber:2.1,unit:'g',qty:100},
+  'kiwi': {p:1.1,kcal:61,fat:0.5,carbs:14.7,fiber:3,unit:'g',qty:100},
+  'papaya': {p:0.5,kcal:43,fat:0.3,carbs:10.8,fiber:1.7,unit:'g',qty:100},
+  'pomegranate': {p:1.7,kcal:83,fat:1.2,carbs:18.7,fiber:4,unit:'g',qty:100},
+  'lychee': {p:0.8,kcal:66,fat:0.4,carbs:16.5,fiber:1.3,unit:'g',qty:100},
+  'longan': {p:1.3,kcal:60,fat:0.1,carbs:15.1,fiber:1.1,unit:'g',qty:100},
+  'persimmon': {p:0.6,kcal:70,fat:0.2,carbs:18.6,fiber:3.6,unit:'g',qty:100},
+  'fig': {p:0.8,kcal:74,fat:0.3,carbs:19.2,fiber:2.9,unit:'g',qty:100},
+  'dates': {p:2.5,kcal:282,fat:0.4,carbs:75,fiber:8,unit:'g',qty:100},
+  'dragon fruit': {p:1.2,kcal:60,fat:0.4,carbs:13,fiber:3,unit:'g',qty:100},
+  'lemon': {p:1.1,kcal:29,fat:0.3,carbs:9.3,fiber:2.8,unit:'g',qty:100},
+  'grapefruit': {p:0.8,kcal:42,fat:0.1,carbs:10.7,fiber:1.6,unit:'g',qty:100},
+  'almonds': {p:21.2,kcal:579,fat:49.9,carbs:21.6,fiber:12.5,unit:'g',qty:100},
+  'walnuts': {p:15.2,kcal:654,fat:65.2,carbs:13.7,fiber:6.7,unit:'g',qty:100},
+  'cashews': {p:18.2,kcal:553,fat:43.9,carbs:30.2,fiber:3.3,unit:'g',qty:100},
+  'pistachios': {p:20.2,kcal:560,fat:45.3,carbs:27.2,fiber:10.6,unit:'g',qty:100},
+  'pecans': {p:9.2,kcal:691,fat:72,carbs:13.9,fiber:9.6,unit:'g',qty:100},
+  'macadamia': {p:7.9,kcal:718,fat:75.8,carbs:13.8,fiber:8.6,unit:'g',qty:100},
+  'peanuts': {p:25.8,kcal:567,fat:49.2,carbs:16.1,fiber:8.5,unit:'g',qty:100},
+  'peanut butter': {p:4,kcal:94,fat:8,carbs:3.1,fiber:0.9,unit:'tbsp',qty:1},
+  'almond butter': {p:3.4,kcal:98,fat:8.9,carbs:3,fiber:1.6,unit:'tbsp',qty:1},
+  'tahini': {p:2.6,kcal:89,fat:8,carbs:3.2,fiber:1.4,unit:'tbsp',qty:1},
+  'sunflower seeds': {p:20.8,kcal:584,fat:51.5,carbs:20,fiber:8.6,unit:'g',qty:100},
+  'pumpkin seeds': {p:30.2,kcal:559,fat:49.1,carbs:10.7,fiber:6,unit:'g',qty:100},
+  'chia seeds': {p:16.5,kcal:486,fat:30.7,carbs:42.1,fiber:34.4,unit:'g',qty:100},
+  'flaxseed': {p:18.3,kcal:534,fat:42.2,carbs:28.9,fiber:27.3,unit:'g',qty:100},
+  'sesame seeds': {p:17.7,kcal:573,fat:49.7,carbs:23.4,fiber:11.8,unit:'g',qty:100},
+  'olive oil': {p:0,kcal:119,fat:13.5,carbs:0,fiber:0,unit:'tbsp',qty:1},
+  'coconut oil': {p:0,kcal:121,fat:13.5,carbs:0,fiber:0,unit:'tbsp',qty:1},
+  'avocado oil': {p:0,kcal:124,fat:14,carbs:0,fiber:0,unit:'tbsp',qty:1},
+  'sesame oil': {p:0,kcal:120,fat:13.6,carbs:0,fiber:0,unit:'tbsp',qty:1},
+  'coffee': {p:0.3,kcal:2,fat:0,carbs:0,fiber:0,unit:'cup',qty:1},
+  'espresso': {p:0.1,kcal:3,fat:0.2,carbs:0.5,fiber:0,unit:'shot',qty:1},
+  'latte': {p:8,kcal:135,fat:7,carbs:10.5,fiber:0,unit:'cup (350ml)',qty:1},
+  'black tea': {p:0,kcal:2,fat:0,carbs:0.3,fiber:0,unit:'cup',qty:1},
+  'green tea': {p:0,kcal:2,fat:0,carbs:0,fiber:0,unit:'cup',qty:1},
+  'orange juice': {p:0.7,kcal:45,fat:0.2,carbs:10.4,fiber:0.2,unit:'ml',qty:100},
+  'coconut water': {p:0.7,kcal:19,fat:0.2,carbs:3.7,fiber:1.1,unit:'ml',qty:100},
+  'beer': {p:0.5,kcal:43,fat:0,carbs:3.6,fiber:0,unit:'ml',qty:100},
+  'red wine': {p:0.1,kcal:85,fat:0,carbs:2.6,fiber:0,unit:'ml',qty:100},
+  'honey': {p:0.1,kcal:64,fat:0,carbs:17.3,fiber:0,unit:'tbsp',qty:1},
+  'maple syrup': {p:0,kcal:52,fat:0,carbs:13.4,fiber:0,unit:'tbsp',qty:1},
+  'dark chocolate': {p:7.8,kcal:546,fat:31.3,carbs:61.2,fiber:7,unit:'g',qty:100},
+  'protein bar': {p:20,kcal:200,fat:7,carbs:22,fiber:5,unit:'bar',qty:1},
+  'think protein bar': {p:20,kcal:230,fat:8,carbs:24,fiber:7,unit:'bar',qty:1},
+  'rice cake': {p:0.7,kcal:35,fat:0.3,carbs:7.3,fiber:0.4,unit:'cake',qty:1},
+  'granola': {p:10,kcal:471,fat:20.3,carbs:64,fiber:7,unit:'g',qty:100},
 };
+
+// Ways the same food gets typed. Each maps onto a DB key.
+const FOOD_ALIASES = {
+  'chicken':'chicken breast', 'beef':'beef mince', 'ground beef':'beef mince',
+  'mince':'beef mince', 'pork':'pork loin', 'fish':'salmon', 'prawns':'shrimp',
+  'prawn':'shrimp', 'rice':'white rice', 'steamed rice':'white rice',
+  'milk':'whole milk', 'yogurt':'greek yogurt', 'yoghurt':'greek yogurt',
+  'bread':'wholegrain bread', 'toast':'wholegrain bread', 'noodles':'wheat noodles',
+  'oatmeal':'porridge', 'whey':'whey protein', 'pb':'peanut butter',
+  'courgette':'zucchini', 'aubergine':'eggplant', 'capsicum':'bell pepper',
+  'chilli':'bell pepper', 'sweetcorn':'corn', 'spring onion':'onion',
+  'air-fried salmon':'salmon', 'air-fried tofu':'firm tofu', 'tuna can':'canned tuna',
+  'greek yoghurt':'greek yogurt', 'cottage':'cottage cheese', 'shake':'protein shake',
+  'americano':'coffee', 'flat white':'latte', 'cappuccino':'latte',
+};
+
+// ── Name matching ──────────────────────────────────────────────
+// "strawberry" and "strawberries" have to land on the same row, so every
+// name is folded to lowercase singular tokens before it is compared.
+function singularizeWord(word) {
+  if (word.length < 4) return word;
+  if (/ies$/.test(word)) return word.slice(0, -3) + 'y';
+  if (/(ches|shes|sses|xes|zes)$/.test(word)) return word.slice(0, -2);
+  if (/(ss|us|is|as)$/.test(word)) return word;
+  if (/s$/.test(word)) return word.slice(0, -1);
+  return word;
+}
+
+function normFoodName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map(singularizeWord)
+    .join(' ');
+}
+
+// normalised name → DB key. Built once at load.
+const FOOD_INDEX = (() => {
+  const index = new Map();
+  for (const key of Object.keys(DB)) index.set(normFoodName(key), key);
+  for (const [alias, target] of Object.entries(FOOD_ALIASES)) {
+    if (DB[target]) index.set(normFoodName(alias), target);
+  }
+  return index;
+})();
+
+const FOOD_INDEX_ENTRIES = [...FOOD_INDEX.entries()];
+
+// 100 = the same food. Below 40 the match is too loose to auto-apply.
+function scoreFoodMatch(queryNorm, keyNorm) {
+  if (!queryNorm || !keyNorm) return 0;
+  if (queryNorm === keyNorm) return 100;
+  if (keyNorm.startsWith(queryNorm + ' ')) return 85;
+  if (queryNorm.startsWith(keyNorm + ' ')) return 80;
+  if (keyNorm.includes(' ' + queryNorm) || keyNorm.includes(queryNorm + ' ')) return 70;
+  if (queryNorm.includes(' ' + keyNorm) || queryNorm.includes(keyNorm + ' ')) return 65;
+  const queryTokens = new Set(queryNorm.split(' '));
+  const keyTokens = keyNorm.split(' ');
+  const shared = keyTokens.filter(token => queryTokens.has(token)).length;
+  if (!shared) return 0;
+  return Math.round(45 * shared / Math.max(queryTokens.size, keyTokens.length));
+}
+
+// Ranked local matches. Multiple hits are shown as a picker rather than
+// silently resolving to whichever key happens to be longest.
+function searchFoodDb(query, limit = 8) {
+  const queryNorm = normFoodName(query);
+  if (!queryNorm) return [];
+  const bestByKey = new Map();
+  for (const [keyNorm, dbKey] of FOOD_INDEX_ENTRIES) {
+    const score = scoreFoodMatch(queryNorm, keyNorm);
+    if (score < 30) continue;
+    if ((bestByKey.get(dbKey) || 0) < score) bestByKey.set(dbKey, score);
+  }
+  return [...bestByKey.entries()]
+    // On a tie the longer name is the more specific one: "2 boiled eggs"
+    // should land on `boiled egg`, not on plain `egg`.
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([key, score]) => ({ key, score, item: { ...DB[key], name: key } }));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -1613,6 +1920,7 @@ let currentDetailKey = null;
 let detailState = null; // state for currently viewed day
 let pendingFoodItem = null; // food item staged for qty modal
 let pendingSearchResults = [];
+let pendingLocalResults = [];
 let editingTimeId = null;
 let freqAccordionOpen = false;
 let freqExOpen = false;
@@ -1674,7 +1982,7 @@ function loadState(key) {
     if (!Array.isArray(s.food)) s.food = [];
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
-    if (s.stravaKcal === undefined) s.stravaKcal = 0;
+    if (s.garminAutoKcal === undefined) s.garminAutoKcal = 0;
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -1696,17 +2004,13 @@ function saveDetailState() {
 // ═══════════════════════════════════════════════════════════════
 // FOOD PARSING
 // ═══════════════════════════════════════════════════════════════
+// Single best match, for the paths that cannot show a picker (bulk paste,
+// AI parsing, frequent-food pills). Loose matches are rejected rather than
+// guessed at — the caller falls back to the manual form.
 function parseFood(query) {
-  const q = query.toLowerCase().trim();
-  // Try direct DB match
-  if (DB[q]) return { ...DB[q], name: query };
-  // Prefer the most-specific partial match. Object insertion order used to
-  // make "2 boiled eggs" resolve to generic "eggs" before "boiled eggs".
-  const keys = Object.keys(DB).sort((a,b) => b.length - a.length);
-  for (const k of keys) {
-    if (q.includes(k) || k.includes(q)) return { ...DB[k], name: k };
-  }
-  return null;
+  const results = searchFoodDb(query, 1);
+  if (!results.length || results[0].score < 60) return null;
+  return results[0].item;
 }
 
 function calcQty(item, qty) {
@@ -2051,7 +2355,8 @@ function renderFoodEntryHTML(f, editable) {
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function toggleFreqAccordion() {
@@ -2101,51 +2406,135 @@ function quickAddFood(chip) {
 async function handleAddFood() {
   const query = document.getElementById('food-text').value.trim();
   if (!query) return;
-  // Try DB first
-  const item = parseFood(query);
-  if (item) {
-    openQtyModalWithItem(item, query);
+  await resolveFoodQuery(query);
+}
+
+// The food database answers first. Open Food Facts is a barcode catalogue
+// of packaged goods, so it is only reached on an explicit tap or when the
+// database has nothing — otherwise "strawberry" comes back as jam.
+async function resolveFoodQuery(query) {
+  const results = searchFoodDb(query);
+  if (results.length && results[0].score === 100) {
+    openQtyModalWithItem(results[0].item, results[0].key);
     return;
   }
-  // Try Open Food Facts
+  if (results.length) { openFoodPicker(query, results); return; }
   await searchOpenFoodFacts(query);
 }
 
-async function searchOpenFoodFacts(query) {
+function titleCaseFood(name) {
+  return String(name).charAt(0).toUpperCase() + String(name).slice(1);
+}
+
+function servingLabel(item) {
+  if (item.unit === 'g') return 'per 100 g';
+  if (item.unit === 'ml') return 'per 100 ml';
+  return `per ${item.unit}`;
+}
+
+function macroLine(item) {
+  return `${item.p}g protein · ${item.kcal} kcal · ${item.fat}g fat · ${item.carbs}g carbs`;
+}
+
+function openFoodPicker(query, results, autoPackaged) {
+  pendingLocalResults = results || [];
+  pendingSearchResults = [];
   openQtyModal();
-  document.getElementById('qty-modal-title').textContent = `Searching: ${query}`;
-  document.getElementById('qty-search-results').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0;">Searching Open Food Facts…</div>';
   document.getElementById('qty-manual-form').style.display = 'none';
+  showQtyFooter(false);
+  document.getElementById('qty-modal-title').textContent =
+    pendingLocalResults.length ? 'Select Food' : `Searching: ${query}`;
+
+  const localRows = pendingLocalResults.map((result, i) => `
+    <div class="search-result-item" onclick="selectLocalResult(${i})">
+      <div class="search-result-name">${escHtml(titleCaseFood(result.key))}</div>
+      <div class="search-result-macros">${escHtml(macroLine(result.item))} (${escHtml(servingLabel(result.item))})</div>
+    </div>`).join('');
+
+  document.getElementById('qty-search-results').innerHTML = `
+    ${pendingLocalResults.length ? `<div class="search-group-label">Foods</div>${localRows}` : ''}
+    <div id="packaged-results"></div>
+    <div class="search-result-item" id="packaged-trigger" onclick="searchOpenFoodFacts('${escHtml(query)}', true)">
+      <div class="search-result-name">Search packaged products…</div>
+      <div class="search-result-macros">Open Food Facts · branded &amp; barcoded items</div>
+    </div>
+    <div class="search-result-item" onclick="showManualForm('${escHtml(query)}')">
+      <div class="search-result-name">+ Enter manually</div>
+    </div>`;
+
+  if (autoPackaged) searchOpenFoodFacts(query, true);
+}
+
+function selectLocalResult(idx) {
+  const result = pendingLocalResults[idx];
+  if (!result) return;
+  openQtyModalWithItem(result.item, result.key);
+}
+
+// Packaged-product lookup. Deliberately secondary: results are ranked by
+// scan popularity and anything without an energy value is dropped, because
+// Open Food Facts is full of half-filled crowd-sourced entries.
+async function searchOpenFoodFacts(query, inPicker) {
+  const container = inPicker
+    ? document.getElementById('packaged-results')
+    : (openQtyModal(), document.getElementById('qty-search-results'));
+  if (!container) return;
+
+  if (!inPicker) {
+    document.getElementById('qty-modal-title').textContent = `Searching: ${query}`;
+    document.getElementById('qty-manual-form').style.display = 'none';
+    showQtyFooter(false);
+  }
+  const trigger = document.getElementById('packaged-trigger');
+  if (trigger) trigger.style.display = 'none';
+  container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0;">Searching packaged products…</div>';
+
   try {
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&json=1&page_size=3&fields=product_name,nutriments`;
-    const resp = await fetch(url);
+    const params = new URLSearchParams({
+      search_terms: query,
+      search_simple: '1',
+      action: 'process',
+      json: '1',
+      page_size: '30',
+      sort_by: 'unique_scans_n',
+      fields: 'product_name,brands,nutriments',
+    });
+    const resp = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?${params}`);
     const data = await resp.json();
-    const products = data.products || [];
+
+    const seen = new Set();
+    const products = (data.products || []).filter(product => {
+      const n = product.nutriments || {};
+      if (!product.product_name || !(n['energy-kcal_100g'] > 0)) return false;
+      const dedupeKey = `${product.product_name}|${product.brands || ''}`.toLowerCase();
+      if (seen.has(dedupeKey)) return false;
+      seen.add(dedupeKey);
+      return true;
+    }).slice(0, 6);
+
     if (products.length === 0) {
-      document.getElementById('qty-search-results').innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0;">No results found.</div>';
-      showManualForm(query);
+      container.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px 0;">No packaged products found.</div>';
+      if (!inPicker) showManualForm(query);
       return;
     }
+
     pendingSearchResults = products;
-    let html = '';
-    for (let i=0; i<products.length; i++) {
-      const p = products[i];
-      const n = p.nutriments || {};
-      const prot = +(n['proteins_100g']||0).toFixed(1);
-      const kcal = Math.round(n['energy-kcal_100g']||0);
-      const fat = +(n['fat_100g']||0).toFixed(1);
-      const carbs = +(n['carbohydrates_100g']||0).toFixed(1);
-      html += `<div class="search-result-item" onclick="selectSearchResult(${i})">
-        <div class="search-result-name">${escHtml(p.product_name||'Unknown')}</div>
-        <div class="search-result-macros">${prot}g protein · ${kcal} kcal · ${fat}g fat · ${carbs}g carbs (per 100g)</div>
+    container.innerHTML = '<div class="search-group-label">Packaged products</div>' + products.map((product, i) => {
+      const n = product.nutriments || {};
+      const brand = (product.brands || '').split(',')[0].trim();
+      return `<div class="search-result-item" onclick="selectSearchResult(${i})">
+        <div class="search-result-name">${escHtml(product.product_name)}${brand ? ` <span style="color:var(--muted);font-weight:600;">· ${escHtml(brand)}</span>` : ''}</div>
+        <div class="search-result-macros">${+(n['proteins_100g']||0).toFixed(1)}g protein · ${Math.round(n['energy-kcal_100g'])} kcal · ${+(n['fat_100g']||0).toFixed(1)}g fat · ${+(n['carbohydrates_100g']||0).toFixed(1)}g carbs (per 100g)</div>
       </div>`;
+    }).join('');
+
+    if (!inPicker) {
+      document.getElementById('qty-modal-title').textContent = 'Select Food';
+      container.innerHTML += `<div class="search-result-item" onclick="showManualForm('${escHtml(query)}')"><div class="search-result-name">+ Enter manually</div></div>`;
     }
-    html += `<div class="search-result-item" onclick="showManualForm('${escHtml(query)}')"><div class="search-result-name">+ Enter manually</div></div>`;
-    document.getElementById('qty-search-results').innerHTML = html;
-    document.getElementById('qty-modal-title').textContent = 'Select Food';
   } catch(e) {
-    document.getElementById('qty-search-results').innerHTML = `<div style="color:var(--red);font-size:13px;padding:10px 0;">Search failed. Enter manually.</div>`;
-    showManualForm(query);
+    container.innerHTML = '<div style="color:var(--red);font-size:13px;padding:10px 0;">Product search failed. Enter manually.</div>';
+    if (!inPicker) showManualForm(query);
   }
 }
 
@@ -2155,6 +2544,7 @@ function selectSearchResult(idx) {
   document.getElementById('qty-modal-title').textContent = 'Add Food';
   document.getElementById('qty-search-results').innerHTML = '';
   document.getElementById('qty-manual-form').style.display = '';
+  showQtyFooter(true);
   document.getElementById('qty-name').value = p.product_name || '';
   document.getElementById('qty-prot').value = +(n['proteins_100g']||0).toFixed(1);
   document.getElementById('qty-kcal').value = Math.round(n['energy-kcal_100g']||0);
@@ -2174,15 +2564,22 @@ function selectSearchResult(idx) {
   };
 }
 
+function showQtyFooter(visible) {
+  const row = document.getElementById('qty-btn-row');
+  if (row) row.style.display = visible ? '' : 'none';
+}
+
 function showManualForm(name) {
   document.getElementById('qty-search-results').innerHTML = '';
   document.getElementById('qty-manual-form').style.display = '';
+  showQtyFooter(true);
   document.getElementById('qty-modal-title').textContent = 'Add Food';
   document.getElementById('qty-name').value = typeof name === 'string' ? name : '';
 }
 
 function openQtyModal() {
   document.getElementById('qty-time').value = nowTime();
+  showQtyFooter(true);
   document.getElementById('qty-modal').classList.add('open');
 }
 
@@ -2191,6 +2588,7 @@ function openQtyModalWithItem(item, name) {
   document.getElementById('qty-modal-title').textContent = `Add: ${name}`;
   document.getElementById('qty-search-results').innerHTML = '';
   document.getElementById('qty-manual-form').style.display = '';
+  showQtyFooter(true);
   document.getElementById('qty-name').value = item.name || name;
   const defaultQty = item.unit === 'g' || item.unit === 'ml' ? 100 : item.qty;
   document.getElementById('qty-amount').value = defaultQty;
@@ -2350,12 +2748,7 @@ async function handleHomeAddFood() {
   addingFromHome = true;
   currentDetailKey = todayKey();
   detailState = state;
-  const item = parseFood(query);
-  if (item) {
-    openQtyModalWithItem(item, query);
-  } else {
-    await searchOpenFoodFacts(query);
-  }
+  await resolveFoodQuery(query);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -2631,6 +3024,26 @@ function renderFeelingRow() {
   });
 }
 
+// Session names drift: "Lat & Back", "Lat & Back+5k", "Lat & Back + 4miles
+// (35min)" and "Lower Body A-recovery" are all the same template. Group on a
+// folded key and show the spelling that appears most often.
+function sessionGroupKey(name) {
+  return String(name || '')
+    .split('+')[0]
+    .replace(/[（(][^）)]*[）)]/g, ' ')
+    .replace(/\d+(?:\.\d+)?\s*(?:k|km|miles?|mi|min|mins)\b/gi, ' ')
+    .replace(/\b(?:a|b|c|day|freestyle|recovery|session)\b/gi, ' ')
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    // "Hand standing Drill" and "Handstand Drill" are the same session, so
+    // gerunds are stemmed and the spaces dropped before comparing.
+    .map(word => (word.length > 4 && word.endsWith('ing') ? word.slice(0, -3) : word))
+    .join('');
+}
+
 function normalizeExerciseName(name) {
   return String(name || '')
     .toLowerCase()
@@ -2657,10 +3070,12 @@ function getSessionTemplates() {
   const groups = new Map();
   for (const day of storedGymDays(183)) {
     const session = String(day.gym.session || '').trim();
-    if (!session) continue;
-    if (!groups.has(session)) groups.set(session, { name:session, count:0, recent30:0, lastKey:day.key, exercises:new Map() });
-    const group = groups.get(session);
+    const groupKey = sessionGroupKey(session);
+    if (!groupKey) continue;
+    if (!groups.has(groupKey)) groups.set(groupKey, { name:session, count:0, recent30:0, lastKey:day.key, exercises:new Map(), labels:new Map() });
+    const group = groups.get(groupKey);
     group.count++;
+    group.labels.set(session, (group.labels.get(session) || 0) + 1);
     if (day.date.getTime() >= Date.now() - 30 * 86400000) group.recent30++;
     if (day.key > group.lastKey) group.lastKey = day.key;
     const seen = new Set();
@@ -2677,7 +3092,9 @@ function getSessionTemplates() {
   const derived = [...groups.values()]
     .filter(group => group.count >= 4)
     .map(group => ({
-      name:group.name,
+      // Most-used spelling wins, shortest as the tiebreak.
+      name:[...group.labels.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].length - b[0].length)[0][0],
       recent30:group.recent30,
       lastKey:group.lastKey,
       count:group.count,
@@ -2939,6 +3356,7 @@ function updateExerciseField(id, field, value) {
   if (!exercise || !['sets','reps','weight','distance','runTime'].includes(field)) return;
   exercise[field] = value.trim();
   exercise.suggested = false;
+  exercise.edited = true;
   saveState();
 }
 
@@ -3262,8 +3680,9 @@ const SESSION_BURN = {
   'Interval Run': 520, 'Recovery Run': 350,
   'Handstand Practice': 200, 'Mobility': 120, 'Rest Day': 0,
 };
-// RMR measured by DEXA scan (BodySpec, May 1 2026): 1,357 kcal/day
-const BMR_ESTIMATE = 1357;
+// RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
+// History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
+const BMR_ESTIMATE = 1306;
 
 function renderLogTab() {
   const m = sumMacros(state.food);
@@ -3272,17 +3691,17 @@ function renderLogTab() {
   if (lbl) lbl.textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
   // Energy balance
-  // Priority: manual Garmin override → Strava auto-sync → session estimate → exercise count fallback
+  // Priority: manual Garmin edit → Garmin auto-sync → session estimate → exercise count fallback
   const garminKcal = state.garminKcal || 0;
-  const stravaKcal = state.stravaKcal || 0;
+  const garminAuto = state.garminAutoKcal || 0;
   const completedExercises = (state.gym.exercises || []).filter(exercise => exercise.completed !== false);
   const hasCompletedTraining = completedExercises.length > 0;
   const sessionBurn = garminKcal > 0 ? garminKcal
-    : stravaKcal > 0 ? stravaKcal
+    : garminAuto > 0 ? garminAuto
     : hasCompletedTraining && SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
     : hasCompletedTraining ? 300 : 0;
-  const burnSource = garminKcal > 0 ? '⌚ Garmin override'
-    : stravaKcal > 0 ? '⚡ Strava'
+  const burnSource = garminKcal > 0 ? '⌚ Garmin (manual)'
+    : garminAuto > 0 ? `⌚ Garmin auto${state.garminSyncedAt ? ' · ' + escHtml(state.garminSyncedAt) : ''}`
     : hasCompletedTraining && state.gym.session ? escHtml(state.gym.session)
     : hasCompletedTraining ? 'completed exercises' : null;
   const totalBurn = BMR_ESTIMATE + sessionBurn;
@@ -3544,222 +3963,142 @@ function closeGistModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STRAVA OAUTH + ACTIVITY SYNC
+// GARMIN — AUTO-SYNC + MANUAL OVERRIDE
+// Garmin exposes no public API a browser can call: the Health API is a
+// partner programme with server-side OAuth 1.0a and webhooks. So a relay
+// writes one small file into the Gist this app already syncs with, and the
+// app reads it. Two relays are supported and neither needs a server:
+//   • Mac LaunchAgent running tools/garmin_sync.py (garminconnect)
+//   • iOS Shortcuts automation posting Apple Health "Active Energy"
+// Shape: { "2026-08-20": { "activeKcal": 620, "steps": 12043, "sleepHours": 7.4 } }
 // ═══════════════════════════════════════════════════════════════
-const STRAVA_AUTH_URL  = 'https://www.strava.com/oauth/authorize';
-const STRAVA_TOKEN_URL = 'https://www.strava.com/oauth/token';
-const STRAVA_API_URL   = 'https://www.strava.com/api/v3';
+const GARMIN_GIST_FILE = 'athletelog-garmin.json';
 
-function stravaIsConnected() {
-  return !!(localStorage.getItem('strava_access_token') &&
-            localStorage.getItem('strava_client_id'));
+function garminDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
 
-function openStravaModal() {
-  const connected = stravaIsConnected();
-  document.getElementById('strava-connected-view').style.display = connected ? '' : 'none';
-  document.getElementById('strava-setup-view').style.display    = connected ? 'none' : '';
-  if (connected) {
-    const name = localStorage.getItem('strava_athlete_name') || 'Athlete';
-    document.getElementById('strava-athlete-label').textContent = `Connected as ${name}`;
-    const kcal = state.stravaKcal || 0;
-    document.getElementById('strava-sync-label').textContent =
-      kcal > 0 ? `Today: ${kcal} kcal synced from Strava` : 'Tap Sync to fetch today\'s calories';
-  } else {
-    document.getElementById('strava-client-id').value = localStorage.getItem('strava_client_id') || '';
-    document.getElementById('strava-client-secret').value = '';
-    document.getElementById('strava-status').textContent = '';
+function garminAutoConfigured() {
+  return !!localStorage.getItem('github_gist_token');
+}
+
+async function findGarminGistId(token) {
+  const cached = localStorage.getItem('garmin_gist_id');
+  if (cached) return cached;
+  const resp = await fetch('https://api.github.com/gists?per_page=50', {
+    headers: { Authorization: 'Bearer ' + token },
+  });
+  if (!resp.ok) throw new Error('GitHub auth failed');
+  const gist = (await resp.json()).find(g => g.files && g.files[GARMIN_GIST_FILE]);
+  if (!gist) throw new Error('No ' + GARMIN_GIST_FILE + ' gist found');
+  localStorage.setItem('garmin_gist_id', gist.id);
+  return gist.id;
+}
+
+// Backfills every day the relay knows about, so a few days offline heal
+// themselves instead of silently leaving holes in the energy balance.
+async function garminAutoSync(silent = true) {
+  const token = localStorage.getItem('github_gist_token');
+  const status = document.getElementById('garmin-status');
+  if (!token) {
+    if (!silent && status) { status.style.color = 'var(--red)'; status.textContent = 'Connect Gist backup first (Summary → Sync)'; }
+    return false;
   }
-  document.getElementById('strava-modal').classList.add('open');
+  if (!silent && status) { status.style.color = 'var(--muted)'; status.textContent = 'Fetching from Garmin relay…'; }
+
+  try {
+    const gistId = await findGarminGistId(token);
+    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!resp.ok) throw new Error('Could not read the relay file');
+    const raw = (await resp.json()).files?.[GARMIN_GIST_FILE]?.content;
+    if (!raw) throw new Error('Relay file is empty');
+    const days = JSON.parse(raw);
+
+    let applied = 0;
+    for (const [date, entry] of Object.entries(days)) {
+      const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) continue;
+      const kcal = Math.round(+(entry.activeKcal ?? entry.active_kcal ?? entry.kcal) || 0);
+      if (!kcal) continue;
+      const key = `alog_${match[1]}_${match[2]}_${match[3]}`;
+      const day = loadState(key);
+      if (day.garminAutoKcal === kcal) continue;
+      day.garminAutoKcal = kcal;
+      day.garminSyncedAt = garminDateKey();
+      if (entry.steps) day.garminSteps = Math.round(+entry.steps);
+      if (entry.sleepHours) day.garminSleepHours = +entry.sleepHours;
+      localStorage.setItem(key, JSON.stringify(day));
+      applied++;
+    }
+
+    state = loadState(todayKey());
+    localStorage.setItem('garmin_last_sync', new Date().toISOString());
+    renderLogTab();
+    updateGarminBtn();
+    renderGarminAutoRow();
+    if (!silent && status) {
+      status.style.color = 'var(--sp-green)';
+      const today = state.garminAutoKcal || 0;
+      status.textContent = today
+        ? `✓ Today: ${today} kcal · ${applied} day${applied === 1 ? '' : 's'} updated`
+        : `✓ Relay read · nothing logged for today yet`;
+    }
+    return true;
+  } catch (err) {
+    if (!silent && status) { status.style.color = 'var(--red)'; status.textContent = err.message; }
+    return false;
+  }
 }
 
-function closeStravaModal() {
-  document.getElementById('strava-modal').classList.remove('open');
-}
-
-function saveStravaAndConnect() {
-  const clientId     = document.getElementById('strava-client-id').value.trim();
-  const clientSecret = document.getElementById('strava-client-secret').value.trim();
-  if (!clientId || !clientSecret) {
-    document.getElementById('strava-status').textContent = 'Both fields are required';
+function renderGarminAutoRow() {
+  const title = document.getElementById('garmin-auto-title');
+  const sub = document.getElementById('garmin-auto-sub');
+  if (!title || !sub) return;
+  if (!garminAutoConfigured()) {
+    title.textContent = 'Auto-sync off';
+    sub.textContent = 'Connect Gist backup first, then set up a relay';
     return;
   }
-  localStorage.setItem('strava_client_id',     clientId);
-  localStorage.setItem('strava_client_secret', clientSecret);
-  closeStravaModal();
-  startStravaOAuth();
+  const auto = state.garminAutoKcal || 0;
+  const last = localStorage.getItem('garmin_last_sync');
+  title.textContent = auto ? `Today: ${auto} kcal` : 'Auto-sync on';
+  sub.textContent = last
+    ? `Last checked ${new Date(last).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}`
+    : 'Not checked yet — tap Sync';
 }
 
-function stravaRedirectUri() {
-  // Always use the exact deployed URL, with no trailing slash ambiguity
-  const path = window.location.pathname.endsWith('/')
-    ? window.location.pathname
-    : window.location.pathname + '/';
-  return window.location.origin + path;
-}
-
-function startStravaOAuth() {
-  const clientId = localStorage.getItem('strava_client_id');
-  if (!clientId) { openStravaModal(); return; }
-  const params = new URLSearchParams({
-    client_id:       clientId,
-    response_type:   'code',
-    redirect_uri:    stravaRedirectUri(),
-    approval_prompt: 'auto',
-    scope:           'activity:read',
-  });
-  window.location.href = `${STRAVA_AUTH_URL}?${params}`;
-}
-
-async function handleStravaCallback() {
-  const params = new URLSearchParams(window.location.search);
-  const code  = params.get('code');
-  const error = params.get('error');
-  // Clean URL regardless
-  if (code || error) history.replaceState({}, '', window.location.pathname);
-  if (error || !code) return;
-
-  const clientId     = localStorage.getItem('strava_client_id');
-  const clientSecret = localStorage.getItem('strava_client_secret');
-  if (!clientId || !clientSecret) { showToast('Strava credentials missing. Reconnect'); return; }
-
-  showToast('⚡ Connecting to Strava…', 5000);
-  try {
-    const resp = await fetch(STRAVA_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
-                             code, redirect_uri: stravaRedirectUri(),
-                             grant_type: 'authorization_code' }),
-    });
-    const data = await resp.json();
-    if (!data.access_token) throw new Error(data.message || data.error || JSON.stringify(data));
-    _stravaStoreTokens(data);
-    showToast('✓ Strava connected!');
-    updateStravaBtn();
-    await fetchTodayStravaCalories();
-  } catch(e) {
-    showToast('Strava error: ' + e.message, 5000);
-  }
-}
-
-function _stravaStoreTokens(data) {
-  localStorage.setItem('strava_access_token',  data.access_token);
-  localStorage.setItem('strava_refresh_token', data.refresh_token);
-  localStorage.setItem('strava_token_expires', data.expires_at);
-  if (data.athlete?.firstname) {
-    localStorage.setItem('strava_athlete_name',
-      [data.athlete.firstname, data.athlete.lastname].filter(Boolean).join(' '));
-  }
-}
-
-async function _stravaEnsureToken() {
-  const expires = parseInt(localStorage.getItem('strava_token_expires') || '0');
-  if (Math.floor(Date.now() / 1000) < expires - 120) return true; // still valid
-
-  const refreshToken = localStorage.getItem('strava_refresh_token');
-  const clientId     = localStorage.getItem('strava_client_id');
-  const clientSecret = localStorage.getItem('strava_client_secret');
-  if (!refreshToken || !clientId || !clientSecret) return false;
-
-  try {
-    const resp = await fetch(STRAVA_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: clientId, client_secret: clientSecret,
-                             refresh_token: refreshToken, grant_type: 'refresh_token' }),
-    });
-    const data = await resp.json();
-    if (!data.access_token) return false;
-    _stravaStoreTokens(data);
-    return true;
-  } catch { return false; }
-}
-
-async function fetchTodayStravaCalories(silent = true) {
-  if (!stravaIsConnected()) return;
-  const ok = await _stravaEnsureToken();
-  if (!ok) { if (!silent) showToast('Strava token expired. Reconnect'); return; }
-
-  const token = localStorage.getItem('strava_access_token');
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const after = Math.floor(todayStart.getTime() / 1000);
-
-  try {
-    const resp = await fetch(`${STRAVA_API_URL}/athlete/activities?per_page=10&after=${after}`,
-      { headers: { 'Authorization': `Bearer ${token}` } });
-    if (!resp.ok) throw new Error('API ' + resp.status);
-    const activities = await resp.json();
-    if (!Array.isArray(activities)) return;
-
-    const totalKcal = activities.reduce((sum, a) => sum + (a.calories || 0), 0);
-    const names = activities.map(a => a.name || a.sport_type || a.type).filter(Boolean);
-
-    state.stravaKcal = totalKcal;
-    saveState();
-    renderLogTab();
-    updateStravaBtn();
-    if (!silent) {
-      showToast(totalKcal > 0
-        ? `⚡ Strava: ${totalKcal} kcal from ${activities.length} activit${activities.length > 1 ? 'ies' : 'y'}`
-        : '⚡ Strava: no activities today yet', 4000);
-    }
-  } catch(e) {
-    if (!silent) showToast('Strava sync failed: ' + e.message, 4000);
-  }
-}
-
-async function stravaSync() {
-  closeStravaModal();
-  await fetchTodayStravaCalories(false);
-}
-
-function stravaDisconnect() {
-  ['strava_access_token','strava_refresh_token','strava_token_expires',
-   'strava_client_id','strava_client_secret','strava_athlete_name'].forEach(k => localStorage.removeItem(k));
-  state.stravaKcal = 0;
-  saveState();
-  closeStravaModal();
-  updateStravaBtn();
-  renderLogTab();
-  showToast('Strava disconnected');
-}
-
-function updateStravaBtn() {
-  const btn = document.getElementById('strava-btn');
+function updateGarminBtn() {
+  const btn = document.getElementById('garmin-btn');
   if (!btn) return;
-  if (stravaIsConnected()) {
-    btn.style.color = '#fc4c02';
-    btn.textContent = '⚡ Strava';
-  } else {
-    btn.style.color = '';
-    btn.textContent = '⚡ Strava';
-  }
+  const active = (state.garminKcal || 0) > 0 || (state.garminAutoKcal || 0) > 0;
+  btn.style.color = active ? 'var(--sp-green)' : '';
 }
 
-// ═══════════════════════════════════════════════════════════════
-// GARMIN MANUAL OVERRIDE
-// ═══════════════════════════════════════════════════════════════
 function openGarminModal() {
   const existing = state.garminKcal || '';
   document.getElementById('garmin-kcal-input').value = existing || '';
   const status = document.getElementById('garmin-status');
-  status.textContent = existing ? `Currently set: ${existing} kcal` : '';
+  status.style.color = 'var(--sp-green)';
+  status.textContent = existing ? `Override set: ${existing} kcal` : '';
+  renderGarminAutoRow();
   document.getElementById('garmin-modal').classList.add('open');
-  setTimeout(() => document.getElementById('garmin-kcal-input').focus(), 200);
+  if (garminAutoConfigured()) garminAutoSync(true);
 }
+
 function closeGarminModal() {
   document.getElementById('garmin-modal').classList.remove('open');
 }
+
 function saveGarminKcal() {
   const val = parseInt(document.getElementById('garmin-kcal-input').value) || 0;
   state.garminKcal = val;
   saveState();
   closeGarminModal();
   renderLogTab();
-  const btn = document.getElementById('garmin-btn');
-  if (btn) btn.style.color = val > 0 ? 'var(--sp-green)' : '';
-  showToast(val > 0 ? `⌚ Garmin: ${val} kcal saved` : '⌚ Garmin data cleared');
+  updateGarminBtn();
+  showToast(val > 0 ? `⌚ Garmin: ${val} kcal saved` : '⌚ Override cleared — using auto-sync');
 }
 
 function saveGistToken() {
@@ -4054,7 +4393,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (tab === 'gym') initGymTab();
     if (tab === 'log') {
       renderLogTab();
-      if (stravaIsConnected()) fetchTodayStravaCalories();
+      if (garminAutoConfigured()) garminAutoSync(true);
     }
     if (tab === 'food') renderDayList();
   };
@@ -4099,6 +4438,487 @@ document.getElementById('food-text').addEventListener('keydown', (e) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// OBSIDIAN GYM LOG — IMPORT & EXPORT
+// The handwritten log is the source of truth, so the app has to read it
+// and write it back in the same shape. Round-tripping is what lets this
+// replace the handwriting instead of becoming a second place to maintain.
+//
+// Format (one month per file, newest session first):
+//   ### <font color="#00b0f0">08/19 Lower Body A-recovery </font>
+//    Time: 5:55-6:30
+//    Note: Left thighs acute pain
+//    - [x] RDL-  4 sets × 10,2,2,2reps - 132,225lbs（110kg）
+//    - [ ] Front Squat-3 sets × 10,8reps - 88,110 lbs - 8
+// ═══════════════════════════════════════════════════════════════
+
+const GYM_SEPARATORS = /\s*[-–—|×✕*·]\s*/;
+
+// Any token that means "this is a number about the set", used to find where
+// the exercise name stops and the measurements begin.
+const GYM_MEASURE_RE = /(\d+(?:\.\d+)?\s*(?:sets?|reps?|lbs?|kgs?|secs?|seconds?|mins?|minutes?|rounds?|e\b)|\bbw\b|\bbodyweight\b)/i;
+
+// Lines arrive wrapped in callouts, coloured spans, escaped brackets and
+// full-width punctuation depending on which month they came from.
+function stripInlineMarkup(line) {
+  return String(line)
+    .replace(/^\s*>+\s?/, '')             // > callout prefix
+    .replace(/<\/?[^>]+>/g, '')           // <font …>, <span …>
+    .replace(/\\([\[\]])/g, '$1')         // \[8\] → [8]
+    .replace(/\*\*/g, '')
+    .replace(/[（(]\s*[\d.]+\s*(kg|lbs?)\s*[）)]/gi, '')  // parenthesised conversions
+    .replace(/[   ]/g, ' ')
+    .trim();
+}
+
+// `### 08/19 Lower Body`, `## 02/27 Shoulder& Arm`, `> [!note]- 06/29 Lat & Back`
+function parseSessionHeading(rawLine) {
+  const line = stripInlineMarkup(rawLine)
+    .replace(/^#{1,6}\s*/, '')
+    .replace(/^\[!\w+\][-+]?\s*/, '')
+    .trim();
+  const match = line.match(/^(\d{1,2})\s*[\/.-]\s*(\d{1,2})\b/);
+  if (!match) return null;
+  return {
+    month: +match[1],
+    day: +match[2],
+    session: line.slice(match[0].length).replace(/^[\s\-–—:]+/, '').trim(),
+  };
+}
+
+function isHeadingLine(rawLine) {
+  const clean = String(rawLine).replace(/^\s*>+\s?/, '');
+  return /^\s*#{1,6}\s/.test(clean) || /^\s*\[!\w+\]/.test(clean);
+}
+
+// Everything after the name is free-form, so each field is read independently
+// and the original text is kept as `raw` for anything that cannot be read.
+function readExerciseMeasurements(body, exercise) {
+  const setsMatch   = body.match(/(\d+)\s*(?:sets?)\b/i);
+  const repsMatch   = body.match(/([\d,\s]*\d)\s*(?:reps?|e\b)/i);
+  const weightMatch = body.match(/([\d.,]+)\s*(lbs?|kgs?)\b/i);
+  const secMatch    = body.match(/(\d+)\s*(?:secs?|seconds?)\b/i);
+  const minMatch    = body.match(/(\d+)\s*(?:mins?|minutes?)\b/i);
+  const roundMatch  = body.match(/(\d+)\s*rounds?\b/i);
+  const distMatch   = body.match(/([\d.]+)\s*(km|miles?|mi)\b/i);
+  const bodyweight  = /\bbw\b|\bbodyweight\b/i.test(body);
+
+  // RPE is a bare number after the last separator, or bracketed: [8].
+  const bracketed = body.match(/\[(\d{1,2}(?:\.\d)?)\]\s*$/);
+  const parts = body.split(GYM_SEPARATORS).map(part => part.trim()).filter(Boolean);
+  const tail = parts[parts.length - 1];
+  let rpe = null;
+  if (bracketed && +bracketed[1] <= 10) rpe = +bracketed[1];
+  else if (parts.length > 1 && /^\d{1,2}(\.\d)?$/.test(tail) && +tail <= 10) rpe = +tail;
+
+  if (setsMatch) exercise.sets = setsMatch[1];
+  if (repsMatch) exercise.reps = repsMatch[1].replace(/\s+/g, '');
+  if (roundMatch && !exercise.reps) exercise.reps = roundMatch[1];
+
+  // `4 sets-10-110lbs-8` — the reps carry no keyword, so take the number that
+  // follows the sets token when it is not itself a weight or a duration.
+  if (setsMatch && !exercise.reps) {
+    const after = body.slice(body.indexOf(setsMatch[0]) + setsMatch[0].length);
+    const bare = after.match(/^[\s\-–—|×✕*·]*(\d+(?:,\d+)*)(?![\d.]*\s*(?:lbs?|kgs?|secs?|mins?))/i);
+    if (bare && (rpe == null || +bare[1] !== rpe)) exercise.reps = bare[1];
+  }
+
+  if (weightMatch) {
+    exercise.weight = weightMatch[1].replace(/,$/, '');
+    exercise.unit = /kg/i.test(weightMatch[2]) ? 'kg' : 'lbs';
+  } else if (bodyweight) {
+    exercise.weight = 'bw';
+  }
+  if (secMatch) { exercise.hold = true; if (!exercise.reps) exercise.reps = secMatch[1]; }
+  else if (minMatch && !repsMatch) { exercise.hold = true; if (!exercise.reps) exercise.reps = String(+minMatch[1] * 60); }
+  if (distMatch) {
+    exercise.distance = distMatch[1] + (/^k/i.test(distMatch[2]) ? 'km' : 'mi');
+    exercise.run = true;
+  }
+  if (rpe != null) exercise.feeling = rpe;
+  return Boolean(setsMatch || repsMatch || weightMatch || secMatch || minMatch || distMatch || roundMatch);
+}
+
+function classifyExercise(exercise) {
+  if (!exercise.run && isRunExercise(exercise.name)) exercise.run = true;
+  if (!exercise.run && !exercise.hold && isHoldExercise(exercise.name)) exercise.hold = true;
+  return exercise;
+}
+
+function parseExerciseLine(rawLine) {
+  const checkbox = String(rawLine).replace(/^\s*>+\s?/, '').match(/^\s*[-*]\s*\[([ xX])\]\s*(.*)$/);
+  if (!checkbox) return null;
+  const completed = checkbox[1].toLowerCase() === 'x';
+  const body = stripInlineMarkup(checkbox[2]);
+  if (!body) return null;
+
+  // Cut the name at the first measurement token. A line that opens with one
+  // ("10 min freestyle handstand") is a name in its own right.
+  const measure = body.match(GYM_MEASURE_RE);
+  let name = body;
+  if (measure && measure.index > 2) name = body.slice(0, measure.index);
+  name = name
+    .replace(/^[\s\p{Extended_Pictographic}←-➿]+/u, '')
+    .replace(/[\s\-–—|×✕*·:,]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const exercise = { id: uid(), name: name || body, completed, raw: body };
+  const readable = readExerciseMeasurements(body, exercise);
+  exercise.confidence = readable ? 'high' : 'low';
+  return classifyExercise(exercise);
+}
+
+// May and February put the numbers on the line *below* the checkbox:
+//   - [x] narrow pushups
+//     4 sets-20reps-bw-8
+function isContinuationLine(rawLine) {
+  const clean = String(rawLine).replace(/^\s*>+\s?/, '');
+  if (!/^[\s\t]/.test(rawLine) && !/^\s*>/.test(rawLine)) return false;
+  if (/^\s*[-*]\s*\[/.test(clean)) return false;
+  if (isHeadingLine(rawLine)) return false;
+  return GYM_MEASURE_RE.test(clean);
+}
+
+function parseGymMarkdown(text, fallbackYear) {
+  const lines = String(text).split(/\r?\n/);
+  const sessions = [];
+  let current = null;
+  let lastExercise = null;
+
+  for (const line of lines) {
+    if (isHeadingLine(line)) {
+      const heading = parseSessionHeading(line);
+      // A date-less sub-heading ("### Handstand Session") belongs to the
+      // session above it; it must not end the block.
+      if (heading) {
+        current = { ...heading, time:'', note:'', sessionRpe:null, exercises:[] };
+        sessions.push(current);
+        lastExercise = null;
+      }
+      continue;
+    }
+    if (!current) continue;
+
+    const clean = stripInlineMarkup(line);
+    const timeMatch = clean.match(/^Time\s*[:：]\s*(.+)$/i);
+    if (timeMatch) { current.time = timeMatch[1].trim(); lastExercise = null; continue; }
+
+    const rpeMatch = clean.match(/^(?:overall\s*)?RPE\s*[:：]?\s*([\d.]+)\s*(?:\/\s*10)?\s*$/i);
+    if (rpeMatch) { current.sessionRpe = +rpeMatch[1]; lastExercise = null; continue; }
+
+    const noteMatch = clean.match(/^Note\s*[:：]\s*(.+)$/i);
+    if (noteMatch) {
+      current.note = noteMatch[1].trim();
+      const inlineRpe = current.note.match(/(?:overall\s*)?RPE\s*([\d.]+)\s*(?:\/\s*10)?/i);
+      if (inlineRpe) current.sessionRpe = +inlineRpe[1];
+      lastExercise = null;
+      continue;
+    }
+
+    const exercise = parseExerciseLine(line);
+    if (exercise) {
+      current.exercises.push(exercise);
+      lastExercise = exercise;
+      continue;
+    }
+
+    if (lastExercise && isContinuationLine(line)) {
+      const body = stripInlineMarkup(line);
+      lastExercise.raw = `${lastExercise.raw} — ${body}`;
+      if (readExerciseMeasurements(body, lastExercise)) lastExercise.confidence = 'high';
+      classifyExercise(lastExercise);
+      continue;
+    }
+    if (clean) lastExercise = null;
+  }
+
+  const year = fallbackYear || new Date().getFullYear();
+  return sessions
+    .filter(session => session.session || session.exercises.length)
+    .map(session => ({ ...session, year }));
+}
+
+function gymSessionToKey(session) {
+  return `alog_${session.year}_${String(session.month).padStart(2,'0')}_${String(session.day).padStart(2,'0')}`;
+}
+
+// Merge into whatever is already stored for that day; food is never touched.
+function importGymSessions(sessions, { overwrite = false } = {}) {
+  let days = 0, exercises = 0, skipped = 0;
+  for (const session of sessions) {
+    const key = gymSessionToKey(session);
+    const existing = loadState(key);
+    const hasGym = existing.gym && existing.gym.exercises && existing.gym.exercises.length;
+    if (hasGym && !overwrite) { skipped++; continue; }
+    existing.gym = {
+      session: session.session || existing.gym.session || '',
+      exercises: session.exercises,
+      time: session.time || '',
+      note: session.note || '',
+      sessionRpe: session.sessionRpe,
+      imported: true,
+    };
+    localStorage.setItem(key, JSON.stringify(existing));
+    days++;
+    exercises += session.exercises.length;
+  }
+  return { days, exercises, skipped };
+}
+
+// ── CSV (Training.csv from the vault) ──────────────────────────
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  const src = String(text);
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i+1] === '"') { field += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (ch !== '\r') field += ch;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(cell => cell !== ''));
+}
+
+function parseTrainingCsv(text) {
+  const rows = parseCsvRows(text);
+  if (rows.length < 2) return [];
+  const header = rows[0].map(h => h.trim());
+  const col = name => header.indexOf(name);
+  const iName = col('Exercise'), iDate = col('Date'), iType = col('Session Type'),
+        iSets = col('Sets'), iReps = col('Reps'), iLoad = col('Load (lbs)'),
+        iRpe = col('RPE'), iDur = col('Duration (sec)'), iDist = col('Distance'),
+        iDone = col('Completed'), iSessRpe = col('Session RPE'), iRaw = col('Raw');
+  if (iName < 0 || iDate < 0) return [];
+
+  const byDate = new Map();
+  for (const row of rows.slice(1)) {
+    const date = (row[iDate] || '').trim();
+    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) continue;
+    if (!byDate.has(date)) {
+      byDate.set(date, {
+        year:+match[1], month:+match[2], day:+match[3],
+        session:(row[iType] || '').trim(), time:'', note:'',
+        sessionRpe: iSessRpe >= 0 && row[iSessRpe] ? +row[iSessRpe] : null,
+        exercises: [],
+      });
+    }
+    const session = byDate.get(date);
+    const name = (row[iName] || '').trim();
+    if (!name) continue;
+    const num = i => (i >= 0 && row[i] ? String(row[i]).replace(/\.0$/, '') : '');
+    const exercise = {
+      id: uid(),
+      name,
+      completed: iDone >= 0 ? /^yes$/i.test((row[iDone] || '').trim()) : true,
+      sets: num(iSets),
+      reps: num(iReps),
+      weight: num(iLoad),
+      raw: iRaw >= 0 ? row[iRaw] : '',
+    };
+    if (exercise.weight) exercise.unit = 'lbs';
+    if (iRpe >= 0 && row[iRpe]) exercise.feeling = +row[iRpe];
+    if (iDist >= 0 && row[iDist]) { exercise.distance = row[iDist]; exercise.run = true; }
+    if (!exercise.run && iDur >= 0 && row[iDur] && !exercise.reps) {
+      exercise.reps = String(Math.round(+row[iDur]));
+      exercise.hold = true;
+    }
+    if (!exercise.run && isRunExercise(name)) exercise.run = true;
+    if (!exercise.run && !exercise.hold && isHoldExercise(name)) exercise.hold = true;
+    session.exercises.push(exercise);
+  }
+  return [...byDate.values()];
+}
+
+// ── Export back to the Obsidian format ─────────────────────────
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+function formatExerciseLine(exercise) {
+  const box = exercise.completed ? '[x]' : '[ ]';
+  // An imported line that was never edited goes back out exactly as it came
+  // in — reformatting it would lose detail the parser did not model.
+  if (exercise.raw && !exercise.edited) return ` - ${box} ${exercise.raw}`;
+  const bits = [];
+  if (exercise.run) {
+    if (exercise.distance) bits.push(exercise.distance);
+    if (exercise.runTime) bits.push(exercise.runTime);
+  } else if (exercise.hold) {
+    if (exercise.sets) bits.push(`${exercise.sets} sets`);
+    if (exercise.reps) bits.push(`${exercise.reps}sec`);
+    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}${exercise.unit || 'lbs'}`);
+  } else {
+    if (exercise.sets) bits.push(`${exercise.sets} sets`);
+    if (exercise.reps) bits.push(`${exercise.reps}reps`);
+    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}${exercise.unit || 'lbs'}`);
+  }
+  if (exercise.feeling) bits.push(String(exercise.feeling));
+  return ` - ${box} ${exercise.name}${bits.length ? ' — ' + bits.join(' × ') : ''}`;
+}
+
+// One month per file, sessions ascending, matching the handwritten layout.
+function buildGymMarkdown(year, month) {
+  const days = Object.keys(localStorage)
+    .filter(key => new RegExp(`^alog_${year}_${String(month).padStart(2,'0')}_\\d{2}$`).test(key))
+    .sort();
+  const blocks = [];
+  for (const key of days) {
+    const gym = loadState(key).gym;
+    if (!gym || (!gym.session && !(gym.exercises || []).length)) continue;
+    const [, , mm, dd] = key.split('_');
+    const lines = [`### ${mm}/${dd} ${gym.session || ''}`.trimEnd()];
+    if (gym.time) lines.push(` Time: ${gym.time}`);
+    const noteBits = [];
+    if (gym.note) noteBits.push(gym.note);
+    // The note often already carries the RPE; don't say it twice.
+    if (gym.sessionRpe && !/RPE/i.test(gym.note || '')) noteBits.push(`Overall RPE ${gym.sessionRpe}/10`);
+    if (noteBits.length) lines.push(` Note: ${noteBits.join(' · ')}`);
+    for (const exercise of gym.exercises || []) lines.push(formatExerciseLine(exercise));
+    blocks.push(lines.join('\n'));
+  }
+  if (!blocks.length) return null;
+  return blocks.join('\n\n') + '\n';
+}
+
+function downloadTextFile(filename, text, mime = 'text/markdown') {
+  const url = URL.createObjectURL(new Blob([text], { type: mime + ';charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── UI glue ────────────────────────────────────────────────────
+function openGymIoModal() {
+  renderGymIoStatus();
+  document.getElementById('gymio-modal').classList.add('open');
+}
+function closeGymIoModal() {
+  document.getElementById('gymio-modal').classList.remove('open');
+}
+
+function renderGymIoStatus() {
+  const status = document.getElementById('gymio-status');
+  if (!status) return;
+  const last = localStorage.getItem('alog_last_gym_export');
+  if (!last) { status.textContent = 'Never exported to Obsidian yet.'; status.style.color = 'var(--muted)'; return; }
+  const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  status.textContent = `Last export to Obsidian: ${days} day${days === 1 ? '' : 's'} ago`;
+  status.style.color = days > 7 ? 'var(--sp-green)' : 'var(--muted)';
+}
+
+function triggerGymImport() { document.getElementById('gym-import-input').click(); }
+
+async function handleGymImport(event) {
+  const files = [...event.target.files];
+  event.target.value = '';
+  if (!files.length) return;
+  const status = document.getElementById('gymio-status');
+  const overwrite = document.getElementById('gymio-overwrite').checked;
+  let totals = { days:0, exercises:0, skipped:0 };
+
+  for (const file of files) {
+    const text = await file.text();
+    const yearMatch = file.name.match(/(20\d{2})/);
+    const sessions = /\.csv$/i.test(file.name)
+      ? parseTrainingCsv(text)
+      : parseGymMarkdown(text, yearMatch ? +yearMatch[1] : null);
+    if (!sessions.length) continue;
+    const result = importGymSessions(sessions, { overwrite });
+    totals.days += result.days;
+    totals.exercises += result.exercises;
+    totals.skipped += result.skipped;
+  }
+
+  if (!totals.days && !totals.skipped) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Nothing readable in those files.';
+    return;
+  }
+  status.style.color = 'var(--muted)';
+  status.textContent = `Imported ${totals.days} sessions · ${totals.exercises} exercises`
+    + (totals.skipped ? ` · ${totals.skipped} days already had data (skipped)` : '');
+  state = loadState(todayKey());
+  renderHeader();
+  renderDayList();
+  renderLogTab();
+  showToast(`✓ Imported ${totals.days} sessions, ${totals.exercises} exercises`, 4000);
+}
+
+function exportGymMarkdown() {
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth() + 1;
+  const markdown = buildGymMarkdown(year, month);
+  if (!markdown) { showToast('No sessions logged this month yet'); return; }
+  downloadTextFile(`${year} ${MONTH_NAMES[month - 1]} Gym Log.md`, markdown);
+  localStorage.setItem('alog_last_gym_export', new Date().toISOString().slice(0, 10));
+  renderGymIoStatus();
+  showToast('✓ Markdown ready — paste it into the month file', 4000);
+}
+
+async function copyGymMarkdown() {
+  const now = new Date();
+  const markdown = buildGymMarkdown(now.getFullYear(), now.getMonth() + 1);
+  if (!markdown) { showToast('No sessions logged this month yet'); return; }
+  try {
+    await navigator.clipboard.writeText(markdown);
+    localStorage.setItem('alog_last_gym_export', new Date().toISOString().slice(0, 10));
+    renderGymIoStatus();
+    showToast('✓ Copied — paste into your month file', 4000);
+  } catch {
+    exportGymMarkdown();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VIEWPORT LOCK
+// Keeps the shell pinned. CSS handles zoom-on-focus and rubber-band;
+// this handles the two cases CSS cannot reach: Safari's pinch gesture,
+// and the offset the soft keyboard leaves behind when it dismisses.
+// ═══════════════════════════════════════════════════════════════
+(function lockViewport() {
+  // Safari-only pinch-zoom gestures.
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(type => {
+    document.addEventListener(type, e => e.preventDefault(), { passive: false });
+  });
+
+  // Whatever happens, the document sits at the origin and the panels stay
+  // square. Panels are pinned shut in CSS, but the browser can still scroll
+  // one programmatically to reveal a focused field, so sweep after focus
+  // changes. (A `scroll` listener would not help: overflow:hidden boxes
+  // never fire scroll events even when their offset changes.)
+  const resetScroll = () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.documentElement.scrollLeft = 0;
+    document.querySelectorAll('.panel, #food-day-list, #gym-day-list').forEach(panel => {
+      if (panel.scrollLeft) panel.scrollLeft = 0;
+    });
+  };
+
+  window.addEventListener('scroll', resetScroll, { passive: true });
+  window.addEventListener('orientationchange', () => setTimeout(resetScroll, 250));
+
+  // Field focus pulls the page up on iOS; blur has to put it back.
+  document.addEventListener('focusin', () => setTimeout(resetScroll, 60), true);
+  document.addEventListener('focusout', () => setTimeout(resetScroll, 60), true);
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => setTimeout(resetScroll, 60));
+    window.visualViewport.addEventListener('scroll', resetScroll);
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 function init() {
@@ -4107,17 +4927,11 @@ function init() {
   renderHeader();
   renderDayList();
   checkBackupReminder();
-  // Highlight Garmin button if data already set for today
-  if (state.garminKcal > 0) {
-    const btn = document.getElementById('garmin-btn');
-    if (btn) btn.style.color = 'var(--sp-green)';
-  }
-  // Handle Strava OAuth callback if returning from auth redirect
+  updateGarminBtn();
+  renderGymIoStatus();
   checkFirstRun();
-  handleStravaCallback();
-  updateStravaBtn();
-  // Auto-fetch Strava calories on load if connected
-  if (stravaIsConnected()) fetchTodayStravaCalories();
+  // Garmin relay is cheap to poll and quiet when it fails.
+  if (garminAutoConfigured()) garminAutoSync(true);
 
   // Populate gym sessions
   const sel = document.getElementById('session-select');
@@ -4149,7 +4963,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v13').catch(() => null);
+    const cache = await caches.open('athletelog-v14').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
