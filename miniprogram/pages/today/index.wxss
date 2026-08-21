@@ -58,7 +58,7 @@
 
 .ring-number {
   color: #9e431d;
-  font-family: Georgia, serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 47rpx;
   font-weight: 700;
 }
@@ -69,7 +69,6 @@
   font-size: 20rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
-  text-transform: uppercase;
 }
 
 .macro-column {
@@ -80,7 +79,7 @@
 
 .macro-value {
   color: #292521;
-  font-family: Georgia, serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 38rpx;
   font-weight: 700;
 }
@@ -98,7 +97,6 @@
   font-size: 20rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
-  text-transform: uppercase;
 }
 
 .macro-divider {
@@ -143,6 +141,13 @@
   font-weight: 500;
 }
 
+.favorite-hint {
+  margin: 0 6rpx 4rpx;
+  color: #8a8176;
+  font-size: 24rpx;
+  line-height: 1.5;
+}
+
 .add-food {
   margin: 20rpx 0 26rpx;
 }
@@ -160,7 +165,6 @@
   font-size: 21rpx;
   font-weight: 700;
   letter-spacing: 2rpx;
-  text-transform: uppercase;
 }
 
 .water-value {
@@ -279,7 +283,7 @@
 
 .sheet-title {
   margin-bottom: 28rpx;
-  font-family: Georgia, serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 44rpx;
   font-weight: 700;
 }
@@ -291,7 +295,6 @@
   font-size: 21rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
-  text-transform: uppercase;
 }
 
 .field-input {

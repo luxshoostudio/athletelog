@@ -1,8 +1,8 @@
 <view class="screen">
-  <view class="eyebrow">Training</view>
-  <view class="display-title">Build today’s session</view>
+  <view class="eyebrow">训练</view>
+  <view class="display-title">今天练什么</view>
 
-  <view class="section-heading">Start from a template</view>
+  <view class="section-heading">从模板开始</view>
   <view class="template-grid">
     <button wx:for="{{templates}}" wx:key="*this" class="template-button" data-name="{{item}}" bindtap="chooseTemplate">
       <text class="template-mark">{{index + 1}}</text>
@@ -10,17 +10,14 @@
     </button>
   </view>
 
-  <view class="custom-row">
-    <input class="custom-input" value="{{customName}}" placeholder="Add an exercise…" bindinput="onCustomName" confirm-type="done" bindconfirm="addCustomExercise" />
-    <button class="custom-add" bindtap="addCustomExercise">Add</button>
-  </view>
+  <button class="secondary-button add-exercise" bindtap="openLibrary">+ 添加动作</button>
 
   <view class="plan-header">
     <view>
-      <view class="section-heading plan-heading">Today’s plan</view>
-      <view wx:if="{{sessionName}}" class="session-name">{{sessionName}} day</view>
+      <view class="section-heading plan-heading">今日计划</view>
+      <view wx:if="{{sessionName}}" class="session-name">{{sessionName}}</view>
     </view>
-    <view wx:if="{{exercises.length}}" class="completion-pill">{{completedCount}} / {{exercises.length}} done</view>
+    <view wx:if="{{exercises.length}}" class="completion-pill">已完成 {{completedCount}} / {{exercises.length}}</view>
   </view>
 
   <view wx:if="{{exercises.length}}" class="exercise-list">
@@ -32,32 +29,51 @@
       </view>
       <view class="exercise-fields">
         <label class="metric-field">
-          <text>Sets</text>
+          <text>组数</text>
           <input value="{{item.sets}}" type="number" data-index="{{index}}" data-field="sets" bindinput="updateExercise" bindblur="saveExercises" />
         </label>
         <label class="metric-field">
-          <text>Reps</text>
+          <text>次数</text>
           <input value="{{item.reps}}" type="number" data-index="{{index}}" data-field="reps" bindinput="updateExercise" bindblur="saveExercises" />
         </label>
         <label class="metric-field wide">
-          <text>Weight</text>
+          <text>重量</text>
           <input value="{{item.weight}}" type="digit" placeholder="—" data-index="{{index}}" data-field="weight" bindinput="updateExercise" bindblur="saveExercises" />
         </label>
       </view>
     </view>
   </view>
-  <view wx:else class="card empty-state">Choose a template or add one exercise. Tap the circle when a movement is finished.</view>
+  <view wx:else class="card empty-state">选一个模板，或点「添加动作」开始。完成一个动作，就点左边的圆圈。</view>
 
   <view wx:if="{{history.length}}">
-    <view class="section-heading">Recent sessions</view>
+    <view class="section-heading">最近训练</view>
     <view class="card history-card">
       <view wx:for="{{history}}" wx:key="key" class="history-row">
         <view class="history-date">{{item.label}}</view>
         <view class="history-copy">
           <view class="history-name">{{item.name}}</view>
-          <view class="history-meta">{{item.completed}} of {{item.total}} completed</view>
+          <view class="history-meta">完成 {{item.completed}} / {{item.total}}</view>
         </view>
       </view>
+    </view>
+  </view>
+</view>
+
+<view wx:if="{{showLibrary}}" class="sheet-backdrop" bindtap="closeLibrary">
+  <view class="library-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">添加动作</view>
+    <scroll-view class="group-tabs" scroll-x="true" enhanced="true" show-scrollbar="false">
+      <view class="group-tab-row">
+        <view wx:for="{{groups}}" wx:key="*this" class="group-tab {{activeGroup == item ? 'active' : ''}}" data-group="{{item}}" bindtap="selectGroup">{{item}}</view>
+      </view>
+    </scroll-view>
+    <view class="exercise-chips">
+      <view wx:for="{{libraryItems}}" wx:key="*this" class="exercise-chip" data-name="{{item}}" bindtap="addFromLibrary">{{item}}</view>
+    </view>
+    <view class="library-custom">
+      <input class="custom-input" value="{{customName}}" placeholder="没有？自己输入动作名" bindinput="onCustomName" confirm-type="done" bindconfirm="addCustomExercise" />
+      <button class="custom-add" bindtap="addCustomExercise">添加</button>
     </view>
   </view>
 </view>

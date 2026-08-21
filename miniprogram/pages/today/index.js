@@ -1,31 +1,37 @@
 const store = require('../../utils/store');
 
-const FAVORITES = [
-  { name: 'Eggs × 2', protein: 13, calories: 156 },
-  { name: 'Protein shake', protein: 25, calories: 120 },
-  { name: 'Greek yogurt', protein: 17, calories: 130 },
-  { name: 'Chicken breast', protein: 31, calories: 165 }
-];
-
-function greetingForHour(hour) {
-  if (hour < 12) return 'Good morning';
-  if (hour < 18) return 'Good afternoon';
-  return 'Good evening';
+function dateLabel(date) {
+  const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  return (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + weekdays[date.getDay()];
 }
 
-function dateLabel(date) {
-  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  return weekdays[date.getDay()] + ', ' + months[date.getMonth()] + ' ' + date.getDate();
+function buildFavorites(state) {
+  const map = {};
+  Object.keys(state.days || {}).sort().forEach(function (key) {
+    const foods = (state.days[key] && state.days[key].foods) || [];
+    foods.forEach(function (food) {
+      const name = (food.name || '').trim();
+      if (!name) return;
+      if (!map[name]) {
+        map[name] = { name: name, count: 0, protein: 0, calories: 0 };
+      }
+      map[name].count += 1;
+      map[name].protein = Number(food.protein) || map[name].protein;
+      map[name].calories = Number(food.calories) || map[name].calories;
+    });
+  });
+  return Object.keys(map)
+    .map(function (name) { return map[name]; })
+    .sort(function (a, b) { return b.count - a.count; })
+    .slice(0, 6);
 }
 
 Page({
   data: {
-    greeting: '',
     dateLabel: '',
     streak: 0,
     period: false,
-    favorites: FAVORITES,
+    favorites: [],
     foods: [],
     waterMl: 0,
     waterGoal: 2500,
@@ -40,11 +46,7 @@ Page({
   },
 
   onLoad: function () {
-    const now = new Date();
-    this.setData({
-      greeting: greetingForHour(now.getHours()),
-      dateLabel: dateLabel(now)
-    });
+    this.setData({ dateLabel: dateLabel(new Date()) });
   },
 
   onReady: function () {
@@ -67,6 +69,7 @@ Page({
     this.setData({
       streak: store.calculateStreak(state),
       period: day.period,
+      favorites: buildFavorites(state),
       foods: day.foods.slice().reverse(),
       waterMl: day.waterMl,
       waterGoal: state.goals.water,
@@ -111,7 +114,7 @@ Page({
 
   addFavorite: function (event) {
     const index = Number(event.currentTarget.dataset.index);
-    const favorite = FAVORITES[index];
+    const favorite = this.data.favorites[index];
     if (!favorite) return;
     this.addFood(favorite);
   },
@@ -148,11 +151,11 @@ Page({
     const protein = Number(this.data.foodProtein);
     const calories = Number(this.data.foodCalories);
     if (!name) {
-      wx.showToast({ title: 'Add a food name', icon: 'none' });
+      wx.showToast({ title: '请输入食物名称', icon: 'none' });
       return;
     }
     if (protein < 0 || calories < 0 || Number.isNaN(protein) || Number.isNaN(calories)) {
-      wx.showToast({ title: 'Check protein and calories', icon: 'none' });
+      wx.showToast({ title: '请检查蛋白质和卡路里', icon: 'none' });
       return;
     }
     this.addFood({ name: name, protein: protein, calories: calories });
@@ -170,7 +173,7 @@ Page({
       createdAt: new Date().toISOString()
     });
     store.saveState(state);
-    wx.showToast({ title: 'Added', icon: 'success', duration: 700 });
+    wx.showToast({ title: '已添加', icon: 'success', duration: 700 });
     this.refresh();
   },
 
@@ -197,8 +200,8 @@ Page({
   resetWater: function () {
     const that = this;
     wx.showModal({
-      title: 'Reset water?',
-      content: 'Today’s water will return to zero.',
+      title: '重置饮水？',
+      content: '今日饮水将归零。',
       confirmColor: '#bd5b25',
       success: function (result) {
         if (!result.confirm) return;

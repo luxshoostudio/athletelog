@@ -1,27 +1,27 @@
 <view class="screen">
-  <view class="eyebrow">Last 7 days</view>
-  <view class="display-title">Your week at a glance</view>
+  <view class="eyebrow">近 7 天</view>
+  <view class="display-title">本周概览</view>
 
   <view class="stat-grid">
     <view class="card stat-card">
       <view class="stat-value">{{averageProtein}}g</view>
-      <view class="stat-label">Avg protein</view>
+      <view class="stat-label">平均蛋白质</view>
     </view>
     <view class="card stat-card">
       <view class="stat-value">{{averageCalories}}</view>
-      <view class="stat-label">Avg calories</view>
+      <view class="stat-label">平均卡路里</view>
     </view>
     <view class="card stat-card">
       <view class="stat-value">{{workoutCount}}</view>
-      <view class="stat-label">Movements done</view>
+      <view class="stat-label">完成动作</view>
     </view>
     <view class="card stat-card">
       <view class="stat-value">{{activeDays}}/7</view>
-      <view class="stat-label">Active days</view>
+      <view class="stat-label">活跃天数</view>
     </view>
   </view>
 
-  <view class="section-heading">Protein rhythm</view>
+  <view class="section-heading">蛋白质走势</view>
   <view class="card week-card">
     <view wx:for="{{week}}" wx:key="key" class="day-row">
       <view class="day-label">{{item.label}}</view>
@@ -29,39 +29,39 @@
       <view class="day-value">{{item.protein}}g</view>
       <view class="training-dot {{item.trained ? 'trained' : ''}}"></view>
     </view>
-    <view class="chart-note"><text class="legend-dot"></text> Dot marks a training day</view>
+    <view class="chart-note"><text class="legend-dot"></text> 圆点表示训练日</view>
   </view>
 
-  <view class="section-heading">Daily goals</view>
+  <view class="section-heading">每日目标</view>
   <view class="card goals-card">
     <label class="goal-row">
-      <view><view class="goal-name">Protein</view><view class="goal-unit">grams per day</view></view>
+      <view><view class="goal-name">蛋白质</view><view class="goal-unit">克 / 天</view></view>
       <input value="{{proteinGoal}}" type="number" bindinput="onProteinGoal" />
     </label>
     <label class="goal-row">
-      <view><view class="goal-name">Calories</view><view class="goal-unit">kcal per day</view></view>
+      <view><view class="goal-name">卡路里</view><view class="goal-unit">千卡 / 天</view></view>
       <input value="{{calorieGoal}}" type="number" bindinput="onCalorieGoal" />
     </label>
     <label class="goal-row">
-      <view><view class="goal-name">Water</view><view class="goal-unit">millilitres per day</view></view>
+      <view><view class="goal-name">饮水</view><view class="goal-unit">毫升 / 天</view></view>
       <input value="{{waterGoal}}" type="number" bindinput="onWaterGoal" />
     </label>
-    <button class="primary-button goals-save" bindtap="saveGoals">Save goals</button>
+    <button class="primary-button goals-save" bindtap="saveGoals">保存目标</button>
   </view>
 
-  <view class="section-heading">Your data</view>
+  <view class="section-heading">你的数据</view>
   <view class="card backup-card">
-    <view class="backup-copy">Your records stay on this phone. Export a JSON backup before changing phones or clearing WeChat data.</view>
-    <button class="primary-button" bindtap="exportBackup">Export JSON backup</button>
-    <button class="secondary-button backup-secondary" bindtap="importBackup">Restore from WeChat file</button>
-    <button class="danger-button backup-secondary" bindtap="clearEverything">Clear all local data</button>
+    <view class="backup-copy">你的记录都保存在本机。更换手机或清理微信数据前，请先导出备份。</view>
+    <button class="primary-button" bindtap="exportBackup">导出 JSON 备份</button>
+    <button class="secondary-button backup-secondary" bindtap="importBackup">从微信文件恢复</button>
+    <button class="danger-button backup-secondary" bindtap="clearEverything">清空所有本地数据</button>
   </view>
 
   <view class="brand-card">
     <image class="brand-logo" src="/images/lx-logo.png" mode="aspectFit"></image>
     <view>
-      <view class="brand-name">AthleteLog · WeChat Lite</view>
-      <view class="brand-note">Fast local tracking for food, water, and training.</view>
+      <view class="brand-name">Lux私教笔记</view>
+      <view class="brand-note">记录你的饮食、饮水和训练</view>
     </view>
   </view>
 </view>

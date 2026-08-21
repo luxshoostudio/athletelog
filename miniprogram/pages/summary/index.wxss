@@ -12,7 +12,7 @@
 
 .stat-value {
   color: #9e431d;
-  font-family: Georgia, serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 44rpx;
   font-weight: 700;
 }
@@ -23,7 +23,6 @@
   font-size: 21rpx;
   font-weight: 700;
   letter-spacing: 1rpx;
-  text-transform: uppercase;
 }
 
 .week-card {
@@ -162,7 +161,7 @@
 }
 
 .brand-name {
-  font-family: Georgia, serif;
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
   font-weight: 700;
 }

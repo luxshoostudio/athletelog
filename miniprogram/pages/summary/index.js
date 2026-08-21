@@ -1,6 +1,6 @@
 const store = require('../../utils/store');
 
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
 Page({
   data: {
@@ -69,13 +69,13 @@ Page({
     const calories = Number(this.data.calorieGoal);
     const water = Number(this.data.waterGoal);
     if (protein <= 0 || calories <= 0 || water <= 0) {
-      wx.showToast({ title: 'Goals must be above zero', icon: 'none' });
+      wx.showToast({ title: '目标需大于零', icon: 'none' });
       return;
     }
     const state = this.state || store.loadState();
     state.goals = { protein: protein, calories: calories, water: water };
     store.saveState(state);
-    wx.showToast({ title: 'Goals saved', icon: 'success' });
+    wx.showToast({ title: '已保存目标', icon: 'success' });
     this.refresh();
   },
 
@@ -98,15 +98,15 @@ Page({
             filePath: filePath,
             fileName: fileName,
             fail: function () {
-              wx.showModal({ title: 'Backup ready', content: 'The JSON backup was created, but sharing was cancelled.', showCancel: false });
+              wx.showModal({ title: '备份已生成', content: 'JSON 备份已生成，但分享被取消了。', showCancel: false });
             }
           });
         } else {
-          wx.showModal({ title: 'Backup ready', content: 'The JSON backup is stored in this mini program’s local files.', showCancel: false });
+          wx.showModal({ title: '备份已生成', content: 'JSON 备份已保存在小程序的本地文件中。', showCancel: false });
         }
       },
       fail: function () {
-        wx.showToast({ title: 'Could not create backup', icon: 'none' });
+        wx.showToast({ title: '无法生成备份', icon: 'none' });
       }
     });
   },
@@ -129,14 +129,14 @@ Page({
               const candidate = parsed.data || parsed;
               if (!candidate || typeof candidate !== 'object' || !candidate.days) throw new Error('Invalid backup');
               store.saveState(store.normalizeState(candidate));
-              wx.showToast({ title: 'Backup restored', icon: 'success' });
+              wx.showToast({ title: '已恢复备份', icon: 'success' });
               that.refresh();
             } catch (error) {
-              wx.showToast({ title: 'Not an AthleteLog backup', icon: 'none' });
+              wx.showToast({ title: '不是有效的备份文件', icon: 'none' });
             }
           },
           fail: function () {
-            wx.showToast({ title: 'Could not read the file', icon: 'none' });
+            wx.showToast({ title: '无法读取文件', icon: 'none' });
           }
         });
       }
@@ -146,14 +146,14 @@ Page({
   clearEverything: function () {
     const that = this;
     wx.showModal({
-      title: 'Start fresh?',
-      content: 'This permanently removes all AthleteLog data stored in this mini program.',
-      confirmText: 'Clear data',
+      title: '重新开始？',
+      content: '这会永久删除小程序里保存的所有记录。',
+      confirmText: '清空数据',
       confirmColor: '#a34e35',
       success: function (result) {
         if (!result.confirm) return;
         store.clearState();
-        wx.showToast({ title: 'Data cleared', icon: 'success' });
+        wx.showToast({ title: '数据已清空', icon: 'success' });
         that.refresh();
       }
     });

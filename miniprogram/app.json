@@ -9,7 +9,7 @@
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#f3ebde",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "AthleteLog"
+    "navigationBarTitleText": "Lux私教笔记"
   },
   "tabBar": {
     "color": "#766f65",
@@ -19,15 +19,15 @@
     "list": [
       {
         "pagePath": "pages/today/index",
-        "text": "Today"
+        "text": "今日"
       },
       {
         "pagePath": "pages/gym/index",
-        "text": "Gym"
+        "text": "训练"
       },
       {
         "pagePath": "pages/summary/index",
-        "text": "Summary"
+        "text": "周报"
       }
     ]
   },

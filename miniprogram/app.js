@@ -1,5 +1,5 @@
 App({
   globalData: {
-    appName: 'AthleteLog'
+    appName: 'Lux私教笔记'
   }
 });

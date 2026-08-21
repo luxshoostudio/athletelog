@@ -1,11 +1,22 @@
 const store = require('../../utils/store');
 
 const TEMPLATES = {
-  Push: ['Bench press', 'Shoulder press', 'Triceps pushdown'],
-  Pull: ['Lat pulldown', 'Seated row', 'Biceps curl'],
-  Legs: ['Squat', 'Romanian deadlift', 'Leg press'],
-  'Full body': ['Squat', 'Bench press', 'Lat pulldown']
+  '力量': ['深蹲', '卧推', '硬拉', '肩推'],
+  '有氧': ['跑步', '跳绳', '骑行'],
+  '上身': ['卧推', '划船', '肩推', '弯举'],
+  '下身': ['深蹲', '硬拉', '腿举', '弓步']
 };
+
+const EXERCISE_LIBRARY = [
+  { group: '胸', items: ['卧推', '上斜卧推', '俯卧撑', '哑铃飞鸟', '双杠臂屈伸', '夹胸'] },
+  { group: '背', items: ['引体向上', '高位下拉', '坐姿划船', '硬拉', '单臂划船', '山羊挺身'] },
+  { group: '肩', items: ['肩推', '侧平举', '前平举', '反向飞鸟', '直立划船'] },
+  { group: '手臂', items: ['二头弯举', '三头下压', '锤式弯举', '窄距卧推'] },
+  { group: '核心', items: ['卷腹', '平板支撑', '俄罗斯转体', '仰卧举腿', '侧平板'] },
+  { group: '腿', items: ['深蹲', '弓步', '腿举', '腿屈伸', '提踵', '保加利亚分腿蹲'] },
+  { group: '臀', items: ['臀桥', '髋外展', '后踢腿', '臀推'] },
+  { group: '有氧', items: ['跑步', '跳绳', '骑行', '划船机', '登山机', '椭圆机'] }
+];
 
 function newExercise(name) {
   return {
@@ -30,7 +41,11 @@ Page({
     exercises: [],
     completedCount: 0,
     customName: '',
-    history: []
+    history: [],
+    showLibrary: false,
+    groups: EXERCISE_LIBRARY.map(function (item) { return item.group; }),
+    activeGroup: EXERCISE_LIBRARY[0].group,
+    libraryItems: EXERCISE_LIBRARY[0].items
   },
 
   onShow: function () {
@@ -63,7 +78,7 @@ Page({
         return {
           key: key,
           label: shortDate(key),
-          name: state.days[key].sessionName || 'Workout',
+          name: state.days[key].sessionName || '训练',
           completed: workouts.filter(function (item) { return item.completed; }).length,
           total: workouts.length
         };
@@ -77,8 +92,8 @@ Page({
     const start = function () { that.applyTemplate(name); };
     if (this.data.exercises.length) {
       wx.showModal({
-        title: 'Replace today’s plan?',
-        content: 'This will replace the exercises currently listed for today.',
+        title: '替换今日计划？',
+        content: '这会替换掉今天已经列出的动作。',
         confirmColor: '#bd5b25',
         success: function (result) {
           if (result.confirm) start();
@@ -98,6 +113,35 @@ Page({
     this.refresh();
   },
 
+  openLibrary: function () {
+    this.setData({ showLibrary: true, customName: '' });
+  },
+
+  closeLibrary: function () {
+    this.setData({ showLibrary: false });
+  },
+
+  stopPropagation: function () {},
+
+  selectGroup: function (event) {
+    const group = event.currentTarget.dataset.group;
+    const found = EXERCISE_LIBRARY.filter(function (item) { return item.group === group; })[0];
+    if (!found) return;
+    this.setData({ activeGroup: group, libraryItems: found.items });
+  },
+
+  addFromLibrary: function (event) {
+    const name = event.currentTarget.dataset.name;
+    if (!name) return;
+    const state = this.state || store.loadState();
+    const day = store.getDay(state);
+    if (!day.sessionName) day.sessionName = '自定义';
+    day.workouts.push(newExercise(name));
+    store.saveState(state);
+    this.setData({ showLibrary: false });
+    this.refresh();
+  },
+
   onCustomName: function (event) {
     this.setData({ customName: event.detail.value });
   },
@@ -105,15 +149,15 @@ Page({
   addCustomExercise: function () {
     const name = this.data.customName.trim();
     if (!name) {
-      wx.showToast({ title: 'Enter an exercise', icon: 'none' });
+      wx.showToast({ title: '请输入动作名称', icon: 'none' });
       return;
     }
     const state = this.state || store.loadState();
     const day = store.getDay(state);
-    if (!day.sessionName) day.sessionName = 'Custom';
+    if (!day.sessionName) day.sessionName = '自定义';
     day.workouts.push(newExercise(name));
     store.saveState(state);
-    this.setData({ customName: '' });
+    this.setData({ customName: '', showLibrary: false });
     this.refresh();
   },
 
