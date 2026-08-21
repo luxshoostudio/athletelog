@@ -282,7 +282,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  display: flex; align-items: center; gap: 12px;
 }
 .back-btn {
   background: rgba(255,255,255,0.62);
@@ -511,18 +512,6 @@ body {
 
 /* FREQ EXERCISES PANEL */
 .freq-ex-panel { margin-bottom: 14px; }
-.freq-ex-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.62);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius); cursor: pointer;
-  box-shadow: var(--glass-shadow-sm);
-  transition: background .15s;
-}
-.freq-ex-header:hover { background: rgba(255,255,255,0.82); }
-.freq-ex-title { font-size: 13px; font-weight: 700; color: var(--text2); }
 .freq-ex-body { padding: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* HISTORY */
@@ -591,7 +580,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
 }
 .ai-title { flex: 1; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; }
 .ai-close {
@@ -625,7 +615,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid var(--glass-border);
   box-shadow: 0 -1px 0 rgba(0,0,0,0.06);
-  padding: 10px 16px 22px; display: flex; gap: 8px; flex-shrink: 0; align-items: center;
+  padding: 10px 16px calc(env(safe-area-inset-bottom) + 12px);
+  display: flex; gap: 8px; flex-shrink: 0; align-items: center;
 }
 .ai-text-input {
   flex: 1; background: rgba(255,255,255,0.62);
@@ -653,7 +644,8 @@ body {
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
   box-shadow: var(--glass-shadow-sm);
-  padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
 .photo-result-name { font-size: 13px; font-weight: 700; color: var(--text); }
 .photo-result-macros { font-size: 11px; color: var(--muted); }
@@ -782,7 +774,7 @@ body {
 }
 #panels { width:100%; max-width:540px; margin:0 auto; background: var(--bg); }
 .panel, #food-day-list, #gym-day-list { background: var(--bg); }
-.panel-inner, .day-list-inner { padding: max(26px, env(safe-area-inset-top)) 20px 116px; }
+.panel-inner, .day-list-inner { padding: calc(env(safe-area-inset-top) + 26px) 20px 132px; }
 
 /* Today header and hero */
 #header {
@@ -824,7 +816,7 @@ body {
 /* Persistent bottom navigation */
 #tabs {
   position:fixed; z-index:90; left:50%; right:auto; width:min(calc(100% - 32px), 508px); transform:translateX(-50%);
-  bottom:max(16px, env(safe-area-inset-bottom));
+  bottom:max(6px, calc(env(safe-area-inset-bottom) - 20px));
   display:flex; padding:8px; border:0; border-radius:28px;
   background:#ebddc5; box-shadow:0 12px 32px rgba(46,43,37,.22);
   backdrop-filter:none; -webkit-backdrop-filter:none;
@@ -895,10 +887,6 @@ body {
 .organic-more-wrap.active .organic-more-select { color:#201e1d; }
 .session-bar { display:none; }
 .freq-ex-panel { padding:0; margin:0 0 18px; background:transparent; border:0; box-shadow:none; }
-.freq-ex-header { cursor:default; border:0; padding:0 0 8px; }
-.freq-ex-title { font-size:11px; color:var(--muted); letter-spacing:.1em; }
-#freq-ex-toggle { display:none; }
-#freq-ex-body.hidden { display:block !important; }
 .gym-cat-label { margin:10px 0 7px; color:var(--muted); }
 .gym-cat-pills { gap:7px; }
 .freq-pill { padding:9px 14px; font-size:12px; }
@@ -1043,6 +1031,20 @@ body {
 }
 .plan-markdown th { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .plan-stamp { margin-top: 24px; color: var(--dim); font-size: 11px; font-family: var(--mono); }
+
+.photo-result-info { min-width: 0; flex: 1; }
+.photo-qty { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.photo-qty-input {
+  width: 62px; padding: 6px 8px; text-align: right;
+  border: 1px solid var(--glass-border); border-radius: 10px;
+  background: rgba(255,255,255,.45); color: var(--text);
+  font-family: var(--font); font-weight: 700; font-variant-numeric: tabular-nums;
+  outline: none; -moz-appearance: textfield;
+}
+.photo-qty-input::-webkit-outer-spin-button,
+.photo-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.photo-qty-input:focus { border-color: #c67139; background: rgba(255,255,255,.75); }
+.photo-qty-unit { color: var(--muted); font-size: 12px; font-weight: 700; }
 
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
@@ -1240,12 +1242,8 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <!-- Session-based exercise suggestions -->
         <div id="session-suggestions" class="hidden" style="margin-bottom:18px;"></div>
 
-        <!-- Categorized Quick Select -->
+        <!-- Exercise shortcuts. Each group renders its own label. -->
         <div class="freq-ex-panel">
-          <div class="freq-ex-header">
-            <span class="freq-ex-title">Quick select</span>
-            <span id="freq-ex-toggle">▼</span>
-          </div>
           <div id="freq-ex-body" style="padding:2px 0 4px;"></div>
         </div>
 
@@ -1647,15 +1645,41 @@ function canonicalSessionType(title) {
   return 'Other';
 }
 
-// Shown until there are four sessions of history to derive from.
+// Seeded from Lux's own logs, Jan–Jul 2026 (78 sessions with exercises in
+// 2 Areas/Fitness/Gym Logs/). Same rule the app uses to derive templates
+// later — exercises appearing in ≥30% of that type's sessions, most frequent
+// first, capped at ten — and her own spelling is kept. Warm-up variants that
+// duplicate a line already in the list are dropped.
+// This is what shows before any import; after an import the derivation takes
+// over and these are replaced by whatever the history actually says.
 const STARTER_TEMPLATES = [
-  { name:'Lower Body',      exercises:['Front Squat','RDL','Deadlift','Bulgarian Split Squat'] },
-  { name:'Lat & Back',      exercises:['Bent Over Row','Pull-Ups','Dips','Over Head Thruster'] },
-  { name:'Shoulder & Arm',  exercises:['Seated Shoulder Press','Lateral Raises','Pike Pushups'] },
-  { name:'Handstand Drill', exercises:['Frog Handstand','Handstand Shoulder Taps','Wall-Walk'] },
-  { name:'Core',            exercises:['Toe to Bar','Hollow Hold','Hanging Knee Raises'] },
-  { name:'Running',         exercises:['Run'] },
-  { name:'Other',           exercises:[] },
+  { name:'Lower Body', exercises:[            // 23 sessions
+    'Stretching', 'RDL', 'Front squats', 'Balancing', 'Deadlift',
+    'L-sit practice', 'Bulgarian split squats on bench',
+    'Goblet Squats (heels on plate)', 'Single Leg Press',
+  ]},
+  { name:'Lat & Back', exercises:[            // 27 sessions
+    '15min Stretch and Warmup', 'Bent over row', 'Over head thruster', 'Dips',
+    'Wide grip pullups with band assist', 'Toe to bar', 'Narrow grip Pull-ups',
+  ]},
+  { name:'Shoulder & Arm', exercises:[        // 9 sessions
+    'Lateral Raises (Dumbbell)', 'Half Kneeling Single Arm DB OHP',
+    'Reverse Fly with Db', '15min Stretch and Warmup',
+    'behind the neck shoulder press (Bar)', 'Biceps Curls mixed (Dumbbell)',
+    'Dead hanging', 'handstand frog style', 'Pike push-ups', 'pull-ups',
+  ]},
+  { name:'Handstand Drill', exercises:[       // 9 sessions
+    'Against bench handstand hold', 'Face walk handstand holding',
+    'Handstand shoulder taps', 'Pike pushups', 'Warmup', 'Around the world',
+    'Declined pushups', 'Frog handstand', 'Handstand wall-walk',
+    'Seated shoulder press',
+  ]},
+  { name:'Core', exercises:[                  // 5 sessions
+    'Hollow hold', 'Toe to bar', 'Rope jump', 'single leg dragon Fly',
+    'Hanging knee raises', 'L-Sit holding',
+  ]},
+  { name:'Running', exercises:[] },           // logged as a heading, no lines
+  { name:'Other', exercises:[] },
 ];
 
 // Run-type exercises (track distance + time, not sets × reps)
@@ -1694,23 +1718,26 @@ function isHoldExercise(name) {
   return HOLD_EXERCISES_LIST.some(h => n.includes(h) || h.includes(n));
 }
 
-// Sourced from April Food Log, ranked by frequency
+// Sourced from 2 Areas/Fitness/Food Log/April Food Log.md, in the order she
+// actually ate them that month. Plain names — these go straight into the
+// food search, so an emoji prefix would only have to be stripped again.
 const QUICK = [
-  '🍫 Think! Protein Bar',
-  '🥛 Greek Yogurt',
-  '🍌 Banana',
-  '🥤 Protein Shake',
-  '🥛 Whole Milk 400ml',
-  '🥚 Boiled Eggs',
-  '🧀 Cottage Cheese',
-  '🫐 Blueberries',
-  '🫐 Raspberries',
-  '🍎 Apple',
-  '🐟 Air-fried Salmon',
-  '🧆 Air-fried Tofu',
-  '🥦 Broccoli',
-  '🍚 Steamed Rice',
-  '🍜 Noodles',
+  'Think! Protein Bar',      // ~30 entries in April
+  'Protein Shake',           // OWYN, usually with milk
+  'Banana',                  // logged at 120–250 g
+  'Whole Milk 400ml',
+  'Cottage Cheese',
+  'Greek Yogurt',
+  'Blueberries',
+  'Raspberries',
+  'Apple',
+  'Air-fried Salmon',
+  'Air-fried Tofu',
+  'Safe Catch Tuna Can',
+  'Boiled Eggs',
+  'Broccoli',
+  'Steamed Rice',
+  'Noodles',
 ];
 
 // Food database (name → {p, kcal, fat, carbs, fiber, unit, qty})
@@ -1912,6 +1939,8 @@ const DB = {
   'protein bar': {p:20,kcal:200,fat:7,carbs:22,fiber:5,unit:'bar',qty:1},
   'think protein bar': {p:20,kcal:230,fat:8,carbs:24,fiber:7,unit:'bar',qty:1},
   'rice cake': {p:0.7,kcal:35,fat:0.3,carbs:7.3,fiber:0.4,unit:'cake',qty:1},
+  'whole milk 400ml': {p:13.6,kcal:244,fat:13.2,carbs:19.2,fiber:0,unit:'serving',qty:1},
+  'safe catch tuna can': {p:40,kcal:150,fat:1,carbs:0,fiber:0,unit:'can',qty:1},
   'granola': {p:10,kcal:471,fat:20.3,carbs:64,fiber:7,unit:'g',qty:100},
 };
 
@@ -1925,7 +1954,8 @@ const FOOD_ALIASES = {
   'oatmeal':'porridge', 'whey':'whey protein', 'pb':'peanut butter',
   'courgette':'zucchini', 'aubergine':'eggplant', 'capsicum':'bell pepper',
   'chilli':'bell pepper', 'sweetcorn':'corn', 'spring onion':'onion',
-  'air-fried salmon':'salmon', 'air-fried tofu':'firm tofu', 'tuna can':'canned tuna',
+  'air-fried salmon':'salmon', 'air-fried tofu':'firm tofu',
+  'tuna can':'safe catch tuna can', 'safe catch tuna':'safe catch tuna can',
   'greek yoghurt':'greek yogurt', 'cottage':'cottage cheese', 'shake':'protein shake',
   'americano':'coffee', 'flat white':'latte', 'cappuccino':'latte',
 };
@@ -2010,7 +2040,6 @@ let pendingSearchResults = [];
 let pendingLocalResults = [];
 let editingTimeId = null;
 let freqAccordionOpen = false;
-let freqExOpen = false;
 let addingFromHome = false;
 let aiContext = 'food'; // 'food' or 'gym'
 let aiHistory = [];
@@ -2423,8 +2452,7 @@ function freqFoodTap(name) {
 // ═══════════════════════════════════════════════════════════════
 function quickAddFood(chip) {
   if (!chip) return;
-  const name = chip.replace(/^\S+\s+/, '').toLowerCase();
-  document.getElementById('food-text').value = name;
+  document.getElementById('food-text').value = chip;
   handleAddFood();
 }
 
@@ -2750,9 +2778,7 @@ function confirmTimeEdit() {
 // ═══════════════════════════════════════════════════════════════
 function homeQuickAdd(chip) {
   if (!chip) return;
-  // Strip emoji prefix to get the food name
-  const name = chip.replace(/^\S+\s+/, '');
-  document.getElementById('home-food-text').value = name;
+  document.getElementById('home-food-text').value = chip;
   handleHomeAddFood();
 }
 
@@ -2999,31 +3025,69 @@ async function handlePhotoUpload(event) {
       if (!match) throw new Error('No JSON in response');
       const foods = JSON.parse(match[0]);
       document.getElementById('photo-loading').classList.add('hidden');
-      let html = '';
-      for (let i=0; i<foods.length; i++) {
-        const f = foods[i];
-        html += `<div class="photo-result-item">
-          <div>
-            <div class="photo-result-name">${escHtml(f.name)} (${f.qty}${f.unit||'g'})</div>
-            <div class="photo-result-macros">${f.p}g prot · ${f.kcal} kcal · ${f.fat}g fat · ${f.carbs}g carbs</div>
-          </div>
-          <button class="photo-add-btn" onclick="addPhotoFood(${i})">Add</button>
-        </div>`;
+      // The model's portion guess is a starting point, not a measurement —
+      // keep the original so the macros can be rescaled as she corrects it.
+      for (const food of foods) {
+        food.baseQty = +food.qty || 1;
+        food.base = { p:+food.p||0, kcal:+food.kcal||0, fat:+food.fat||0,
+                      carbs:+food.carbs||0, fiber:+food.fiber||0 };
       }
-      document.getElementById('photo-results').innerHTML = html || '<div style="color:var(--muted);font-size:13px;">No foods identified</div>';
       window._photoFoods = foods;
+      document.getElementById('photo-results').innerHTML =
+        foods.length ? foods.map((f, i) => photoResultRow(f, i)).join('')
+                     : '<div style="color:var(--muted);font-size:13px;">No foods identified</div>';
     } catch(err) {
       document.getElementById('photo-loading').classList.add('hidden');
       document.getElementById('photo-results').innerHTML = `<div style="color:var(--red);font-size:13px;padding:10px 0;">Error: ${err.message}</div>`;
     }
 }
 
+function photoResultRow(food, i) {
+  return `<div class="photo-result-item" id="photo-row-${i}">
+    <div class="photo-result-info">
+      <div class="photo-result-name">${escHtml(food.name)}</div>
+      <div class="photo-result-macros" id="photo-macros-${i}">${photoMacroLine(food)}</div>
+    </div>
+    <div class="photo-qty">
+      <input class="photo-qty-input" id="photo-qty-${i}" type="number" inputmode="decimal"
+             value="${food.qty}" min="0" step="any" aria-label="${escHtml(food.name)} amount"
+             oninput="updatePhotoQty(${i}, this.value)">
+      <span class="photo-qty-unit">${escHtml(food.unit || 'g')}</span>
+    </div>
+    <button class="photo-add-btn" onclick="addPhotoFood(${i})">Add</button>
+  </div>`;
+}
+
+function photoMacros(food) {
+  const factor = (+food.qty || 0) / (food.baseQty || 1);
+  return {
+    p: +(food.base.p * factor).toFixed(1),
+    kcal: Math.round(food.base.kcal * factor),
+    fat: +(food.base.fat * factor).toFixed(1),
+    carbs: +(food.base.carbs * factor).toFixed(1),
+    fiber: +(food.base.fiber * factor).toFixed(1),
+  };
+}
+
+function photoMacroLine(food) {
+  const m = photoMacros(food);
+  return `${m.p}g prot · ${m.kcal} kcal · ${m.fat}g fat · ${m.carbs}g carbs`;
+}
+
+function updatePhotoQty(idx, value) {
+  const food = (window._photoFoods || [])[idx];
+  if (!food) return;
+  food.qty = value === '' ? 0 : +value;
+  const el = document.getElementById('photo-macros-' + idx);
+  if (el) el.textContent = photoMacroLine(food);
+}
+
 function addPhotoFood(idx) {
   const foods = window._photoFoods || [];
-  const f = foods[idx];
-  if (!f) return;
-  const entry = makeEntry(f.name, {p:f.p||0,kcal:f.kcal||0,fat:f.fat||0,carbs:f.carbs||0,fiber:f.fiber||0}, nowTime());
-  addFoodEntryDirect(entry);
+  const food = foods[idx];
+  if (!food) return;
+  const name = `${food.name} (${food.qty}${food.unit || 'g'})`;
+  addFoodEntryDirect(makeEntry(name, photoMacros(food), nowTime()));
 }
 
 function closePhotoModal() {
@@ -3073,7 +3137,7 @@ function getSessionTemplates() {
   if (allDays.length < 4) return STARTER_TEMPLATES;
 
   const groups = new Map();
-  for (const day of storedGymDays(183)) {
+  for (const day of storedGymDays(365)) {
     const session = String(day.gym.session || '').trim();
     const groupKey = canonicalSessionType(session);
     if (!groupKey) continue;
@@ -3087,8 +3151,9 @@ function getSessionTemplates() {
       const normalized = normalizeExerciseName(exercise.name);
       if (!normalized || seen.has(normalized)) continue;
       seen.add(normalized);
-      const current = group.exercises.get(normalized) || { name:exercise.name, count:0 };
+      const current = group.exercises.get(normalized) || { count:0, spellings:new Map() };
       current.count++;
+      current.spellings.set(exercise.name, (current.spellings.get(exercise.name) || 0) + 1);
       group.exercises.set(normalized, current);
     }
   }
@@ -3100,10 +3165,17 @@ function getSessionTemplates() {
       recent30:group.recent30,
       lastKey:group.lastKey,
       count:group.count,
+      // ≥30% of that type's sessions, most frequent first, capped at ten.
+      // Without the cap a nine-session type yields twenty lines, which is a
+      // dump rather than a plan.
       exercises:[...group.exercises.values()]
         .filter(exercise => exercise.count / group.count >= 0.3)
-        .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
-        .map(exercise => exercise.name),
+        .sort((a,b) => b.count - a.count)
+        .slice(0, 10)
+        // Several spellings fold to one exercise; show the one she writes
+        // most often, so a one-off typo never becomes the label.
+        .map(exercise => [...exercise.spellings.entries()]
+          .sort((a,b) => b[1] - a[1] || a[0].length - b[0].length)[0][0]),
     }))
     .filter(template => template.exercises.length)
     .sort((a,b) => b.recent30 - a.recent30 || b.lastKey.localeCompare(a.lastKey) || b.count - a.count
@@ -3140,9 +3212,12 @@ function getExerciseCatalog() {
     for (const exercise of day.gym.exercises || []) {
       const normalized = normalizeExerciseName(exercise.name);
       if (!normalized) continue;
-      const current = catalog.get(normalized) || { name:exercise.name, count:0, lastKey:day.key };
+      const current = catalog.get(normalized) || { count:0, lastKey:day.key, spellings:new Map() };
       current.count++;
-      if (day.key > current.lastKey) { current.name = exercise.name; current.lastKey = day.key; }
+      current.spellings.set(exercise.name, (current.spellings.get(exercise.name) || 0) + 1);
+      if (day.key > current.lastKey) current.lastKey = day.key;
+      current.name = [...current.spellings.entries()]
+        .sort((a,b) => b[1] - a[1] || a[0].length - b[0].length)[0][0];
       catalog.set(normalized, current);
     }
   }
@@ -3421,15 +3496,6 @@ function renderExerciseList() {
       <button class="exercise-delete" aria-label="Delete ${escHtml(e.name)}" onclick="deleteExercise('${e.id}')">✕</button>
     </div>`;
   }).join('');
-}
-
-function toggleFreqEx() {
-  freqExOpen = !freqExOpen;
-  const body = document.getElementById('freq-ex-body');
-  const toggle = document.getElementById('freq-ex-toggle');
-  body.classList.toggle('hidden', !freqExOpen);
-  toggle.textContent = freqExOpen ? '▲' : '▼';
-  if (freqExOpen) renderFreqExercises();
 }
 
 function renderFreqExercises() {
