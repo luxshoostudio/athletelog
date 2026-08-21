@@ -1,0 +1,44 @@
+#!/bin/bash
+# Publish the newest eating protocol from the vault to the Gist AthleteLog reads.
+#
+# Run this after writing a new plan in Obsidian. There is deliberately no
+# scheduled version: iCloud Drive is TCC-protected and a background agent is
+# never prompted for Full Disk Access, so it fails silently. A terminal
+# already has that access, so running it by hand needs no grant at all.
+#
+# The token lives in the login Keychain — not in a file, not in shell
+# history. The first push prompts for it; every run after that is silent.
+#
+#   alog-plan             publish the newest plan
+#   alog-plan --dry-run   show what would be published, no token needed
+#   alog-plan --file X.md publish a specific file
+
+set -euo pipefail
+
+SERVICE="athletelog-github-token"
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do SOURCE="$(readlink "$SOURCE")"; done
+REPO="$(cd "$(dirname "$SOURCE")" && pwd)"
+PYTHON="$HOME/.venvs/athletelog/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+  echo "Missing venv. Create it with:" >&2
+  echo "  python3 -m venv ~/.venvs/athletelog && ~/.venvs/athletelog/bin/pip install requests" >&2
+  exit 1
+fi
+
+# A dry run never talks to GitHub, so it must not ask for a token.
+for arg in "$@"; do
+  if [ "$arg" = "--dry-run" ]; then
+    exec "$PYTHON" "$REPO/plan_sync.py" "$@"
+  fi
+done
+
+if ! security find-generic-password -a "$USER" -s "$SERVICE" -w >/dev/null 2>&1; then
+  echo "No GitHub token stored yet. Paste it below — input is hidden, and it"
+  echo "is saved to your login Keychain rather than to any file."
+  security add-generic-password -a "$USER" -s "$SERVICE" -U -w
+fi
+
+GITHUB_TOKEN="$(security find-generic-password -a "$USER" -s "$SERVICE" -w)" \
+  exec "$PYTHON" "$REPO/plan_sync.py" "$@"
