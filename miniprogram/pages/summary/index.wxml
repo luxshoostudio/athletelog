@@ -56,12 +56,4 @@
     <button class="secondary-button backup-secondary" bindtap="importBackup">从微信文件恢复</button>
     <button class="danger-button backup-secondary" bindtap="clearEverything">清空所有本地数据</button>
   </view>
-
-  <view class="brand-card">
-    <image class="brand-logo" src="/images/lx-logo.png" mode="aspectFit"></image>
-    <view>
-      <view class="brand-name">Lux私教笔记</view>
-      <view class="brand-note">记录你的饮食、饮水和训练</view>
-    </view>
-  </view>
 </view>

@@ -141,34 +141,3 @@
 .backup-secondary {
   margin-top: 14rpx;
 }
-
-.brand-card {
-  display: flex;
-  margin-top: 40rpx;
-  padding: 24rpx;
-  align-items: center;
-  gap: 20rpx;
-  border-radius: 30rpx;
-  background: #1a1918;
-  color: #f7ead2;
-}
-
-.brand-logo {
-  width: 92rpx;
-  height: 92rpx;
-  flex: none;
-  border-radius: 22rpx;
-}
-
-.brand-name {
-  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.brand-note {
-  margin-top: 6rpx;
-  color: #cfc3b0;
-  font-size: 21rpx;
-  line-height: 1.4;
-}
