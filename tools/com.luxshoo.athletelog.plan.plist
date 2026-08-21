@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Install:
+    cp tools/com.luxshoo.athletelog.plan.plist ~/Library/LaunchAgents/
+    chmod 600 ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
+    launchctl load ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
+
+  Runs daily at 06:00 and republishes the newest eating protocol from the
+  vault. RunAtLoad picks up a plan written after the machine was asleep.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.luxshoo.athletelog.plan</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/luxshoo/.venvs/athletelog/bin/python</string>
+    <string>/Users/luxshoo/athletelog/tools/plan_sync.py</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>GITHUB_TOKEN</key>
+    <string>REPLACE_ME</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/athletelog-plan.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/athletelog-plan.err</string>
+</dict>
+</plist>

@@ -34,6 +34,51 @@ Garmin publishes no contract for the endpoint this uses, so it can break
 without notice. When it does, the app falls back to the manual override
 field in the Garmin sheet and no data is lost.
 
+## `plan_sync.py` — eating protocol → Gist → app
+
+The protocol lives in the vault as Markdown written for a human. This script
+ships that Markdown as-is and extracts one thing as data — the day-by-day
+template schedule — so Today can show which template today falls on instead
+of asking. The app's **Plan** button renders it, and the AI coach reads it as
+the source of truth.
+
+```bash
+export GITHUB_TOKEN='ghp_…'          # same token as the app's Gist backup
+
+python3 tools/plan_sync.py --dry-run
+python3 tools/plan_sync.py
+```
+
+It picks the newest file matching `*饮食方案*.md` under
+`2 Areas/Fitness/Plans & Analysis/`. Point it elsewhere with `--file` or
+`--dir`. Schedule it daily:
+
+```bash
+cp tools/com.luxshoo.athletelog.plan.plist ~/Library/LaunchAgents/
+chmod 600 ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
+# fill in GITHUB_TOKEN first
+launchctl load ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
+```
+
+Write a new plan file in the vault and the app picks it up on the next run —
+no code change. Logs: `/tmp/athletelog-plan.log`, `/tmp/athletelog-plan.err`.
+
+### File format
+
+```json
+{
+  "title": "八月末 10 天饮食方案（8/22–8/31）",
+  "source": "2026-08-21 八月末 10 天饮食方案.md",
+  "updated": "2026-08-21",
+  "markdown": "…the whole document…",
+  "schedule": { "2026-08-23": { "template": "C", "activity": "走路 10K", "focus": "🍊 维 C 双份" } }
+}
+```
+
+The schedule comes from the 逐日排布 table: rows whose first cell is `M/D`
+and whose fourth cell is A, B or C. Everything else in the document is
+carried through untouched.
+
 ## Alternative relay: iOS Shortcuts
 
 If the Mac is not always on, an iPhone automation can write the same file
