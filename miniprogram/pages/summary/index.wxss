@@ -1,0 +1,175 @@
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 34rpx;
+}
+
+.stat-card {
+  min-height: 154rpx;
+  padding: 26rpx;
+}
+
+.stat-value {
+  color: #9e431d;
+  font-family: Georgia, serif;
+  font-size: 44rpx;
+  font-weight: 700;
+}
+
+.stat-label {
+  margin-top: 8rpx;
+  color: #776f66;
+  font-size: 21rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+
+.week-card {
+  padding: 26rpx 26rpx 20rpx;
+}
+
+.day-row {
+  display: grid;
+  min-height: 70rpx;
+  align-items: center;
+  grid-template-columns: 62rpx 1fr 82rpx 24rpx;
+  gap: 14rpx;
+}
+
+.day-label,
+.day-value {
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.day-value {
+  color: #6f675e;
+  text-align: right;
+}
+
+.day-track {
+  height: 14rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: #e3dccf;
+}
+
+.day-fill {
+  min-width: 4rpx;
+  height: 100%;
+  border-radius: inherit;
+  background: #c25d27;
+}
+
+.training-dot,
+.legend-dot {
+  display: block;
+  width: 16rpx;
+  height: 16rpx;
+  border: 2rpx solid #b8ae9f;
+  border-radius: 50%;
+}
+
+.training-dot.trained,
+.legend-dot {
+  border-color: #64714d;
+  background: #64714d;
+}
+
+.chart-note {
+  display: flex;
+  margin-top: 12rpx;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10rpx;
+  color: #837a70;
+  font-size: 19rpx;
+}
+
+.goals-card {
+  padding: 8rpx 26rpx 26rpx;
+}
+
+.goal-row {
+  display: flex;
+  min-height: 118rpx;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  border-bottom: 2rpx solid rgba(78, 68, 58, 0.1);
+}
+
+.goal-name {
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.goal-unit {
+  margin-top: 5rpx;
+  color: #81786e;
+  font-size: 21rpx;
+}
+
+.goal-row input {
+  box-sizing: border-box;
+  width: 170rpx;
+  height: 72rpx;
+  padding: 0 18rpx;
+  border-radius: 22rpx;
+  background: #eee7da;
+  font-size: 27rpx;
+  font-weight: 700;
+  text-align: right;
+}
+
+.goals-save {
+  margin-top: 24rpx;
+}
+
+.backup-card {
+  padding: 30rpx;
+}
+
+.backup-copy {
+  margin-bottom: 26rpx;
+  color: #746c63;
+  font-size: 25rpx;
+  line-height: 1.55;
+}
+
+.backup-secondary {
+  margin-top: 14rpx;
+}
+
+.brand-card {
+  display: flex;
+  margin-top: 40rpx;
+  padding: 24rpx;
+  align-items: center;
+  gap: 20rpx;
+  border-radius: 30rpx;
+  background: #1a1918;
+  color: #f7ead2;
+}
+
+.brand-logo {
+  width: 92rpx;
+  height: 92rpx;
+  flex: none;
+  border-radius: 22rpx;
+}
+
+.brand-name {
+  font-family: Georgia, serif;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.brand-note {
+  margin-top: 6rpx;
+  color: #cfc3b0;
+  font-size: 21rpx;
+  line-height: 1.4;
+}

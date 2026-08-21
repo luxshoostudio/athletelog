@@ -1,0 +1,67 @@
+<view class="screen">
+  <view class="eyebrow">Last 7 days</view>
+  <view class="display-title">Your week at a glance</view>
+
+  <view class="stat-grid">
+    <view class="card stat-card">
+      <view class="stat-value">{{averageProtein}}g</view>
+      <view class="stat-label">Avg protein</view>
+    </view>
+    <view class="card stat-card">
+      <view class="stat-value">{{averageCalories}}</view>
+      <view class="stat-label">Avg calories</view>
+    </view>
+    <view class="card stat-card">
+      <view class="stat-value">{{workoutCount}}</view>
+      <view class="stat-label">Movements done</view>
+    </view>
+    <view class="card stat-card">
+      <view class="stat-value">{{activeDays}}/7</view>
+      <view class="stat-label">Active days</view>
+    </view>
+  </view>
+
+  <view class="section-heading">Protein rhythm</view>
+  <view class="card week-card">
+    <view wx:for="{{week}}" wx:key="key" class="day-row">
+      <view class="day-label">{{item.label}}</view>
+      <view class="day-track"><view class="day-fill" style="width: {{item.proteinWidth}}%;"></view></view>
+      <view class="day-value">{{item.protein}}g</view>
+      <view class="training-dot {{item.trained ? 'trained' : ''}}"></view>
+    </view>
+    <view class="chart-note"><text class="legend-dot"></text> Dot marks a training day</view>
+  </view>
+
+  <view class="section-heading">Daily goals</view>
+  <view class="card goals-card">
+    <label class="goal-row">
+      <view><view class="goal-name">Protein</view><view class="goal-unit">grams per day</view></view>
+      <input value="{{proteinGoal}}" type="number" bindinput="onProteinGoal" />
+    </label>
+    <label class="goal-row">
+      <view><view class="goal-name">Calories</view><view class="goal-unit">kcal per day</view></view>
+      <input value="{{calorieGoal}}" type="number" bindinput="onCalorieGoal" />
+    </label>
+    <label class="goal-row">
+      <view><view class="goal-name">Water</view><view class="goal-unit">millilitres per day</view></view>
+      <input value="{{waterGoal}}" type="number" bindinput="onWaterGoal" />
+    </label>
+    <button class="primary-button goals-save" bindtap="saveGoals">Save goals</button>
+  </view>
+
+  <view class="section-heading">Your data</view>
+  <view class="card backup-card">
+    <view class="backup-copy">Your records stay on this phone. Export a JSON backup before changing phones or clearing WeChat data.</view>
+    <button class="primary-button" bindtap="exportBackup">Export JSON backup</button>
+    <button class="secondary-button backup-secondary" bindtap="importBackup">Restore from WeChat file</button>
+    <button class="danger-button backup-secondary" bindtap="clearEverything">Clear all local data</button>
+  </view>
+
+  <view class="brand-card">
+    <image class="brand-logo" src="/images/lx-logo.png" mode="aspectFit"></image>
+    <view>
+      <view class="brand-name">AthleteLog · WeChat Lite</view>
+      <view class="brand-note">Fast local tracking for food, water, and training.</view>
+    </view>
+  </view>
+</view>

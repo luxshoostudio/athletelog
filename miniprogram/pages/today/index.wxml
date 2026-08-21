@@ -1,0 +1,88 @@
+<view class="screen">
+  <view class="header-row">
+    <view>
+      <view class="eyebrow">{{greeting}}</view>
+      <view class="display-title">{{dateLabel}}</view>
+    </view>
+    <view class="streak-pill">{{streak}}-day streak</view>
+  </view>
+
+  <view class="period-row">
+    <text>Period day</text>
+    <switch checked="{{period}}" color="#bd5b25" bindchange="togglePeriod" />
+  </view>
+
+  <view class="card hero-card">
+    <view class="ring-wrap">
+      <canvas canvas-id="proteinRing" class="protein-canvas" width="124" height="124"></canvas>
+      <view class="ring-label">
+        <text class="ring-number">{{proteinPct}}%</text>
+        <text class="ring-caption">protein</text>
+      </view>
+    </view>
+    <view class="macro-column">
+      <view class="macro-value">{{totals.protein}} <text>/ {{goals.protein}} g</text></view>
+      <view class="macro-label">Protein</view>
+      <view class="macro-divider"></view>
+      <view class="macro-value">{{totals.calories}} <text>/ {{goals.calories}} kcal</text></view>
+      <view class="macro-label">Calories · {{caloriePct}}%</view>
+    </view>
+  </view>
+
+  <view class="section-heading">Quick add</view>
+  <scroll-view class="favorite-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="favorite-row">
+      <button wx:for="{{favorites}}" wx:key="name" class="favorite-pill" data-index="{{index}}" bindtap="addFavorite">
+        <text>{{item.name}}</text>
+        <text class="favorite-macros">{{item.protein}}g · {{item.calories}}</text>
+      </button>
+    </view>
+  </scroll-view>
+
+  <button class="primary-button add-food" bindtap="openFoodSheet">+ Add food</button>
+
+  <view class="card water-card">
+    <view>
+      <view class="water-label">Water</view>
+      <view class="water-value">{{waterMl}} <text>/ {{waterGoal}} ml</text></view>
+    </view>
+    <view class="water-actions">
+      <button class="water-add" data-amount="250" bindtap="addWater">+250</button>
+      <button class="water-add" data-amount="500" bindtap="addWater">+500</button>
+      <button class="water-reset" bindtap="resetWater">↺</button>
+    </view>
+  </view>
+
+  <view class="section-heading">Today’s food</view>
+  <view wx:if="{{foods.length}}" class="food-list">
+    <view wx:for="{{foods}}" wx:key="id" class="card food-row">
+      <view class="food-copy">
+        <view class="food-name">{{item.name}}</view>
+        <view class="food-macros">{{item.protein}}g protein · {{item.calories}} kcal</view>
+      </view>
+      <button class="delete-button" data-id="{{item.id}}" bindtap="deleteFood" aria-label="Delete {{item.name}}">×</button>
+    </view>
+  </view>
+  <view wx:else class="card empty-state">Your first entry will appear here. Quick-add a favorite or enter your own food.</view>
+</view>
+
+<view wx:if="{{showFoodSheet}}" class="sheet-backdrop" bindtap="closeFoodSheet">
+  <view class="food-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">Add food</view>
+    <label class="field-label">Food name</label>
+    <input class="field-input" value="{{foodName}}" placeholder="e.g. Salmon and rice" bindinput="onFoodName" focus="{{showFoodSheet}}" />
+    <view class="field-grid">
+      <view class="field-half">
+        <label class="field-label">Protein (g)</label>
+        <input class="field-input" value="{{foodProtein}}" type="digit" placeholder="0" bindinput="onFoodProtein" />
+      </view>
+      <view class="field-half">
+        <label class="field-label">Calories</label>
+        <input class="field-input" value="{{foodCalories}}" type="number" placeholder="0" bindinput="onFoodCalories" />
+      </view>
+    </view>
+    <button class="primary-button sheet-save" bindtap="saveCustomFood">Save food</button>
+    <button class="sheet-cancel" bindtap="closeFoodSheet">Cancel</button>
+  </view>
+</view>

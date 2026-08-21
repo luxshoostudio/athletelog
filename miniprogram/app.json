@@ -1,0 +1,36 @@
+{
+  "pages": [
+    "pages/today/index",
+    "pages/gym/index",
+    "pages/summary/index"
+  ],
+  "window": {
+    "backgroundColor": "#f3ebde",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#f3ebde",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "AthleteLog"
+  },
+  "tabBar": {
+    "color": "#766f65",
+    "selectedColor": "#bd5b25",
+    "backgroundColor": "#fffaf0",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/today/index",
+        "text": "Today"
+      },
+      {
+        "pagePath": "pages/gym/index",
+        "text": "Gym"
+      },
+      {
+        "pagePath": "pages/summary/index",
+        "text": "Summary"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

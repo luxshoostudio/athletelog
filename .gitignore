@@ -1,1 +1,6 @@
 .vercel
+node_modules/
+www/
+ios/
+project.private.config.json
+miniprogram_npm/

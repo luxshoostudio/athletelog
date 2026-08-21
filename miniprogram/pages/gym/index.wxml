@@ -1,0 +1,63 @@
+<view class="screen">
+  <view class="eyebrow">Training</view>
+  <view class="display-title">Build today’s session</view>
+
+  <view class="section-heading">Start from a template</view>
+  <view class="template-grid">
+    <button wx:for="{{templates}}" wx:key="*this" class="template-button" data-name="{{item}}" bindtap="chooseTemplate">
+      <text class="template-mark">{{index + 1}}</text>
+      <text>{{item}}</text>
+    </button>
+  </view>
+
+  <view class="custom-row">
+    <input class="custom-input" value="{{customName}}" placeholder="Add an exercise…" bindinput="onCustomName" confirm-type="done" bindconfirm="addCustomExercise" />
+    <button class="custom-add" bindtap="addCustomExercise">Add</button>
+  </view>
+
+  <view class="plan-header">
+    <view>
+      <view class="section-heading plan-heading">Today’s plan</view>
+      <view wx:if="{{sessionName}}" class="session-name">{{sessionName}} day</view>
+    </view>
+    <view wx:if="{{exercises.length}}" class="completion-pill">{{completedCount}} / {{exercises.length}} done</view>
+  </view>
+
+  <view wx:if="{{exercises.length}}" class="exercise-list">
+    <view wx:for="{{exercises}}" wx:key="id" class="card exercise-card {{item.completed ? 'is-complete' : ''}}">
+      <view class="exercise-top">
+        <button class="check-button {{item.completed ? 'checked' : ''}}" data-index="{{index}}" bindtap="toggleComplete">{{item.completed ? '✓' : ''}}</button>
+        <view class="exercise-name">{{item.name}}</view>
+        <button class="remove-button" data-index="{{index}}" bindtap="deleteExercise">×</button>
+      </view>
+      <view class="exercise-fields">
+        <label class="metric-field">
+          <text>Sets</text>
+          <input value="{{item.sets}}" type="number" data-index="{{index}}" data-field="sets" bindinput="updateExercise" bindblur="saveExercises" />
+        </label>
+        <label class="metric-field">
+          <text>Reps</text>
+          <input value="{{item.reps}}" type="number" data-index="{{index}}" data-field="reps" bindinput="updateExercise" bindblur="saveExercises" />
+        </label>
+        <label class="metric-field wide">
+          <text>Weight</text>
+          <input value="{{item.weight}}" type="digit" placeholder="—" data-index="{{index}}" data-field="weight" bindinput="updateExercise" bindblur="saveExercises" />
+        </label>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="card empty-state">Choose a template or add one exercise. Tap the circle when a movement is finished.</view>
+
+  <view wx:if="{{history.length}}">
+    <view class="section-heading">Recent sessions</view>
+    <view class="card history-card">
+      <view wx:for="{{history}}" wx:key="key" class="history-row">
+        <view class="history-date">{{item.label}}</view>
+        <view class="history-copy">
+          <view class="history-name">{{item.name}}</view>
+          <view class="history-meta">{{item.completed}} of {{item.total}} completed</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

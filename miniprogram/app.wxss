@@ -1,0 +1,93 @@
+page {
+  min-height: 100%;
+  background: #f3ebde;
+  color: #24211e;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button::after {
+  border: 0;
+}
+
+.screen {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: 30rpx 30rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.eyebrow {
+  color: #71695f;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
+}
+
+.display-title {
+  margin-top: 8rpx;
+  color: #221f1c;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 54rpx;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.section-heading {
+  margin: 38rpx 4rpx 18rpx;
+  color: #71695f;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
+}
+
+.card {
+  box-sizing: border-box;
+  border: 2rpx solid rgba(79, 69, 57, 0.12);
+  border-radius: 36rpx;
+  background: #fffaf0;
+  box-shadow: 0 14rpx 34rpx rgba(63, 48, 31, 0.07);
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  display: flex;
+  box-sizing: border-box;
+  min-height: 88rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.primary-button {
+  background: #d86424;
+  color: #fffaf0;
+}
+
+.secondary-button {
+  border: 2rpx solid #cabfac;
+  background: transparent;
+  color: #292521;
+}
+
+.danger-button {
+  border: 2rpx solid #c99e91;
+  background: transparent;
+  color: #944630;
+}
+
+.muted {
+  color: #7b7369;
+}
+
+.empty-state {
+  padding: 48rpx 30rpx;
+  color: #81786e;
+  font-size: 27rpx;
+  line-height: 1.55;
+  text-align: center;
+}

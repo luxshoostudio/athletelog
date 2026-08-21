@@ -1,0 +1,9 @@
+{
+  "desc": "AthleteLog experience build",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}
