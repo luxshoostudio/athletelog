@@ -119,6 +119,70 @@ Page({
     this.addFood(favorite);
   },
 
+  goToCoach: function () {
+    wx.navigateTo({ url: '/pages/coach/index' });
+  },
+
+  recognizeFood: function () {
+    const that = this;
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['camera', 'album'],
+      success: function (res) {
+        const file = res.tempFiles && res.tempFiles[0];
+        if (!file) return;
+        wx.compressImage({
+          src: file.tempFilePath,
+          quality: 60,
+          success: function (compRes) {
+            that.readImageAndRecognize(compRes.tempFilePath);
+          },
+          fail: function () {
+            that.readImageAndRecognize(file.tempFilePath);
+          }
+        });
+      }
+    });
+  },
+
+  readImageAndRecognize: function (filePath) {
+    const that = this;
+    wx.showLoading({ title: '识别中…', mask: true });
+    wx.getFileSystemManager().readFile({
+      filePath: filePath,
+      encoding: 'base64',
+      success: function (readRes) {
+        wx.cloud.callFunction({
+          name: 'foodRecognition',
+          data: { imageBase64: readRes.data },
+          success: function (callRes) {
+            wx.hideLoading();
+            const r = callRes.result || {};
+            if (r.ok && r.name && r.name !== '无法识别') {
+              that.setData({
+                foodName: r.name,
+                foodProtein: r.protein ? String(r.protein) : '',
+                foodCalories: r.calories ? String(r.calories) : '',
+                showFoodSheet: true
+              });
+            } else {
+              wx.showToast({ title: r.error || '没识别出来，换个角度再试', icon: 'none' });
+            }
+          },
+          fail: function () {
+            wx.hideLoading();
+            wx.showToast({ title: '识别失败，请确认已部署云函数', icon: 'none' });
+          }
+        });
+      },
+      fail: function () {
+        wx.hideLoading();
+        wx.showToast({ title: '读取图片失败', icon: 'none' });
+      }
+    });
+  },
+
   openFoodSheet: function () {
     this.setData({
       showFoodSheet: true,

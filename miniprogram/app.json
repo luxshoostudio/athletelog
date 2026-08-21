@@ -2,7 +2,8 @@
   "pages": [
     "pages/today/index",
     "pages/gym/index",
-    "pages/summary/index"
+    "pages/summary/index",
+    "pages/coach/index"
   ],
   "window": {
     "backgroundColor": "#f3ebde",

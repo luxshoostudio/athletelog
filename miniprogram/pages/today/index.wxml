@@ -39,7 +39,10 @@
   </scroll-view>
   <view wx:else class="favorite-hint">记录几次食物后，常用项会自动出现在这里</view>
 
-  <button class="primary-button add-food" bindtap="openFoodSheet">+ 添加食物</button>
+  <view class="add-actions">
+    <button class="secondary-button camera-button" bindtap="recognizeFood">拍照识别</button>
+    <button class="primary-button add-food" bindtap="openFoodSheet">+ 添加食物</button>
+  </view>
 
   <view class="card water-card">
     <view>
@@ -64,6 +67,8 @@
     </view>
   </view>
   <view wx:else class="card empty-state">还没有记录。点「添加食物」记第一笔吧。</view>
+
+  <view class="coach-fab" bindtap="goToCoach">问教练</view>
 </view>
 
 <view wx:if="{{showFoodSheet}}" class="sheet-backdrop" bindtap="closeFoodSheet">

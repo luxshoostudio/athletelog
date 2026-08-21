@@ -148,8 +148,35 @@
   line-height: 1.5;
 }
 
-.add-food {
+.add-actions {
+  display: flex;
+  gap: 14rpx;
   margin: 20rpx 0 26rpx;
+}
+
+.add-food {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.camera-button {
+  min-width: 0;
+  flex: 1;
+}
+
+.coach-fab {
+  position: fixed;
+  z-index: 10;
+  right: 30rpx;
+  bottom: calc(30rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 32rpx;
+  border-radius: 999rpx;
+  background: #1a1918;
+  color: #f7ead2;
+  font-size: 26rpx;
+  font-weight: 700;
+  box-shadow: 0 10rpx 24rpx rgba(0, 0, 0, 0.18);
 }
 
 .water-card {

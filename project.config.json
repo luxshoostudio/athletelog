@@ -2,6 +2,7 @@
   "appid": "wx0e2b1c79706e2eaa",
   "compileType": "miniprogram",
   "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "projectname": "AthleteLog",
   "setting": {
     "coverView": true,
