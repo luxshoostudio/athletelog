@@ -282,7 +282,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  display: flex; align-items: center; gap: 12px;
 }
 .back-btn {
   background: rgba(255,255,255,0.62);
@@ -579,7 +580,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  padding: 14px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
 }
 .ai-title { flex: 1; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; }
 .ai-close {
@@ -613,7 +615,8 @@ body {
   backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
   border-top: 1px solid var(--glass-border);
   box-shadow: 0 -1px 0 rgba(0,0,0,0.06);
-  padding: 10px 16px 22px; display: flex; gap: 8px; flex-shrink: 0; align-items: center;
+  padding: 10px 16px calc(env(safe-area-inset-bottom) + 12px);
+  display: flex; gap: 8px; flex-shrink: 0; align-items: center;
 }
 .ai-text-input {
   flex: 1; background: rgba(255,255,255,0.62);
@@ -641,7 +644,8 @@ body {
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
   box-shadow: var(--glass-shadow-sm);
-  padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
 }
 .photo-result-name { font-size: 13px; font-weight: 700; color: var(--text); }
 .photo-result-macros { font-size: 11px; color: var(--muted); }
@@ -770,7 +774,7 @@ body {
 }
 #panels { width:100%; max-width:540px; margin:0 auto; background: var(--bg); }
 .panel, #food-day-list, #gym-day-list { background: var(--bg); }
-.panel-inner, .day-list-inner { padding: max(26px, env(safe-area-inset-top)) 20px 116px; }
+.panel-inner, .day-list-inner { padding: calc(env(safe-area-inset-top) + 26px) 20px 132px; }
 
 /* Today header and hero */
 #header {
@@ -812,7 +816,7 @@ body {
 /* Persistent bottom navigation */
 #tabs {
   position:fixed; z-index:90; left:50%; right:auto; width:min(calc(100% - 32px), 508px); transform:translateX(-50%);
-  bottom:max(16px, env(safe-area-inset-bottom));
+  bottom:max(6px, calc(env(safe-area-inset-bottom) - 20px));
   display:flex; padding:8px; border:0; border-radius:28px;
   background:#ebddc5; box-shadow:0 12px 32px rgba(46,43,37,.22);
   backdrop-filter:none; -webkit-backdrop-filter:none;
@@ -1027,6 +1031,20 @@ body {
 }
 .plan-markdown th { color: var(--muted); font-weight: 700; white-space: nowrap; }
 .plan-stamp { margin-top: 24px; color: var(--dim); font-size: 11px; font-family: var(--mono); }
+
+.photo-result-info { min-width: 0; flex: 1; }
+.photo-qty { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.photo-qty-input {
+  width: 62px; padding: 6px 8px; text-align: right;
+  border: 1px solid var(--glass-border); border-radius: 10px;
+  background: rgba(255,255,255,.45); color: var(--text);
+  font-family: var(--font); font-weight: 700; font-variant-numeric: tabular-nums;
+  outline: none; -moz-appearance: textfield;
+}
+.photo-qty-input::-webkit-outer-spin-button,
+.photo-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.photo-qty-input:focus { border-color: #c67139; background: rgba(255,255,255,.75); }
+.photo-qty-unit { color: var(--muted); font-size: 12px; font-weight: 700; }
 
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
@@ -1700,23 +1718,26 @@ function isHoldExercise(name) {
   return HOLD_EXERCISES_LIST.some(h => n.includes(h) || h.includes(n));
 }
 
-// Sourced from April Food Log, ranked by frequency
+// Sourced from 2 Areas/Fitness/Food Log/April Food Log.md, in the order she
+// actually ate them that month. Plain names — these go straight into the
+// food search, so an emoji prefix would only have to be stripped again.
 const QUICK = [
-  '🍫 Think! Protein Bar',
-  '🥛 Greek Yogurt',
-  '🍌 Banana',
-  '🥤 Protein Shake',
-  '🥛 Whole Milk 400ml',
-  '🥚 Boiled Eggs',
-  '🧀 Cottage Cheese',
-  '🫐 Blueberries',
-  '🫐 Raspberries',
-  '🍎 Apple',
-  '🐟 Air-fried Salmon',
-  '🧆 Air-fried Tofu',
-  '🥦 Broccoli',
-  '🍚 Steamed Rice',
-  '🍜 Noodles',
+  'Think! Protein Bar',      // ~30 entries in April
+  'Protein Shake',           // OWYN, usually with milk
+  'Banana',                  // logged at 120–250 g
+  'Whole Milk 400ml',
+  'Cottage Cheese',
+  'Greek Yogurt',
+  'Blueberries',
+  'Raspberries',
+  'Apple',
+  'Air-fried Salmon',
+  'Air-fried Tofu',
+  'Safe Catch Tuna Can',
+  'Boiled Eggs',
+  'Broccoli',
+  'Steamed Rice',
+  'Noodles',
 ];
 
 // Food database (name → {p, kcal, fat, carbs, fiber, unit, qty})
@@ -1918,6 +1939,8 @@ const DB = {
   'protein bar': {p:20,kcal:200,fat:7,carbs:22,fiber:5,unit:'bar',qty:1},
   'think protein bar': {p:20,kcal:230,fat:8,carbs:24,fiber:7,unit:'bar',qty:1},
   'rice cake': {p:0.7,kcal:35,fat:0.3,carbs:7.3,fiber:0.4,unit:'cake',qty:1},
+  'whole milk 400ml': {p:13.6,kcal:244,fat:13.2,carbs:19.2,fiber:0,unit:'serving',qty:1},
+  'safe catch tuna can': {p:40,kcal:150,fat:1,carbs:0,fiber:0,unit:'can',qty:1},
   'granola': {p:10,kcal:471,fat:20.3,carbs:64,fiber:7,unit:'g',qty:100},
 };
 
@@ -1931,7 +1954,8 @@ const FOOD_ALIASES = {
   'oatmeal':'porridge', 'whey':'whey protein', 'pb':'peanut butter',
   'courgette':'zucchini', 'aubergine':'eggplant', 'capsicum':'bell pepper',
   'chilli':'bell pepper', 'sweetcorn':'corn', 'spring onion':'onion',
-  'air-fried salmon':'salmon', 'air-fried tofu':'firm tofu', 'tuna can':'canned tuna',
+  'air-fried salmon':'salmon', 'air-fried tofu':'firm tofu',
+  'tuna can':'safe catch tuna can', 'safe catch tuna':'safe catch tuna can',
   'greek yoghurt':'greek yogurt', 'cottage':'cottage cheese', 'shake':'protein shake',
   'americano':'coffee', 'flat white':'latte', 'cappuccino':'latte',
 };
@@ -2428,8 +2452,7 @@ function freqFoodTap(name) {
 // ═══════════════════════════════════════════════════════════════
 function quickAddFood(chip) {
   if (!chip) return;
-  const name = chip.replace(/^\S+\s+/, '').toLowerCase();
-  document.getElementById('food-text').value = name;
+  document.getElementById('food-text').value = chip;
   handleAddFood();
 }
 
@@ -2755,9 +2778,7 @@ function confirmTimeEdit() {
 // ═══════════════════════════════════════════════════════════════
 function homeQuickAdd(chip) {
   if (!chip) return;
-  // Strip emoji prefix to get the food name
-  const name = chip.replace(/^\S+\s+/, '');
-  document.getElementById('home-food-text').value = name;
+  document.getElementById('home-food-text').value = chip;
   handleHomeAddFood();
 }
 
@@ -3004,31 +3025,69 @@ async function handlePhotoUpload(event) {
       if (!match) throw new Error('No JSON in response');
       const foods = JSON.parse(match[0]);
       document.getElementById('photo-loading').classList.add('hidden');
-      let html = '';
-      for (let i=0; i<foods.length; i++) {
-        const f = foods[i];
-        html += `<div class="photo-result-item">
-          <div>
-            <div class="photo-result-name">${escHtml(f.name)} (${f.qty}${f.unit||'g'})</div>
-            <div class="photo-result-macros">${f.p}g prot · ${f.kcal} kcal · ${f.fat}g fat · ${f.carbs}g carbs</div>
-          </div>
-          <button class="photo-add-btn" onclick="addPhotoFood(${i})">Add</button>
-        </div>`;
+      // The model's portion guess is a starting point, not a measurement —
+      // keep the original so the macros can be rescaled as she corrects it.
+      for (const food of foods) {
+        food.baseQty = +food.qty || 1;
+        food.base = { p:+food.p||0, kcal:+food.kcal||0, fat:+food.fat||0,
+                      carbs:+food.carbs||0, fiber:+food.fiber||0 };
       }
-      document.getElementById('photo-results').innerHTML = html || '<div style="color:var(--muted);font-size:13px;">No foods identified</div>';
       window._photoFoods = foods;
+      document.getElementById('photo-results').innerHTML =
+        foods.length ? foods.map((f, i) => photoResultRow(f, i)).join('')
+                     : '<div style="color:var(--muted);font-size:13px;">No foods identified</div>';
     } catch(err) {
       document.getElementById('photo-loading').classList.add('hidden');
       document.getElementById('photo-results').innerHTML = `<div style="color:var(--red);font-size:13px;padding:10px 0;">Error: ${err.message}</div>`;
     }
 }
 
+function photoResultRow(food, i) {
+  return `<div class="photo-result-item" id="photo-row-${i}">
+    <div class="photo-result-info">
+      <div class="photo-result-name">${escHtml(food.name)}</div>
+      <div class="photo-result-macros" id="photo-macros-${i}">${photoMacroLine(food)}</div>
+    </div>
+    <div class="photo-qty">
+      <input class="photo-qty-input" id="photo-qty-${i}" type="number" inputmode="decimal"
+             value="${food.qty}" min="0" step="any" aria-label="${escHtml(food.name)} amount"
+             oninput="updatePhotoQty(${i}, this.value)">
+      <span class="photo-qty-unit">${escHtml(food.unit || 'g')}</span>
+    </div>
+    <button class="photo-add-btn" onclick="addPhotoFood(${i})">Add</button>
+  </div>`;
+}
+
+function photoMacros(food) {
+  const factor = (+food.qty || 0) / (food.baseQty || 1);
+  return {
+    p: +(food.base.p * factor).toFixed(1),
+    kcal: Math.round(food.base.kcal * factor),
+    fat: +(food.base.fat * factor).toFixed(1),
+    carbs: +(food.base.carbs * factor).toFixed(1),
+    fiber: +(food.base.fiber * factor).toFixed(1),
+  };
+}
+
+function photoMacroLine(food) {
+  const m = photoMacros(food);
+  return `${m.p}g prot · ${m.kcal} kcal · ${m.fat}g fat · ${m.carbs}g carbs`;
+}
+
+function updatePhotoQty(idx, value) {
+  const food = (window._photoFoods || [])[idx];
+  if (!food) return;
+  food.qty = value === '' ? 0 : +value;
+  const el = document.getElementById('photo-macros-' + idx);
+  if (el) el.textContent = photoMacroLine(food);
+}
+
 function addPhotoFood(idx) {
   const foods = window._photoFoods || [];
-  const f = foods[idx];
-  if (!f) return;
-  const entry = makeEntry(f.name, {p:f.p||0,kcal:f.kcal||0,fat:f.fat||0,carbs:f.carbs||0,fiber:f.fiber||0}, nowTime());
-  addFoodEntryDirect(entry);
+  const food = foods[idx];
+  if (!food) return;
+  const name = `${food.name} (${food.qty}${food.unit || 'g'})`;
+  addFoodEntryDirect(makeEntry(name, photoMacros(food), nowTime()));
 }
 
 function closePhotoModal() {
