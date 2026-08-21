@@ -988,6 +988,62 @@ body {
 }
 .search-group-label:first-child { margin-top: 0; }
 
+/* Eating protocol sheet */
+#plan-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.plan-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px 24px; }
+.plan-empty { padding: 24px 4px; color: var(--muted); font-size: 14px; line-height: 1.7; }
+.plan-empty p + p { margin-top: 10px; }
+.plan-warning {
+  margin-bottom: 14px; padding: 10px 14px; border-radius: 14px;
+  background: #fff2eb; color: #8c491a; font-size: 12px; font-weight: 700;
+}
+.plan-today {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px; padding: 16px 18px;
+  border-radius: 24px; background: var(--surface);
+}
+.plan-today-badge {
+  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  background: #c67139; color: #201e1d;
+  font-family: var(--display); font-size: 22px; line-height: 1;
+}
+.plan-today-text { min-width: 0; }
+.plan-today-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.plan-today-meta { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.plan-today-note { margin-top: 4px; font-size: 12px; color: #8c491a; font-weight: 600; }
+
+.plan-markdown { color: var(--text); font-size: 14px; line-height: 1.75; }
+.plan-markdown h2 { margin: 26px 0 10px; font-family: var(--display); font-size: 20px; font-weight: 400; }
+.plan-markdown h3 { margin: 22px 0 8px; font-size: 15px; font-weight: 700; }
+.plan-markdown h4, .plan-markdown h5, .plan-markdown h6 { margin: 18px 0 6px; font-size: 13px; font-weight: 700; color: var(--text2); }
+.plan-markdown h2:first-child, .plan-markdown h3:first-child { margin-top: 0; }
+.plan-markdown p { margin: 8px 0; }
+.plan-markdown ul, .plan-markdown ol { margin: 8px 0 8px 20px; }
+.plan-markdown li { margin: 4px 0; }
+.plan-markdown ul.plan-tasks { list-style: none; margin-left: 0; }
+.plan-markdown ul.plan-tasks li::before { content: '○ '; color: var(--muted); }
+.plan-markdown ul.plan-tasks li.done::before { content: '● '; color: #7a8a5e; }
+.plan-markdown blockquote {
+  margin: 12px 0; padding: 10px 14px;
+  border-left: 3px solid #c67139; border-radius: 0 14px 14px 0;
+  background: var(--surface); color: var(--text2); font-size: 13px;
+}
+.plan-markdown code {
+  padding: 1px 5px; border-radius: 6px;
+  background: var(--surface); font-family: var(--mono); font-size: 12px;
+}
+.plan-markdown hr { margin: 22px 0; border: 0; border-top: 1px solid var(--glass-border); }
+/* Wide tables scroll inside themselves; the sheet never scrolls sideways. */
+.plan-table-wrap { margin: 12px 0; overflow-x: auto; overscroll-behavior-x: contain; }
+.plan-markdown table { border-collapse: collapse; width: 100%; min-width: max-content; font-size: 12px; }
+.plan-markdown th, .plan-markdown td {
+  padding: 8px 10px; border-bottom: 1px solid var(--glass-border);
+  text-align: left; vertical-align: top;
+}
+.plan-markdown th { color: var(--muted); font-weight: 700; white-space: nowrap; }
+.plan-stamp { margin-top: 24px; color: var(--dim); font-size: 11px; font-family: var(--mono); }
+
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
    Three separate iOS behaviours were shifting the canvas:
@@ -1122,8 +1178,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
         <!-- Action pills -->
         <div class="today-action-row">
-          <button class="action-pill" onclick="openFoodBulkModal()">Bulk entry</button>
-          <button class="action-pill" onclick="openAI('food')">Ask coach</button>
+          <button class="action-pill" id="plan-pill" onclick="openPlanSheet()">Plan</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
         </div>
 
@@ -1204,7 +1259,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div class="gym-input-row">
             <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets" inputmode="numeric" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps" inputmode="text" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs/kg" inputmode="text" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs" inputmode="text" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none" onfocus="markPrefillEdited(this)">
             <button class="green-btn" aria-label="Add exercise" onclick="addExercise()">+ Add</button>
@@ -1377,19 +1432,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 </div>
 
-<!-- FOOD BULK MODAL -->
-<div class="modal-overlay" id="food-bulk-modal">
-  <div class="modal-sheet">
-    <div class="modal-title">📋 Bulk Food Entry</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">One food per line. Include protein &amp; calories if known.<br>e.g. <em>Think! Protein Bar 20g protein 230 kcal</em><br>or just <em>2 boiled eggs</em></p>
-    <textarea class="modal-input" id="food-bulk-textarea" rows="7" placeholder="Think! Protein Bar 20g protein 230 kcal&#10;150g Greek yogurt&#10;1 banana&#10;Air-fried salmon 100g&#10;Cottage cheese 1 cup" style="height:160px;resize:vertical;font-size:13px;line-height:1.6;"></textarea>
-    <div class="modal-btn-row">
-      <button class="outline-btn" onclick="closeFoodBulkModal()">Cancel</button>
-      <button class="green-btn" onclick="confirmFoodBulkEntry()">Add All</button>
-    </div>
-  </div>
-</div>
-
 <!-- GITHUB GIST BACKUP MODAL -->
 <div class="modal-overlay" id="gist-modal">
   <div class="modal-sheet">
@@ -1503,6 +1545,19 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 </div>
 
+<!-- EATING PROTOCOL OVERLAY -->
+<div class="ai-overlay" id="plan-overlay">
+  <div class="ai-header">
+    <button class="ai-close" onclick="closePlanSheet()">✕ Close</button>
+    <div class="ai-title" id="plan-title">Eating protocol</div>
+    <button class="ai-close" onclick="planAutoSync(false)" title="Refresh from vault">⟳</button>
+  </div>
+  <div class="plan-body" id="plan-body"></div>
+  <div class="ai-input-row">
+    <button class="outline-btn" onclick="askCoachAboutPlan()" style="flex:1;">Ask coach about this</button>
+  </div>
+</div>
+
 <!-- PHOTO RESULT OVERLAY -->
 <div class="modal-overlay" id="photo-modal">
   <div class="modal-sheet">
@@ -1564,11 +1619,43 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 const GOALS = { protein: 160, kcal: 2400, fat: 70, carbs: 220 };
 const WATER_GOAL_ML = 2500;
 
+// The seven values of Training.Session Type in the Health Airtable base
+// (app4zOmpexx6EK48F). The app, the vault parser and Airtable must agree on
+// this list or the health agent reads a different history than the app shows.
+const SESSION_TYPES = [
+  'Lower Body', 'Lat & Back', 'Shoulder & Arm',
+  'Handstand Drill', 'Core', 'Running', 'Other',
+];
+
+// Same buckets, same order, as `session_type()` in _Data/_parser_gym.py.
+// First match wins: "Lat & Back+5k" is a back session, not a run.
+const SESSION_TYPE_BUCKETS = [
+  ['Lower Body',      ['lower body', 'leg day', 'leg ', 'glute', 'squat day']],
+  ['Lat & Back',      ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body']],
+  ['Shoulder & Arm',  ['shoulder', 'arm day', 'arm ', 'carving']],
+  ['Handstand Drill', ['handstand', 'hand stand']],
+  ['Core',            ['core', 'abs']],
+  ['Running',         ['running', 'jog', 'run ', 'marathon', 'km', '10k', '5k']],
+];
+
+function canonicalSessionType(title) {
+  const t = ` ${String(title || '').toLowerCase()} `;
+  if (!t.trim()) return '';
+  for (const [name, keys] of SESSION_TYPE_BUCKETS) {
+    if (keys.some(key => t.includes(key))) return name;
+  }
+  return 'Other';
+}
+
+// Shown until there are four sessions of history to derive from.
 const STARTER_TEMPLATES = [
-  { name:'Push', exercises:['Bench Press','Overhead Press','Dips','Pushups'] },
-  { name:'Pull', exercises:['Bent Over Row','Pull-Ups','Lat Pulldown'] },
-  { name:'Legs', exercises:['Squat','Deadlift','Lunge','RDL'] },
-  { name:'Full Body', exercises:['Squat','Bent Over Row','Overhead Press','Plank'] },
+  { name:'Lower Body',      exercises:['Front Squat','RDL','Deadlift','Bulgarian Split Squat'] },
+  { name:'Lat & Back',      exercises:['Bent Over Row','Pull-Ups','Dips','Over Head Thruster'] },
+  { name:'Shoulder & Arm',  exercises:['Seated Shoulder Press','Lateral Raises','Pike Pushups'] },
+  { name:'Handstand Drill', exercises:['Frog Handstand','Handstand Shoulder Taps','Wall-Walk'] },
+  { name:'Core',            exercises:['Toe to Bar','Hollow Hold','Hanging Knee Raises'] },
+  { name:'Running',         exercises:['Run'] },
+  { name:'Other',           exercises:[] },
 ];
 
 // Run-type exercises (track distance + time, not sets × reps)
@@ -2004,8 +2091,8 @@ function saveDetailState() {
 // ═══════════════════════════════════════════════════════════════
 // FOOD PARSING
 // ═══════════════════════════════════════════════════════════════
-// Single best match, for the paths that cannot show a picker (bulk paste,
-// AI parsing, frequent-food pills). Loose matches are rejected rather than
+// Single best match, for the paths that cannot show a picker (AI parsing,
+// frequent-food pills, photo results). Loose matches are rejected rather than
 // guessed at — the caller falls back to the manual form.
 function parseFood(query) {
   const results = searchFoodDb(query, 1);
@@ -2189,68 +2276,6 @@ function homeDeleteFood(id) {
   renderDayList();
   renderHeader();
   renderLogTab();
-}
-
-// ─── BULK FOOD ENTRY ────────────────────────────────────────────
-function openFoodBulkModal() {
-  document.getElementById('food-bulk-modal').classList.add('open');
-  setTimeout(() => document.getElementById('food-bulk-textarea').focus(), 200);
-}
-function closeFoodBulkModal() {
-  document.getElementById('food-bulk-modal').classList.remove('open');
-  document.getElementById('food-bulk-textarea').value = '';
-}
-
-function parseBulkFoodLine(line) {
-  line = line.trim();
-  if (!line) return null;
-  // Explicit nutrition values win when the user provides them.
-  const pMatch = line.match(/(\d+(?:\.\d+)?)\s*g\s*(?:protein|prot|p\b)/i);
-  const kMatch = line.match(/(\d+)\s*(?:kcal|cal|calories)/i);
-  const name = line.replace(/\s*\d+(?:\.\d+)?\s*g\s*(?:protein|prot|p\b)/i,'')
-                   .replace(/\s*\d+\s*(?:kcal|cal|calories)/i,'')
-                   .replace(/^\s*\d+(?:\.\d+)?\s*(?:g|ml|x|×)?\s*/i,'')
-                   .replace(/\s+\d+(?:\.\d+)?\s*(?:g|ml)\s*$/i,'')
-                   .trim() || line;
-
-  const item = parseFood(name);
-  if (pMatch || kMatch) {
-    return makeEntry(name, {
-      p: pMatch ? parseFloat(pMatch[1]) : (item?.p || 0),
-      kcal: kMatch ? parseInt(kMatch[1]) : (item?.kcal || 0),
-      fat: item?.fat || 0,
-      carbs: item?.carbs || 0,
-      fiber: item?.fiber || 0,
-    }, nowTime());
-  }
-
-  if (!item) return makeEntry(name, { p:0, kcal:0, fat:0, carbs:0, fiber:0 }, nowTime());
-
-  const qtyMatch = line.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*(g|ml|x|×)?(?:\s|$)/i);
-  let quantity = item.unit === 'g' || item.unit === 'ml' ? 100 : item.qty;
-  if (qtyMatch) {
-    const parsedQty = parseFloat(qtyMatch[1]);
-    const unit = (qtyMatch[2] || '').toLowerCase();
-    if (unit === 'g' || unit === 'ml') quantity = parsedQty;
-    else if (!unit && (item.unit === 'g' || item.unit === 'ml')) quantity = 100;
-    else {
-      const servingCount = String(item.unit).match(/\((\d+)\)/);
-      quantity = servingCount ? parsedQty / parseInt(servingCount[1]) : parsedQty;
-    }
-  }
-  return makeEntry(name, calcQty(item, quantity), nowTime());
-}
-
-function confirmFoodBulkEntry() {
-  const text = document.getElementById('food-bulk-textarea').value.trim();
-  const lines = text.split('\n').filter(l => l.trim());
-  let added = 0;
-  for (const line of lines) {
-    const entry = parseBulkFoodLine(line);
-    if (entry) { state.food.push(entry); added++; }
-  }
-  if (added > 0) { saveState(); renderDayList(); renderHeader(); renderLogTab(); }
-  closeFoodBulkModal();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3024,26 +3049,6 @@ function renderFeelingRow() {
   });
 }
 
-// Session names drift: "Lat & Back", "Lat & Back+5k", "Lat & Back + 4miles
-// (35min)" and "Lower Body A-recovery" are all the same template. Group on a
-// folded key and show the spelling that appears most often.
-function sessionGroupKey(name) {
-  return String(name || '')
-    .split('+')[0]
-    .replace(/[（(][^）)]*[）)]/g, ' ')
-    .replace(/\d+(?:\.\d+)?\s*(?:k|km|miles?|mi|min|mins)\b/gi, ' ')
-    .replace(/\b(?:a|b|c|day|freestyle|recovery|session)\b/gi, ' ')
-    .replace(/[^a-z0-9\s]/gi, ' ')
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    // "Hand standing Drill" and "Handstand Drill" are the same session, so
-    // gerunds are stemmed and the spaces dropped before comparing.
-    .map(word => (word.length > 4 && word.endsWith('ing') ? word.slice(0, -3) : word))
-    .join('');
-}
-
 function normalizeExerciseName(name) {
   return String(name || '')
     .toLowerCase()
@@ -3070,12 +3075,11 @@ function getSessionTemplates() {
   const groups = new Map();
   for (const day of storedGymDays(183)) {
     const session = String(day.gym.session || '').trim();
-    const groupKey = sessionGroupKey(session);
+    const groupKey = canonicalSessionType(session);
     if (!groupKey) continue;
-    if (!groups.has(groupKey)) groups.set(groupKey, { name:session, count:0, recent30:0, lastKey:day.key, exercises:new Map(), labels:new Map() });
+    if (!groups.has(groupKey)) groups.set(groupKey, { name:groupKey, count:0, recent30:0, lastKey:day.key, exercises:new Map() });
     const group = groups.get(groupKey);
     group.count++;
-    group.labels.set(session, (group.labels.get(session) || 0) + 1);
     if (day.date.getTime() >= Date.now() - 30 * 86400000) group.recent30++;
     if (day.key > group.lastKey) group.lastKey = day.key;
     const seen = new Set();
@@ -3092,9 +3096,7 @@ function getSessionTemplates() {
   const derived = [...groups.values()]
     .filter(group => group.count >= 4)
     .map(group => ({
-      // Most-used spelling wins, shortest as the tiebreak.
-      name:[...group.labels.entries()]
-        .sort((a, b) => b[1] - a[1] || a[0].length - b[0].length)[0][0],
+      name:group.name,
       recent30:group.recent30,
       lastKey:group.lastKey,
       count:group.count,
@@ -3104,18 +3106,32 @@ function getSessionTemplates() {
         .map(exercise => exercise.name),
     }))
     .filter(template => template.exercises.length)
-    .sort((a,b) => b.recent30 - a.recent30 || b.lastKey.localeCompare(a.lastKey) || b.count - a.count);
+    .sort((a,b) => b.recent30 - a.recent30 || b.lastKey.localeCompare(a.lastKey) || b.count - a.count
+                || SESSION_TYPES.indexOf(a.name) - SESSION_TYPES.indexOf(b.name));
 
-  return derived.length ? derived : STARTER_TEMPLATES;
+  if (!derived.length) return STARTER_TEMPLATES;
+
+  // Every canonical type stays selectable even with no history behind it —
+  // a Running or Other day still has to be taggable.
+  const seen = new Set(derived.map(template => template.name));
+  const missing = SESSION_TYPES
+    .filter(name => !seen.has(name))
+    .map(name => ({
+      name,
+      recent30: 0,
+      count: 0,
+      lastKey: '',
+      exercises: (STARTER_TEMPLATES.find(template => template.name === name) || {}).exercises || [],
+    }));
+  return [...derived, ...missing];
 }
 
 function shortSessionLabel(name) {
   const fixed = {
-    'Full Body':'Full', 'Lower Body':'Lower', 'Lat & Back':'Back',
-    'Handstand Drill':'Handstand', 'Shoulder & Arm':'Arms',
+    'Lower Body':'Lower', 'Lat & Back':'Back', 'Shoulder & Arm':'Arms',
+    'Handstand Drill':'Handstand', 'Core':'Core', 'Running':'Run', 'Other':'Other',
   };
-  if (fixed[name]) return fixed[name];
-  return name.replace(/Upper Body\s*-\s*/i,'').replace(/Lower Body\s*-\s*/i,'').split(' ')[0];
+  return fixed[name] || String(name).split(' ')[0];
 }
 
 function getExerciseCatalog() {
@@ -3186,7 +3202,7 @@ function initGymTab() {
   for (const template of getSessionTemplates()) {
     sel.innerHTML += `<option value="${escHtml(template.name)}">${escHtml(template.name)}</option>`;
   }
-  sel.value = state.gym.session || '';
+  sel.value = canonicalSessionType(state.gym.session || '');
   renderOrganicSessionSegments();
   renderFeelingRow();
   renderSessionSuggestions();
@@ -3202,14 +3218,15 @@ function onSessionChange() {
 function selectOrganicSession(session) {
   if (!session) return;
   const template = getSessionTemplates().find(item => item.name === session);
-  const switchingSession = Boolean(state.gym.session && state.gym.session !== session);
+  const switchingSession = Boolean(state.gym.session
+    && canonicalSessionType(state.gym.session) !== canonicalSessionType(session));
   if (switchingSession) {
     state.gym.exercises = state.gym.exercises.filter(exercise => exercise.completed);
   }
   state.gym.session = session;
   if (template) loadTemplatePlan(template);
   const sel = document.getElementById('session-select');
-  if (sel) sel.value = session;
+  if (sel) sel.value = canonicalSessionType(session);
   saveState();
   renderOrganicSessionSegments();
   renderSessionSuggestions();
@@ -3223,7 +3240,7 @@ function renderOrganicSessionSegments() {
   const templates = getSessionTemplates();
   const visible = templates.slice(0,4);
   const extra = templates.slice(4);
-  const activeSession = state.gym.session || '';
+  const activeSession = canonicalSessionType(state.gym.session || '');
   container.style.setProperty('--segment-count', String(visible.length + (extra.length ? 1 : 0)));
   container.innerHTML = visible.map(template => `
     <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
@@ -3388,7 +3405,7 @@ function renderExerciseList() {
       fields = `<div class="exercise-fields">
         <input class="exercise-field${suggestedClass}" value="${escHtml(e.sets || '')}" placeholder="Sets" aria-label="${escHtml(e.name)} sets" oninput="updateExerciseField('${e.id}','sets',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
         <input class="exercise-field${suggestedClass}" value="${escHtml(e.reps || '')}" placeholder="Reps" aria-label="${escHtml(e.name)} reps" oninput="updateExerciseField('${e.id}','reps',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.weight || '')}" placeholder="lbs/kg" aria-label="${escHtml(e.name)} weight" oninput="updateExerciseField('${e.id}','weight',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
+        <input class="exercise-field${suggestedClass}" value="${escHtml(e.weight || '')}" placeholder="lbs" aria-label="${escHtml(e.name)} weight" oninput="updateExerciseField('${e.id}','weight',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
       </div>`;
     }
     const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
@@ -3552,7 +3569,7 @@ function updateGymInputMode() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GYM AI COACH (replaces Bulk Entry)
+// GYM AI COACH
 // ═══════════════════════════════════════════════════════════════
 let gymAiHistory = [];
 let gymAiStreaming = false;
@@ -3612,7 +3629,7 @@ The user describes their workout in natural language. Your job:
 [{"name":"Exercise Name","sets":"4","reps":"8","weight":"185 lbs"}]
 
 If the user is just chatting (not logging), answer normally without JSON.
-Keep replies concise. Weight can be in lbs or kg as user specifies.`;
+Keep replies concise. All weights are in lbs.`;
 
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -3672,13 +3689,11 @@ Keep replies concise. Weight can be in lbs or kg as user specifies.`;
 // ═══════════════════════════════════════════════════════════════
 
 // Estimated active calories burned per session type
+// Rough burn per session type, used only when Garmin has nothing for the day.
+// Keyed on the canonical types so it survives however the session was written.
 const SESSION_BURN = {
-  'Upper Body - Push': 280, 'Upper Body - Pull': 280,
-  'Lower Body - Squat': 380, 'Lower Body - Hinge': 380,
-  'Full Body': 450, 'Rugby Training': 750, 'Conditioning': 620,
-  'Marathon Run': 2600, 'Long Run': 900, 'Tempo Run': 600,
-  'Interval Run': 520, 'Recovery Run': 350,
-  'Handstand Practice': 200, 'Mobility': 120, 'Rest Day': 0,
+  'Lower Body': 380, 'Lat & Back': 300, 'Shoulder & Arm': 260,
+  'Handstand Drill': 220, 'Core': 180, 'Running': 600, 'Other': 300,
 };
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
@@ -3698,7 +3713,8 @@ function renderLogTab() {
   const hasCompletedTraining = completedExercises.length > 0;
   const sessionBurn = garminKcal > 0 ? garminKcal
     : garminAuto > 0 ? garminAuto
-    : hasCompletedTraining && SESSION_BURN[state.gym.session] != null ? (SESSION_BURN[state.gym.session] || 0)
+    : hasCompletedTraining && SESSION_BURN[canonicalSessionType(state.gym.session)] != null
+      ? SESSION_BURN[canonicalSessionType(state.gym.session)]
     : hasCompletedTraining ? 300 : 0;
   const burnSource = garminKcal > 0 ? '⌚ Garmin (manual)'
     : garminAuto > 0 ? `⌚ Garmin auto${state.garminSyncedAt ? ' · ' + escHtml(state.garminSyncedAt) : ''}`
@@ -4246,11 +4262,15 @@ function closeAI() {
 function buildSystemPrompt() {
   if (aiContext === 'gym') {
     const m = sumMacros(state.food);
-    return `You are an expert strength & conditioning coach. Today's gym session: ${state.gym.session||'Not set'}. Exercises: ${state.gym.exercises.map(e=>`${e.name} ${e.sets||''}×${e.reps||''} @${e.weight||'?'}kg`).join(', ')||'None logged'}. User also ate: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal today. Give concise, actionable coaching advice.`;
+    return `You are an expert strength & conditioning coach. Today's gym session: ${state.gym.session||'Not set'}. Exercises: ${state.gym.exercises.map(e=>`${e.name} ${e.sets||''}×${e.reps||''} @${e.weight||'?'}lbs`).join(', ')||'None logged'}. User also ate: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal today. Give concise, actionable coaching advice.`;
   }
   const m = sumMacros(state.food);
   const foodList = state.food.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(f=>`${f.time} ${f.name} (${f.p}g P, ${f.kcal} kcal)`).join('\n');
-  return `You are an expert sports nutritionist. Today's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
+  // The protocol is the authority; the coach advises inside it, not around it.
+  const plan = loadPlan();
+  const entry = todayPlanEntry();
+  const planContext = plan ? `\n\nThe user follows this eating protocol. Treat it as the source of truth and never contradict it:\n---\n${plan.markdown}\n---\n${entry ? `Today is a ${entry.template} day (${TEMPLATE_NAMES[entry.template] || ''})${entry.activity ? `, planned activity: ${entry.activity}` : ''}${entry.focus ? `, nutrient focus: ${entry.focus}` : ''}.` : 'Today is not in the protocol schedule.'}` : '';
+  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
 }
 
 function appendAIBubble(role, text) {
@@ -4395,7 +4415,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       renderLogTab();
       if (garminAutoConfigured()) garminAutoSync(true);
     }
-    if (tab === 'food') renderDayList();
+    if (tab === 'food') { renderDayList(); renderPlanPill(); }
   };
 });
 
@@ -4409,7 +4429,6 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       if (overlay.id === 'freq-modal') closeFreqModal();
       if (overlay.id === 'photo-modal') closePhotoModal();
       if (overlay.id === 'gym-ai-modal') closeGymAI();
-      if (overlay.id === 'food-bulk-modal') closeFoodBulkModal();
       if (overlay.id === 'gist-modal') closeGistModal();
     }
   });
@@ -4523,8 +4542,10 @@ function readExerciseMeasurements(body, exercise) {
   }
 
   if (weightMatch) {
-    exercise.weight = weightMatch[1].replace(/,$/, '');
-    exercise.unit = /kg/i.test(weightMatch[2]) ? 'kg' : 'lbs';
+    // One unit throughout: lbs, matching Training."Load (lbs)" in Airtable.
+    // Comma-separated per-set loads are converted element by element.
+    exercise.weight = toLbs(weightMatch[1].replace(/,$/, ''), weightMatch[2]);
+    exercise.unit = 'lbs';
   } else if (bodyweight) {
     exercise.weight = 'bw';
   }
@@ -4536,6 +4557,22 @@ function readExerciseMeasurements(body, exercise) {
   }
   if (rpe != null) exercise.feeling = rpe;
   return Boolean(setsMatch || repsMatch || weightMatch || secMatch || minMatch || distMatch || roundMatch);
+}
+
+const LBS_PER_KG = 2.20462;
+
+// "74" + "kg" → "163"; "132,225" + "lbs" → "132,225". Anything unreadable is
+// returned untouched rather than silently zeroed.
+function toLbs(value, unit) {
+  const isKg = /kg/i.test(unit || '');
+  return String(value)
+    .split(',')
+    .map(part => {
+      const n = parseFloat(part);
+      if (!isFinite(n)) return part;
+      return String(isKg ? Math.round(n * LBS_PER_KG) : +n.toFixed(2));
+    })
+    .join(',');
 }
 
 function classifyExercise(exercise) {
@@ -4722,7 +4759,7 @@ function parseTrainingCsv(text) {
       weight: num(iLoad),
       raw: iRaw >= 0 ? row[iRaw] : '',
     };
-    if (exercise.weight) exercise.unit = 'lbs';
+    if (exercise.weight) exercise.unit = 'lbs';  // CSV column is Load (lbs)
     if (iRpe >= 0 && row[iRpe]) exercise.feeling = +row[iRpe];
     if (iDist >= 0 && row[iDist]) { exercise.distance = row[iDist]; exercise.run = true; }
     if (!exercise.run && iDur >= 0 && row[iDur] && !exercise.reps) {
@@ -4752,11 +4789,11 @@ function formatExerciseLine(exercise) {
   } else if (exercise.hold) {
     if (exercise.sets) bits.push(`${exercise.sets} sets`);
     if (exercise.reps) bits.push(`${exercise.reps}sec`);
-    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}${exercise.unit || 'lbs'}`);
+    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}lbs`);
   } else {
     if (exercise.sets) bits.push(`${exercise.sets} sets`);
     if (exercise.reps) bits.push(`${exercise.reps}reps`);
-    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}${exercise.unit || 'lbs'}`);
+    if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}lbs`);
   }
   if (exercise.feeling) bits.push(String(exercise.feeling));
   return ` - ${box} ${exercise.name}${bits.length ? ' — ' + bits.join(' × ') : ''}`;
@@ -4880,6 +4917,242 @@ async function copyGymMarkdown() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// EATING PROTOCOL
+// The plan is written in the vault, for a human to read. A LaunchAgent
+// (tools/plan_sync.py) republishes it to the Gist this app already syncs
+// with; the app renders the Markdown as-is and reads one thing as data —
+// which template today falls on — so Today can say it instead of asking.
+// ═══════════════════════════════════════════════════════════════
+const PLAN_GIST_FILE = 'athletelog-plan.json';
+const PLAN_CACHE_KEY = 'alog_plan_cache';
+
+const TEMPLATE_NAMES = {
+  A: '训练日',
+  B: '休息 / 轻活动日',
+  C: '长距离日',
+};
+
+function loadPlan() {
+  try { return JSON.parse(localStorage.getItem(PLAN_CACHE_KEY)) || null; }
+  catch { return null; }
+}
+
+function todayPlanEntry() {
+  const plan = loadPlan();
+  if (!plan || !plan.schedule) return null;
+  const entry = plan.schedule[garminDateKey()];
+  return entry ? { ...entry, plan } : null;
+}
+
+// The pill carries the letter when today is scheduled: "Plan · C".
+function renderPlanPill() {
+  const pill = document.getElementById('plan-pill');
+  if (!pill) return;
+  const entry = todayPlanEntry();
+  pill.textContent = entry ? `Plan · ${entry.template}` : 'Plan';
+}
+
+async function planAutoSync(silent = true) {
+  const token = localStorage.getItem('github_gist_token');
+  if (!token) return false;
+  try {
+    const cachedId = localStorage.getItem('plan_gist_id');
+    let gistId = cachedId;
+    if (!gistId) {
+      const listing = await fetch('https://api.github.com/gists?per_page=50', {
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!listing.ok) throw new Error('GitHub auth failed');
+      const gist = (await listing.json()).find(g => g.files && g.files[PLAN_GIST_FILE]);
+      if (!gist) throw new Error('No ' + PLAN_GIST_FILE + ' gist found');
+      gistId = gist.id;
+      localStorage.setItem('plan_gist_id', gistId);
+    }
+    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!resp.ok) throw new Error('Could not read the plan file');
+    const raw = resp.json ? (await resp.json()).files?.[PLAN_GIST_FILE]?.content : null;
+    if (!raw) throw new Error('Plan file is empty');
+    JSON.parse(raw); // fail loudly here rather than at render time
+    localStorage.setItem(PLAN_CACHE_KEY, raw);
+    localStorage.setItem('plan_last_sync', new Date().toISOString());
+    renderPlanPill();
+    if (!silent) renderPlanSheet();
+    return true;
+  } catch (err) {
+    if (!silent) {
+      const body = document.getElementById('plan-body');
+      if (body) body.insertAdjacentHTML('afterbegin',
+        `<div class="plan-warning">${escHtml(err.message)}</div>`);
+    }
+    return false;
+  }
+}
+
+// ── Markdown → HTML ────────────────────────────────────────────
+// Small on purpose: the plan documents use headings, tables, callouts,
+// lists, bold and inline code, and nothing else.
+function planInline(text) {
+  return escHtml(text)
+    .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g, '$1')       // [[wikilink]]
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');               // links, text only
+}
+
+function planTableRow(line) {
+  return line.trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
+}
+
+function renderPlanMarkdown(markdown) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  const out = [];
+  let listType = null;
+  let table = null;
+
+  const closeList = () => { if (listType) { out.push(`</${listType}>`); listType = null; } };
+  const closeTable = () => {
+    if (!table) return;
+    const head = table.head.map(cell => `<th>${planInline(cell)}</th>`).join('');
+    const body = table.rows.map(row =>
+      `<tr>${row.map(cell => `<td>${planInline(cell)}</td>`).join('')}</tr>`).join('');
+    out.push(`<div class="plan-table-wrap"><table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`);
+    table = null;
+  };
+  const closeAll = () => { closeList(); closeTable(); };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Tables: a header row followed by a |---|---| separator.
+    if (/^\|.*\|$/.test(trimmed)) {
+      const cells = planTableRow(trimmed);
+      if (!table) {
+        const next = (lines[i + 1] || '').trim();
+        if (/^\|[\s:|-]+\|$/.test(next)) {
+          closeList();
+          table = { head: cells, rows: [] };
+          i++;
+          continue;
+        }
+        table = { head: [], rows: [] };
+      }
+      table.rows.push(cells);
+      continue;
+    }
+    closeTable();
+
+    if (!trimmed) { closeList(); continue; }
+
+    if (/^---+$/.test(trimmed)) { closeAll(); out.push('<hr>'); continue; }
+
+    const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      closeAll();
+      const level = Math.min(heading[1].length + 1, 6);
+      out.push(`<h${level}>${planInline(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    // Consecutive `>` lines are one quote, not one per line.
+    if (trimmed.startsWith('>')) {
+      closeList();
+      const quoted = [];
+      while (i < lines.length && lines[i].trim().startsWith('>')) {
+        quoted.push(lines[i].trim().replace(/^>\s?/, '').replace(/^\[!\w+\][-+]?\s*/, ''));
+        i++;
+      }
+      i--;
+      const inner = quoted.filter(Boolean).map(part => planInline(part)).join('<br>');
+      if (inner) out.push(`<blockquote>${inner}</blockquote>`);
+      continue;
+    }
+
+    const task = trimmed.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/);
+    if (task) {
+      if (listType !== 'ul') { closeList(); out.push('<ul class="plan-tasks">'); listType = 'ul'; }
+      out.push(`<li class="${task[1].trim() ? 'done' : ''}">${planInline(task[2])}</li>`);
+      continue;
+    }
+
+    const bullet = trimmed.match(/^[-*]\s+(.*)$/);
+    if (bullet) {
+      if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
+      out.push(`<li>${planInline(bullet[1])}</li>`);
+      continue;
+    }
+
+    const numbered = trimmed.match(/^\d+[.)]\s+(.*)$/);
+    if (numbered) {
+      if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
+      out.push(`<li>${planInline(numbered[1])}</li>`);
+      continue;
+    }
+
+    closeList();
+    out.push(`<p>${planInline(trimmed)}</p>`);
+  }
+  closeAll();
+  return out.join('\n');
+}
+
+// ── Sheet ──────────────────────────────────────────────────────
+function openPlanSheet() {
+  document.getElementById('plan-overlay').classList.add('open');
+  renderPlanSheet();
+  planAutoSync(true).then(ok => { if (ok) renderPlanSheet(); });
+}
+
+function closePlanSheet() {
+  document.getElementById('plan-overlay').classList.remove('open');
+}
+
+function renderPlanSheet() {
+  const plan = loadPlan();
+  const title = document.getElementById('plan-title');
+  const body = document.getElementById('plan-body');
+  if (!body) return;
+
+  if (!plan) {
+    if (title) title.textContent = 'Eating protocol';
+    body.innerHTML = `
+      <div class="plan-empty">
+        <p>No plan synced yet.</p>
+        <p>The plan is published from the vault by <code>tools/plan_sync.py</code>.
+        Connect Gist backup first (Summary → Sync), then run the LaunchAgent once.</p>
+      </div>`;
+    return;
+  }
+
+  if (title) title.textContent = plan.title || 'Eating protocol';
+  const entry = todayPlanEntry();
+  const today = entry ? `
+    <div class="plan-today">
+      <div class="plan-today-badge">${escHtml(entry.template)}</div>
+      <div class="plan-today-text">
+        <div class="plan-today-name">今天 · ${escHtml(TEMPLATE_NAMES[entry.template] || '')}</div>
+        <div class="plan-today-meta">${[entry.activity, entry.focus].filter(Boolean).map(escHtml).join(' · ')}</div>
+        ${entry.note ? `<div class="plan-today-note">${escHtml(entry.note)}</div>` : ''}
+      </div>
+    </div>` : '';
+
+  const stamp = plan.synced || plan.updated;
+  body.innerHTML = `${today}
+    <div class="plan-markdown">${renderPlanMarkdown(plan.markdown)}</div>
+    <div class="plan-stamp">${escHtml(plan.source || '')}${stamp ? ` · synced ${escHtml(stamp)}` : ''}</div>`;
+  body.scrollTop = 0;
+}
+
+// The AI coach is still reachable, but now it reads the plan first.
+function askCoachAboutPlan() {
+  closePlanSheet();
+  openAI('food');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // VIEWPORT LOCK
 // Keeps the shell pinned. CSS handles zoom-on-focus and rubber-band;
 // this handles the two cases CSS cannot reach: Safari's pinch gesture,
@@ -4921,7 +5194,26 @@ async function copyGymMarkdown() {
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
+// Days imported before weights were unified may still carry kg. Convert once.
+function migrateWeightsToLbs() {
+  if (localStorage.getItem('alog_units_migrated') === '1') return;
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    let day, changed = false;
+    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    for (const exercise of day?.gym?.exercises || []) {
+      if (exercise.unit !== 'kg' || !exercise.weight || exercise.weight === 'bw') continue;
+      exercise.weight = toLbs(exercise.weight, 'kg');
+      exercise.unit = 'lbs';
+      changed = true;
+    }
+    if (changed) localStorage.setItem(key, JSON.stringify(day));
+  }
+  localStorage.setItem('alog_units_migrated', '1');
+}
+
 function init() {
+  migrateWeightsToLbs();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
@@ -4929,6 +5221,8 @@ function init() {
   checkBackupReminder();
   updateGarminBtn();
   renderGymIoStatus();
+  renderPlanPill();
+  planAutoSync(true);
   checkFirstRun();
   // Garmin relay is cheap to poll and quiet when it fails.
   if (garminAutoConfigured()) garminAutoSync(true);
