@@ -52,7 +52,24 @@ DAY_ROW_RE = re.compile(r"^\|(.+)\|\s*$")
 def newest_plan(directory: str) -> str:
     matches = glob.glob(os.path.join(directory, PLAN_GLOB))
     if not matches:
-        sys.exit(f"No plan file matching {PLAN_GLOB!r} in {directory}")
+        # glob swallows permission errors and returns [], which reads as
+        # "no such file". Under launchd the usual cause is TCC: iCloud Drive
+        # needs Full Disk Access, and a background agent is never prompted.
+        try:
+            entries = os.listdir(directory)
+        except PermissionError:
+            sys.exit(
+                f"Permission denied reading {directory}\n"
+                "This is macOS TCC. Grant Full Disk Access to the interpreter "
+                f"this agent runs:\n  {sys.executable}"
+            )
+        except FileNotFoundError:
+            sys.exit(f"No such directory: {directory}")
+        sys.exit(
+            f"No plan file matching {PLAN_GLOB!r} in {directory}\n"
+            f"Directory is readable and holds {len(entries)} entries: "
+            + ", ".join(sorted(entries)[:8])
+        )
     # Filenames start with an ISO date, so a plain sort is chronological;
     # fall back to mtime for anything that does not.
     return sorted(matches, key=lambda p: (os.path.basename(p)[:10], os.path.getmtime(p)))[-1]
