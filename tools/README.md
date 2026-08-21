@@ -62,9 +62,15 @@ Setup, once:
 
 ```bash
 python3 -m venv ~/.venvs/athletelog
-~/.venvs/athletelog/bin/pip install requests
-# alias alog-plan="$HOME/athletelog/tools/alog-plan"   → ~/.bash_profile, ~/.zshrc
+~/.venvs/athletelog/bin/pip install requests 'urllib3<2'
+ln -s "$HOME/athletelog/tools/alog-plan" /usr/local/bin/alog-plan
 ```
+
+On PATH rather than a shell alias: an alias only reaches a new *login*
+shell, so it is missing in the window you already have open — which is
+exactly the window you are in when you finish writing a plan. `urllib3<2`
+is pinned because the system Python links LibreSSL, and urllib3 v2 prints a
+warning on every run that looks like a failure but is not.
 
 It picks the newest file matching `*饮食方案*.md` under
 `2 Areas/Fitness/Plans & Analysis/`. Point it elsewhere with `--file` or
