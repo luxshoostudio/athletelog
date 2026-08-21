@@ -1109,11 +1109,21 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 .water-mark, .search-result-item, .past-day-card, .gym-history-card {
   touch-action: manipulation;
 }
-/* Fixed overlays reflow with the keyboard instead of floating off-screen. */
+/* Fixed overlays reflow with the keyboard instead of floating off-screen.
+   iOS anchors position:fixed to the *layout* viewport, which the keyboard
+   does not shrink, so a bottom-anchored sheet ends up behind it — the token
+   field was covered with no way to scroll to it. --kb carries the measured
+   keyboard overlap (see lockViewport) and the sheets sit on top of it. */
 .modal-overlay, .time-edit-overlay, .ai-overlay {
   height: 100%;
   height: 100dvh;
+  padding-bottom: var(--kb, 0px);
+  transition: padding-bottom .18s ease-out;
 }
+.modal-sheet, .time-edit-sheet { max-height: calc(90vh - var(--kb, 0px)); }
+/* The AI and Plan overlays are flex columns filling the screen, so the same
+   padding shrinks the content box and the message area absorbs it — a margin
+   on the input row would just push the column off the bottom instead. */
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 </style>
@@ -1436,11 +1446,12 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <div class="modal-title">☁️ Weekly Cloud Backup</div>
     <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
       Your data backs up to a <strong>private GitHub Gist</strong>. Only you can see it.<br>
-      Get a token at <strong>github.com → Settings → Developer Settings → Fine-grained tokens</strong><br>
-      Permission needed: <em>Gists → Read & Write</em>
+      Get a token at <strong>github.com → Settings → Developer Settings → Tokens (classic)</strong><br>
+      Tick one scope: <em>gist</em>. Nothing else — it cannot reach any repo.<br>
+      <span style="color:var(--dim);">Fine-grained tokens are unreliable for the Gists API.</span>
     </p>
     <label class="modal-label">GitHub Personal Access Token</label>
-    <input type="password" class="modal-input" id="gist-token-input" placeholder="github_pat_...">
+    <input type="password" class="modal-input" id="gist-token-input" placeholder="ghp_...">
     <div id="gist-status" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:18px;"></div>
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeGistModal()">Cancel</button>
@@ -5251,10 +5262,31 @@ function askCoachAboutPlan() {
   document.addEventListener('focusin', () => setTimeout(resetScroll, 60), true);
   document.addEventListener('focusout', () => setTimeout(resetScroll, 60), true);
 
+  // The keyboard shrinks the visual viewport but not the layout viewport, so
+  // the difference is exactly how much of the screen it covers. Publish it so
+  // bottom-anchored sheets can sit above it.
+  const syncKeyboardInset = () => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const overlap = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+    document.documentElement.style.setProperty('--kb', Math.round(overlap) + 'px');
+  };
+
   if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => setTimeout(resetScroll, 60));
-    window.visualViewport.addEventListener('scroll', resetScroll);
+    window.visualViewport.addEventListener('resize', () => {
+      syncKeyboardInset();
+      setTimeout(resetScroll, 60);
+    });
+    window.visualViewport.addEventListener('scroll', () => {
+      syncKeyboardInset();
+      resetScroll();
+    });
+    syncKeyboardInset();
   }
+
+  // Safari settles the viewport a beat after focus; re-measure once it has.
+  document.addEventListener('focusin', () => setTimeout(syncKeyboardInset, 300), true);
+  document.addEventListener('focusout', () => setTimeout(syncKeyboardInset, 300), true);
 })();
 
 // ═══════════════════════════════════════════════════════════════

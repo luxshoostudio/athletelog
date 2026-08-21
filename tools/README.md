@@ -34,34 +34,62 @@ Garmin publishes no contract for the endpoint this uses, so it can break
 without notice. When it does, the app falls back to the manual override
 field in the Garmin sheet and no data is lost.
 
-## `plan_sync.py` — eating protocol → Gist → app
+## `alog-plan` — eating protocol → Gist → app
 
-The protocol lives in the vault as Markdown written for a human. This script
-ships that Markdown as-is and extracts one thing as data — the day-by-day
-template schedule — so Today can show which template today falls on instead
-of asking. The app's **Plan** button renders it, and the AI coach reads it as
-the source of truth.
+The protocol lives in the vault as Markdown written for a human. This ships
+that Markdown as-is and extracts one thing as data — the day-by-day template
+schedule — so Today can show which template today falls on instead of asking.
+The app's **Plan** button renders it, and the AI coach reads it as the source
+of truth.
+
+Run it after writing a new plan in Obsidian:
 
 ```bash
-export GITHUB_TOKEN='ghp_…'          # same token as the app's Gist backup
-
-python3 tools/plan_sync.py --dry-run
-python3 tools/plan_sync.py
+alog-plan              # publish the newest plan
+alog-plan --dry-run    # show what would be published, no token needed
+alog-plan --file "…/2026-09 plan.md"
 ```
+
+The first push prompts for the GitHub token and stores it in the login
+Keychain (`athletelog-github-token`) — not in a file, not in shell history.
+Every run after that is silent. To replace it:
+
+```bash
+security add-generic-password -a "$USER" -s athletelog-github-token -U -w
+```
+
+Setup, once:
+
+```bash
+python3 -m venv ~/.venvs/athletelog
+~/.venvs/athletelog/bin/pip install requests 'urllib3<2'
+ln -s "$HOME/athletelog/tools/alog-plan" /usr/local/bin/alog-plan
+```
+
+On PATH rather than a shell alias: an alias only reaches a new *login*
+shell, so it is missing in the window you already have open — which is
+exactly the window you are in when you finish writing a plan. `urllib3<2`
+is pinned because the system Python links LibreSSL, and urllib3 v2 prints a
+warning on every run that looks like a failure but is not.
 
 It picks the newest file matching `*饮食方案*.md` under
 `2 Areas/Fitness/Plans & Analysis/`. Point it elsewhere with `--file` or
-`--dir`. Schedule it daily:
+`--dir`. Writing a new plan file in the vault is the whole update path — no
+code change.
 
-```bash
-cp tools/com.luxshoo.athletelog.plan.plist ~/Library/LaunchAgents/
-chmod 600 ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
-# fill in GITHUB_TOKEN first
-launchctl load ~/Library/LaunchAgents/com.luxshoo.athletelog.plan.plist
-```
+### Why there is no scheduled version
 
-Write a new plan file in the vault and the app picks it up on the next run —
-no code change. Logs: `/tmp/athletelog-plan.log`, `/tmp/athletelog-plan.err`.
+There was one, and it failed silently. `~/Library/Mobile Documents` — where
+the Obsidian vault lives — is TCC-protected on macOS. A terminal already
+holds that access, but a LaunchAgent is **never prompted** for it, so the
+directory read returns empty and the run reports "no plan file matching …"
+about a file sitting right there. (`plan_sync.py` now distinguishes denied
+from missing and says which it is.)
+
+Automating it means granting Full Disk Access to the interpreter, which for
+a symlinked venv resolves to the system `python3` — a broad grant for a
+document that changes about once a month. Running one command when the plan
+changes is the better trade.
 
 ### File format
 
@@ -76,8 +104,8 @@ no code change. Logs: `/tmp/athletelog-plan.log`, `/tmp/athletelog-plan.err`.
 ```
 
 The schedule comes from the 逐日排布 table: rows whose first cell is `M/D`
-and whose fourth cell is A, B or C. Everything else in the document is
-carried through untouched.
+and whose fourth cell is A, B or C. Everything else is carried through
+untouched.
 
 ## Alternative relay: iOS Shortcuts
 
