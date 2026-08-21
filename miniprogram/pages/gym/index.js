@@ -42,6 +42,8 @@ Page({
     completedCount: 0,
     customName: '',
     history: [],
+    rpe: 0,
+    rpeOptions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     showLibrary: false,
     groups: EXERCISE_LIBRARY.map(function (item) { return item.group; }),
     activeGroup: EXERCISE_LIBRARY[0].group,
@@ -61,8 +63,18 @@ Page({
       sessionName: day.sessionName || '',
       exercises: exercises,
       completedCount: exercises.filter(function (item) { return item.completed; }).length,
+      rpe: day.rpe || 0,
       history: this.buildHistory(state)
     });
+  },
+
+  setRpe: function (event) {
+    const value = Number(event.currentTarget.dataset.value);
+    const state = this.state || store.loadState();
+    const day = store.getDay(state);
+    day.rpe = value;
+    store.saveState(state);
+    this.setData({ rpe: value });
   },
 
   buildHistory: function (state) {

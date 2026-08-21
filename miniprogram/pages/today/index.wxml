@@ -33,7 +33,7 @@
     <view class="favorite-row">
       <button wx:for="{{favorites}}" wx:key="name" class="favorite-pill" data-index="{{index}}" bindtap="addFavorite">
         <text>{{item.name}}</text>
-        <text class="favorite-macros">{{item.protein}}g · {{item.calories}}</text>
+        <text class="favorite-macros">{{item.protein}}g · {{item.calories}}千卡</text>
       </button>
     </view>
   </scroll-view>
@@ -60,8 +60,11 @@
   <view wx:if="{{foods.length}}" class="food-list">
     <view wx:for="{{foods}}" wx:key="id" class="card food-row">
       <view class="food-copy">
-        <view class="food-name">{{item.name}}</view>
-        <view class="food-macros">{{item.protein}}g 蛋白质 · {{item.calories}} 千卡</view>
+        <view class="food-name">
+          {{item.name}}
+          <text wx:if="{{item.time}}" class="food-time">{{item.time}}</text>
+        </view>
+        <view class="food-macros">{{item.protein}}g蛋白 · {{item.fat}}g脂肪 · {{item.calories}}千卡</view>
       </view>
       <button class="delete-button" data-id="{{item.id}}" bindtap="deleteFood" aria-label="删除 {{item.name}}">×</button>
     </view>
@@ -75,19 +78,47 @@
   <view class="food-sheet" catchtap="stopPropagation">
     <view class="sheet-handle"></view>
     <view class="sheet-title">添加食物</view>
-    <label class="field-label">食物名称</label>
-    <input class="field-input" value="{{foodName}}" placeholder="比如：三文鱼配米饭" bindinput="onFoodName" focus="{{showFoodSheet}}" />
-    <view class="field-grid">
-      <view class="field-half">
-        <label class="field-label">蛋白质（克）</label>
-        <input class="field-input" value="{{foodProtein}}" type="digit" placeholder="0" bindinput="onFoodProtein" />
+
+    <input class="field-input search-input" value="{{foodSearch}}" placeholder="搜索食物，比如「鸡」「牛肉」「米饭」" bindinput="onFoodSearch" focus="{{showFoodSheet}}" />
+
+    <block wx:if="{{!selectedFood}}">
+      <scroll-view class="food-results" scroll-y="true">
+        <view wx:for="{{foodResults}}" wx:key="name" class="food-result" data-name="{{item.name}}" bindtap="selectFood">
+          <view class="food-result-name">{{item.name}}</view>
+          <view class="food-result-meta">每100g · {{item.calories}}千卡</view>
+        </view>
+        <view wx:if="{{!foodResults.length}}" class="food-result-empty">没找到，换个关键词试试</view>
+      </scroll-view>
+    </block>
+
+    <block wx:else>
+      <view class="food-detail">
+        <view class="food-detail-name">
+          {{selectedFood.name}}
+          <text class="food-detail-edit" bindtap="reselectFood">换一个</text>
+        </view>
+        <view class="field-grid">
+          <view class="field-half">
+            <label class="field-label">数量</label>
+            <input class="field-input" value="{{foodAmount}}" type="digit" placeholder="0" bindinput="onFoodAmount" />
+          </view>
+          <view class="field-half">
+            <label class="field-label">单位</label>
+            <view class="unit-toggle" bindtap="changeUnit">{{foodUnit}}</view>
+          </view>
+        </view>
+        <view class="time-row">
+          <view class="field-half">
+            <label class="field-label">时间</label>
+            <picker mode="time" value="{{foodTime}}" bindchange="onFoodTime">
+              <view class="time-value">{{foodTime}}</view>
+            </picker>
+          </view>
+        </view>
+        <view class="macro-preview">预估：蛋白质 {{foodMacros.protein}}g · 脂肪 {{foodMacros.fat}}g · 碳水 {{foodMacros.carbs}}g · {{foodMacros.calories}} 千卡</view>
+        <button class="primary-button sheet-save" bindtap="saveFood">保存</button>
+        <button class="sheet-cancel" bindtap="closeFoodSheet">取消</button>
       </view>
-      <view class="field-half">
-        <label class="field-label">卡路里</label>
-        <input class="field-input" value="{{foodCalories}}" type="number" placeholder="0" bindinput="onFoodCalories" />
-      </view>
-    </view>
-    <button class="primary-button sheet-save" bindtap="saveCustomFood">保存</button>
-    <button class="sheet-cancel" bindtap="closeFoodSheet">取消</button>
+    </block>
   </view>
 </view>

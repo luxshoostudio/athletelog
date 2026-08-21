@@ -323,3 +323,39 @@
   gap: 12rpx;
   padding-top: 8rpx;
 }
+
+.rpe-card {
+  padding: 24rpx 22rpx 20rpx;
+}
+
+.rpe-row {
+  display: inline-flex;
+  gap: 12rpx;
+  padding: 2rpx 2rpx 6rpx;
+}
+
+.rpe-pill {
+  display: flex;
+  width: 72rpx;
+  height: 72rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid #cfc3b0;
+  border-radius: 50%;
+  background: #fffaf0;
+  color: #5f584f;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.rpe-pill.active {
+  background: #d86424;
+  border-color: #d86424;
+  color: #fffaf0;
+}
+
+.rpe-hint {
+  margin-top: 12rpx;
+  color: #8a8176;
+  font-size: 21rpx;
+}

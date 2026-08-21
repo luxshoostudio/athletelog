@@ -1,8 +1,14 @@
 const store = require('../../utils/store');
+const fooddb = require('../../utils/fooddb');
 
 function dateLabel(date) {
   const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
   return (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + weekdays[date.getDay()];
+}
+
+function nowTime() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
 function buildFavorites(state) {
@@ -13,10 +19,12 @@ function buildFavorites(state) {
       const name = (food.name || '').trim();
       if (!name) return;
       if (!map[name]) {
-        map[name] = { name: name, count: 0, protein: 0, calories: 0 };
+        map[name] = { name: name, count: 0, protein: 0, fat: 0, carbs: 0, calories: 0 };
       }
       map[name].count += 1;
       map[name].protein = Number(food.protein) || map[name].protein;
+      map[name].fat = Number(food.fat) || map[name].fat;
+      map[name].carbs = Number(food.carbs) || map[name].carbs;
       map[name].calories = Number(food.calories) || map[name].calories;
     });
   });
@@ -24,6 +32,11 @@ function buildFavorites(state) {
     .map(function (name) { return map[name]; })
     .sort(function (a, b) { return b.count - a.count; })
     .slice(0, 6);
+}
+
+function computeGrams(food, amount, unit) {
+  if (unit === '克' || unit === '毫升') return amount;
+  return amount * (food.unitGrams || 0);
 }
 
 Page({
@@ -40,9 +53,13 @@ Page({
     proteinPct: 0,
     caloriePct: 0,
     showFoodSheet: false,
-    foodName: '',
-    foodProtein: '',
-    foodCalories: ''
+    foodSearch: '',
+    foodResults: [],
+    selectedFood: null,
+    foodAmount: '',
+    foodUnit: '克',
+    foodTime: '',
+    foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
   },
 
   onLoad: function () {
@@ -64,13 +81,24 @@ Page({
     const proteinPct = Math.min(100, Math.round((totals.protein / state.goals.protein) * 100));
     const caloriePct = Math.min(100, Math.round((totals.calories / state.goals.calories) * 100));
 
+    const foods = day.foods.slice().reverse().map(function (f) {
+      return {
+        id: f.id,
+        name: f.name,
+        protein: Number(f.protein) || 0,
+        fat: Number(f.fat) || 0,
+        calories: Number(f.calories) || 0,
+        time: f.time || ''
+      };
+    });
+
     this.state = state;
     const that = this;
     this.setData({
       streak: store.calculateStreak(state),
       period: day.period,
       favorites: buildFavorites(state),
-      foods: day.foods.slice().reverse(),
+      foods: foods,
       waterMl: day.waterMl,
       waterGoal: state.goals.water,
       totals: totals,
@@ -116,7 +144,13 @@ Page({
     const index = Number(event.currentTarget.dataset.index);
     const favorite = this.data.favorites[index];
     if (!favorite) return;
-    this.addFood(favorite);
+    this.addFood({
+      name: favorite.name,
+      protein: favorite.protein,
+      fat: favorite.fat,
+      carbs: favorite.carbs,
+      calories: favorite.calories
+    });
   },
 
   goToCoach: function () {
@@ -161,10 +195,12 @@ Page({
             const r = callRes.result || {};
             if (r.ok && r.name && r.name !== '无法识别') {
               that.setData({
-                foodName: r.name,
-                foodProtein: r.protein ? String(r.protein) : '',
-                foodCalories: r.calories ? String(r.calories) : '',
-                showFoodSheet: true
+                showFoodSheet: true,
+                foodSearch: r.name,
+                foodResults: fooddb.searchFood(r.name),
+                selectedFood: null,
+                foodAmount: '',
+                foodTime: nowTime()
               });
             } else {
               wx.showToast({ title: r.error || '没识别出来，换个角度再试', icon: 'none' });
@@ -186,9 +222,13 @@ Page({
   openFoodSheet: function () {
     this.setData({
       showFoodSheet: true,
-      foodName: '',
-      foodProtein: '',
-      foodCalories: ''
+      foodSearch: '',
+      foodResults: fooddb.searchFood(''),
+      selectedFood: null,
+      foodAmount: '',
+      foodUnit: '克',
+      foodTime: nowTime(),
+      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
     });
   },
 
@@ -198,31 +238,86 @@ Page({
 
   stopPropagation: function () {},
 
-  onFoodName: function (event) {
-    this.setData({ foodName: event.detail.value });
+  onFoodSearch: function (event) {
+    const q = event.detail.value;
+    this.setData({ foodSearch: q, foodResults: fooddb.searchFood(q), selectedFood: null });
   },
 
-  onFoodProtein: function (event) {
-    this.setData({ foodProtein: event.detail.value });
+  selectFood: function (event) {
+    const name = event.currentTarget.dataset.name;
+    const food = fooddb.getFood(name);
+    if (!food) return;
+    this.setData({
+      selectedFood: food,
+      foodSearch: food.name,
+      foodUnit: food.unit,
+      foodAmount: '',
+      foodMacros: { protein: 0, fat: 0, carbs: 0, calories: 0 }
+    });
   },
 
-  onFoodCalories: function (event) {
-    this.setData({ foodCalories: event.detail.value });
+  reselectFood: function () {
+    this.setData({ selectedFood: null, foodSearch: '', foodResults: fooddb.searchFood(''), foodAmount: '' });
   },
 
-  saveCustomFood: function () {
-    const name = this.data.foodName.trim();
-    const protein = Number(this.data.foodProtein);
-    const calories = Number(this.data.foodCalories);
-    if (!name) {
-      wx.showToast({ title: '请输入食物名称', icon: 'none' });
+  onFoodAmount: function (event) {
+    this.setData({ foodAmount: event.detail.value });
+    this.recomputeMacros();
+  },
+
+  changeUnit: function () {
+    const food = this.data.selectedFood;
+    if (!food) return;
+    const natural = food.unit;
+    if (natural === '克' || natural === '毫升') return;
+    const current = this.data.foodUnit;
+    this.setData({ foodUnit: current === natural ? '克' : natural });
+    this.recomputeMacros();
+  },
+
+  onFoodTime: function (event) {
+    this.setData({ foodTime: event.detail.value });
+  },
+
+  recomputeMacros: function () {
+    const food = this.data.selectedFood;
+    if (!food) return;
+    const amount = Number(this.data.foodAmount) || 0;
+    const grams = computeGrams(food, amount, this.data.foodUnit);
+    const ratio = grams / 100;
+    this.setData({
+      foodMacros: {
+        protein: Math.round(food.protein * ratio),
+        fat: Math.round(food.fat * ratio),
+        carbs: Math.round(food.carbs * ratio),
+        calories: Math.round(food.calories * ratio)
+      }
+    });
+  },
+
+  saveFood: function () {
+    const food = this.data.selectedFood;
+    if (!food) {
+      wx.showToast({ title: '请先选择食物', icon: 'none' });
       return;
     }
-    if (protein < 0 || calories < 0 || Number.isNaN(protein) || Number.isNaN(calories)) {
-      wx.showToast({ title: '请检查蛋白质和卡路里', icon: 'none' });
+    const amount = Number(this.data.foodAmount) || 0;
+    if (amount <= 0) {
+      wx.showToast({ title: '请填写数量', icon: 'none' });
       return;
     }
-    this.addFood({ name: name, protein: protein, calories: calories });
+    const grams = computeGrams(food, amount, this.data.foodUnit);
+    const ratio = grams / 100;
+    this.addFood({
+      name: food.name,
+      amount: amount,
+      unit: this.data.foodUnit,
+      protein: Math.round(food.protein * ratio),
+      fat: Math.round(food.fat * ratio),
+      carbs: Math.round(food.carbs * ratio),
+      calories: Math.round(food.calories * ratio),
+      time: this.data.foodTime
+    });
     this.closeFoodSheet();
   },
 
@@ -232,8 +327,13 @@ Page({
     day.foods.push({
       id: String(Date.now()) + String(Math.floor(Math.random() * 1000)),
       name: food.name,
+      amount: food.amount || '',
+      unit: food.unit || '',
       protein: Number(food.protein) || 0,
+      fat: Number(food.fat) || 0,
+      carbs: Number(food.carbs) || 0,
       calories: Number(food.calories) || 0,
+      time: food.time || nowTime(),
       createdAt: new Date().toISOString()
     });
     store.saveState(state);

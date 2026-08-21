@@ -57,7 +57,8 @@ function getDay(state, key) {
       foods: [],
       waterMl: 0,
       workouts: [],
-      period: false
+      period: false,
+      rpe: 0
     };
   }
 
@@ -66,15 +67,18 @@ function getDay(state, key) {
   if (!Array.isArray(day.workouts)) day.workouts = [];
   if (typeof day.waterMl !== 'number') day.waterMl = 0;
   if (typeof day.period !== 'boolean') day.period = false;
+  if (typeof day.rpe !== 'number') day.rpe = 0;
   return day;
 }
 
 function totalsForDay(day) {
   return (day.foods || []).reduce(function (totals, food) {
     totals.protein += Number(food.protein) || 0;
+    totals.fat += Number(food.fat) || 0;
+    totals.carbs += Number(food.carbs) || 0;
     totals.calories += Number(food.calories) || 0;
     return totals;
-  }, { protein: 0, calories: 0 });
+  }, { protein: 0, fat: 0, carbs: 0, calories: 0 });
 }
 
 function hasActivity(day) {

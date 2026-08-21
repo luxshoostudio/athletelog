@@ -45,6 +45,16 @@
   </view>
   <view wx:else class="card empty-state">选一个模板，或点「添加动作」开始。完成一个动作，就点左边的圆圈。</view>
 
+  <view class="section-heading">今日强度 RPE</view>
+  <view class="card rpe-card">
+    <scroll-view scroll-x="true" enhanced="true" show-scrollbar="false">
+      <view class="rpe-row">
+        <view wx:for="{{rpeOptions}}" wx:key="*this" class="rpe-pill {{rpe == item ? 'active' : ''}}" data-value="{{item}}" bindtap="setRpe">{{item}}</view>
+      </view>
+    </scroll-view>
+    <view class="rpe-hint">1 最轻松 · 10 极限，感受今天练得有多费劲</view>
+  </view>
+
   <view wx:if="{{history.length}}">
     <view class="section-heading">最近训练</view>
     <view class="card history-card">
