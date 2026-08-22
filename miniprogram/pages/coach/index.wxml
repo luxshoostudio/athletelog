@@ -1,0 +1,16 @@
+<view class="chat-screen">
+  <scroll-view class="message-list" scroll-y="true" scroll-into-view="{{scrollIntoView}}" scroll-with-animation="true">
+    <view wx:for="{{messages}}" wx:key="id" class="message-row {{item.role}}">
+      <view class="bubble">{{item.content}}</view>
+    </view>
+    <view wx:if="{{loading}}" class="message-row assistant">
+      <view class="bubble typing">正在想…</view>
+    </view>
+    <view id="bottom" class="bottom-anchor"></view>
+  </scroll-view>
+
+  <view class="input-bar">
+    <input class="chat-input" value="{{inputValue}}" placeholder="问点健身、饮食、训练的问题" bindinput="onInput" confirm-type="send" bindconfirm="send" />
+    <button class="send-button" bindtap="send" disabled="{{loading}}">发送</button>
+  </view>
+</view>

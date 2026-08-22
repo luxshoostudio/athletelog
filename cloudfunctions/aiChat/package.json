@@ -1,0 +1,6 @@
+{
+  "name": "aiChat",
+  "version": "1.0.0",
+  "description": "Lux私教笔记 AI 问答云函数（DeepSeek）",
+  "main": "index.js"
+}

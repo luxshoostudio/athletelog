@@ -1,0 +1,6 @@
+{
+  "name": "foodRecognition",
+  "version": "1.0.0",
+  "description": "Lux私教笔记 拍照识别食物云函数（腾讯混元视觉）",
+  "main": "index.js"
+}

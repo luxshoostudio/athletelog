@@ -1,0 +1,131 @@
+<view class="screen">
+  <view class="header-row">
+    <view>
+      <view class="display-title">{{dateLabel}}</view>
+    </view>
+    <view class="streak-pill">连续 {{streak}} 天</view>
+  </view>
+
+  <view class="period-row">
+    <text>经期</text>
+    <switch checked="{{period}}" color="#bd5b25" bindchange="togglePeriod" />
+  </view>
+
+  <view class="card hero-card">
+    <view class="ring-wrap">
+      <canvas canvas-id="proteinRing" class="protein-canvas" width="124" height="124"></canvas>
+      <view class="ring-label">
+        <text class="ring-number">{{proteinPct}}%</text>
+        <text class="ring-caption">蛋白质</text>
+      </view>
+    </view>
+    <view class="macro-column">
+      <view class="macro-value">{{totals.protein}} <text>/ {{goals.protein}} g</text></view>
+      <view class="macro-label">蛋白质</view>
+      <view class="macro-divider"></view>
+      <view class="macro-value">{{totals.calories}} <text>/ {{goals.calories}} 千卡</text></view>
+      <view class="macro-label">卡路里 · {{caloriePct}}%</view>
+    </view>
+  </view>
+
+  <view wx:if="{{favorites.length}}" class="section-heading">常用食物</view>
+  <scroll-view wx:if="{{favorites.length}}" class="favorite-scroll" scroll-x="true" enhanced="true" show-scrollbar="false">
+    <view class="favorite-row">
+      <button wx:for="{{favorites}}" wx:key="name" class="favorite-pill" data-index="{{index}}" bindtap="addFavorite">
+        <text>{{item.name}}</text>
+        <text class="favorite-macros">{{item.protein}}g · {{item.calories}}千卡</text>
+      </button>
+    </view>
+  </scroll-view>
+  <view wx:else class="favorite-hint">记录几次食物后，常用项会自动出现在这里</view>
+
+  <view class="add-actions">
+    <button class="secondary-button camera-button" bindtap="recognizeFood">拍照识别</button>
+    <button class="primary-button add-food" bindtap="openFoodSheet">+ 添加食物</button>
+  </view>
+
+  <view class="card water-card">
+    <view>
+      <view class="water-label">饮水</view>
+      <view class="water-value">{{waterMl}} <text>/ {{waterGoal}} ml</text></view>
+    </view>
+    <view class="water-actions">
+      <button class="water-add" data-amount="250" bindtap="addWater">+250</button>
+      <button class="water-add" data-amount="500" bindtap="addWater">+500</button>
+      <button class="water-reset" bindtap="resetWater">↺</button>
+    </view>
+  </view>
+
+  <view class="section-heading">今日饮食</view>
+  <view wx:if="{{foods.length}}" class="food-list">
+    <view wx:for="{{foods}}" wx:key="id" class="card food-row">
+      <view class="food-copy">
+        <view class="food-name">
+          {{item.name}}
+          <text wx:if="{{item.time}}" class="food-time">{{item.time}}</text>
+        </view>
+        <view class="food-macros">{{item.protein}}g蛋白 · {{item.fat}}g脂肪<text wx:if="{{item.fiber}}"> · {{item.fiber}}g纤维</text> · {{item.calories}}千卡</view>
+      </view>
+      <button class="delete-button" data-id="{{item.id}}" bindtap="deleteFood" aria-label="删除 {{item.name}}">×</button>
+    </view>
+  </view>
+  <view wx:else class="card empty-state">还没有记录。点「添加食物」记第一笔吧。</view>
+
+  <view class="coach-fab" bindtap="goToCoach">问教练</view>
+</view>
+
+<view wx:if="{{showFoodSheet}}" class="sheet-backdrop" bindtap="closeFoodSheet">
+  <view class="food-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+    <view class="sheet-title">添加食物</view>
+
+    <input class="field-input search-input" value="{{foodSearch}}" placeholder="搜索食物，比如「鸡」「牛肉」「米饭」" bindinput="onFoodSearch" focus="{{showFoodSheet}}" />
+
+    <block wx:if="{{!selectedFood}}">
+      <scroll-view class="food-results" scroll-y="true">
+        <view wx:for="{{foodResults}}" wx:key="name" class="food-result" data-name="{{item.name}}" bindtap="selectFood">
+          <view class="food-result-name">{{item.name}}</view>
+          <view class="food-result-meta">每100g · {{item.calories}}千卡</view>
+        </view>
+        <view wx:if="{{!foodResults.length}}" class="food-result-empty">没找到，换个关键词试试</view>
+      </scroll-view>
+    </block>
+
+    <block wx:else>
+      <view class="food-detail">
+        <view class="food-detail-name">
+          {{selectedFood.name}}
+          <text class="food-detail-edit" bindtap="reselectFood">换一个</text>
+        </view>
+        <view class="field-grid">
+          <view class="field-half">
+            <label class="field-label">数量</label>
+            <input class="field-input" value="{{foodAmount}}" type="digit" placeholder="0" bindinput="onFoodAmount" />
+          </view>
+          <view class="field-half">
+            <label class="field-label">单位</label>
+            <view class="unit-toggle" bindtap="changeUnit">{{foodUnit}}</view>
+          </view>
+        </view>
+        <view class="time-row">
+          <view class="field-half">
+            <label class="field-label">时间</label>
+            <picker mode="time" value="{{foodTime}}" bindchange="onFoodTime">
+              <view class="time-value">{{foodTime}}</view>
+            </picker>
+          </view>
+        </view>
+        <view class="macro-preview">
+          <view>预估：蛋白质 {{foodMacros.protein}}g · 脂肪 {{foodMacros.fat}}g · 碳水 {{foodMacros.carbs}}g · {{foodMacros.calories}} 千卡</view>
+          <view wx:if="{{foodMacros.fiber || foodMacros.vitaminC}}" class="macro-preview-sub">
+            <text wx:if="{{foodMacros.fiber}}">纤维 {{foodMacros.fiber}}g</text>
+            <text wx:if="{{foodMacros.fiber && foodMacros.vitaminC}}"> · </text>
+            <text wx:if="{{foodMacros.vitaminC}}">维C {{foodMacros.vitaminC}}mg</text>
+          </view>
+        </view>
+        <button class="primary-button sheet-save" bindtap="saveFood">保存</button>
+        <button class="sheet-cancel" bindtap="closeFoodSheet">取消</button>
+      </view>
+    </block>
+  </view>
+</view>

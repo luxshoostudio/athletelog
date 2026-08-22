@@ -1,0 +1,84 @@
+page {
+  background: #f3ebde;
+}
+
+.welcome-screen {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 50rpx calc(60rpx + env(safe-area-inset-top));
+  background: #f3ebde;
+}
+
+.welcome-card {
+  display: flex;
+  box-sizing: border-box;
+  width: 580rpx;
+  max-width: 100%;
+  padding: 44rpx 40rpx;
+  align-items: center;
+  gap: 26rpx;
+  border-radius: 34rpx;
+  background: #1a1918;
+  color: #f7ead2;
+  box-shadow: 0 24rpx 60rpx rgba(0, 0, 0, 0.18);
+  animation: welcome-in 360ms ease-out both;
+}
+
+@keyframes welcome-in {
+  from { opacity: 0; transform: translateY(14rpx) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.welcome-logo {
+  width: 120rpx;
+  height: 120rpx;
+  flex: none;
+  border-radius: 26rpx;
+}
+
+.welcome-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.welcome-name {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 38rpx;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+
+.welcome-note {
+  margin-top: 10rpx;
+  color: #cfc3b0;
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
+.welcome-card-pressed {
+  transform: scale(0.985);
+}
+
+.welcome-hint {
+  position: absolute;
+  right: 0;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  left: 0;
+  color: #8a8176;
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+  text-align: center;
+  animation: hint-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}

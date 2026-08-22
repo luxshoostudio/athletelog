@@ -1,0 +1,38 @@
+{
+  "pages": [
+    "pages/welcome/index",
+    "pages/today/index",
+    "pages/gym/index",
+    "pages/summary/index",
+    "pages/coach/index"
+  ],
+  "window": {
+    "backgroundColor": "#f3ebde",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#f3ebde",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Lux私教笔记"
+  },
+  "tabBar": {
+    "color": "#766f65",
+    "selectedColor": "#bd5b25",
+    "backgroundColor": "#fffaf0",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/today/index",
+        "text": "今日"
+      },
+      {
+        "pagePath": "pages/gym/index",
+        "text": "训练"
+      },
+      {
+        "pagePath": "pages/summary/index",
+        "text": "周报"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}
