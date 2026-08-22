@@ -1,10 +1,12 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v16';
+const CACHE = 'athletelog-v17';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
+  './vendor/barcode-detector.js',
+  './vendor/zxing_reader.wasm',
   'https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
 ];
 

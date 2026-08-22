@@ -1,38 +1,63 @@
 # AthleteLog relays
 
-## `garmin_sync.py` — Garmin → Gist → app
+## `alog-garmin` — Garmin → Gist → app
 
 Garmin's Health API is a partner programme with server-side OAuth 1.0a and
-webhooks, so a static PWA cannot call it. This script does the fetch on a
-machine you control and drops the result in the Gist the app already syncs
-with. AthleteLog reads it on launch and whenever the Summary tab opens.
+webhooks, so a static PWA cannot call it. This does the fetch on a machine
+you control and drops the result in the Gist the app already syncs with.
+AthleteLog reads it on launch and whenever the Summary tab opens, and
+backfills every day the file covers.
 
 ```bash
-python3 -m venv ~/.venvs/athletelog
-~/.venvs/athletelog/bin/pip install garminconnect requests
-
-export GARMIN_EMAIL='you@example.com'
-export GARMIN_PASSWORD='…'
-export GITHUB_TOKEN='ghp_…'          # same token as the app's Gist backup
-
-~/.venvs/athletelog/bin/python tools/garmin_sync.py --days 7 --dry-run
-~/.venvs/athletelog/bin/python tools/garmin_sync.py --days 7
+alog-garmin --dry-run     # fetch and print, publish nothing
+alog-garmin               # yesterday and today
+alog-garmin --days 7      # backfill a week
 ```
 
-Then schedule it (07:00 and 22:00):
+Setup, once:
+
+```bash
+~/.venvs/athletelog/bin/pip install garminconnect
+ln -s "$HOME/athletelog/tools/alog-garmin" /usr/local/bin/alog-garmin
+```
+
+The first run prompts for the Garmin email, the Garmin password and the
+GitHub token, and stores each in the login Keychain — never in a file, never
+in shell history. To replace one:
+
+```bash
+security add-generic-password -a "$USER" -s athletelog-garmin-password -U -w
+```
+
+### Scheduling it
+
+Unlike the eating protocol, this touches nothing inside iCloud — only the
+network — so it has no TCC problem and a LaunchAgent works. Install it only
+once the command works by hand:
 
 ```bash
 cp tools/com.luxshoo.athletelog.garmin.plist ~/Library/LaunchAgents/
-chmod 600 ~/Library/LaunchAgents/com.luxshoo.athletelog.garmin.plist
-# fill in the three REPLACE_ME values first
 launchctl load ~/Library/LaunchAgents/com.luxshoo.athletelog.garmin.plist
 ```
 
-Logs land in `/tmp/athletelog-garmin.log` and `/tmp/athletelog-garmin.err`.
+Runs at 07:00 and 22:00. No credentials live in the plist — the wrapper reads
+them from the Keychain — so the file is safe to commit and safe to read.
+It only runs while the Mac is awake; the iOS Shortcuts relay below does not
+have that limitation.
 
-Garmin publishes no contract for the endpoint this uses, so it can break
-without notice. When it does, the app falls back to the manual override
-field in the Garmin sheet and no data is lost.
+⚠️ `garmin_sync.py` uses the endpoint Garmin Connect's own web app uses,
+which Garmin makes no stability promise about. When it breaks, the app shows
+"manual entry" and the field in Summary → Garmin still works. Nothing is
+lost.
+
+### File format
+
+```json
+{ "2026-08-22": { "activeKcal": 620, "steps": 12043, "sleepHours": 7.4 } }
+```
+
+Only `activeKcal` is required. `steps` and `sleepHours` are stored on the day
+for later use.
 
 ## `alog-plan` — eating protocol → Gist → app
 
@@ -131,14 +156,6 @@ Airtable mint the missing choice instead of rejecting the write. So the script
 creates one throwaway row per missing option and deletes it immediately. The
 real rows are never touched.
 
-## Garmin: there is no relay yet
-
-The app reports "manual entry", not an error, until something is actually
-publishing `athletelog-garmin.json`. Having a Gist token is not the same as
-having a relay — the token is shared with backup and with the eating
-protocol. Enter Active Calories by hand in Summary → Garmin, or set up one
-of the relays below.
-
 ## Alternative relay: iOS Shortcuts
 
 If the Mac is not always on, an iPhone automation can write the same file
@@ -152,14 +169,3 @@ from Apple Health (Garmin syncs into it):
    `{"files": {"athletelog-garmin.json": {"content": "<text>"}}}`
 
 The app merges whatever days the file contains, so both relays can coexist.
-
-## File format
-
-```json
-{
-  "2026-08-20": { "activeKcal": 620, "steps": 12043, "sleepHours": 7.4 }
-}
-```
-
-Only `activeKcal` is required. `steps` and `sleepHours` are stored on the day
-for later use.

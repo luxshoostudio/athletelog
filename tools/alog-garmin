@@ -1,0 +1,48 @@
+#!/bin/bash
+# Pull Garmin daily stats and publish them to the Gist AthleteLog reads.
+#
+# Unlike the eating protocol, this touches nothing inside iCloud — only the
+# network — so it has no TCC problem and can be scheduled if you want it to
+# be. Run it by hand first; the LaunchAgent is optional.
+#
+# Credentials live in the login Keychain, never in a file and never in shell
+# history. The first run prompts for each one that is missing.
+#
+#   alog-garmin              yesterday and today
+#   alog-garmin --days 7     backfill a week
+#   alog-garmin --dry-run    fetch and print, publish nothing
+
+set -euo pipefail
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do SOURCE="$(readlink "$SOURCE")"; done
+REPO="$(cd "$(dirname "$SOURCE")" && pwd)"
+PYTHON="$HOME/.venvs/athletelog/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+  echo "Missing venv. Create it with:" >&2
+  echo "  python3 -m venv ~/.venvs/athletelog && ~/.venvs/athletelog/bin/pip install requests garminconnect 'urllib3<2'" >&2
+  exit 1
+fi
+if ! "$PYTHON" -c 'import garminconnect' 2>/dev/null; then
+  echo "garminconnect is not installed. Run:" >&2
+  echo "  ~/.venvs/athletelog/bin/pip install garminconnect" >&2
+  exit 1
+fi
+
+# secret <keychain-service> <prompt>
+secret() {
+  local service="$1" prompt="$2"
+  if ! security find-generic-password -a "$USER" -s "$service" -w 2>/dev/null; then
+    echo "$prompt" >&2
+    security add-generic-password -a "$USER" -s "$service" -U -w >&2
+    security find-generic-password -a "$USER" -s "$service" -w
+  fi
+}
+
+GARMIN_EMAIL="$(secret athletelog-garmin-email 'Garmin account email (input hidden, stored in Keychain):')"
+GARMIN_PASSWORD="$(secret athletelog-garmin-password 'Garmin password (input hidden, stored in Keychain):')"
+GITHUB_TOKEN="$(secret athletelog-github-token 'GitHub token with the gist scope (input hidden, stored in Keychain):')"
+export GARMIN_EMAIL GARMIN_PASSWORD GITHUB_TOKEN
+
+exec "$PYTHON" "$REPO/garmin_sync.py" "$@"

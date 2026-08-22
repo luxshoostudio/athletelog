@@ -2898,7 +2898,7 @@ async function searchOpenFoodFacts(query, inPicker) {
     const seen = new Set();
     const products = (data.products || []).filter(product => {
       const n = product.nutriments || {};
-      if (!product.product_name || !(n['energy-kcal_100g'] > 0)) return false;
+      if (!product.product_name || n['energy-kcal_100g'] === undefined) return false;
       const dedupeKey = `${product.product_name}|${product.brands || ''}`.toLowerCase();
       if (seen.has(dedupeKey)) return false;
       seen.add(dedupeKey);
@@ -2917,7 +2917,7 @@ async function searchOpenFoodFacts(query, inPicker) {
       const brand = (product.brands || '').split(',')[0].trim();
       return `<div class="search-result-item" onclick="selectSearchResult(${i})">
         <div class="search-result-name">${escHtml(product.product_name)}${brand ? ` <span style="color:var(--muted);font-weight:600;">· ${escHtml(brand)}</span>` : ''}</div>
-        <div class="search-result-macros">${+(n['proteins_100g']||0).toFixed(1)}g protein · ${Math.round(n['energy-kcal_100g'])} kcal · ${+(n['fat_100g']||0).toFixed(1)}g fat · ${+(n['carbohydrates_100g']||0).toFixed(1)}g carbs (per 100g)</div>
+        <div class="search-result-macros">${+(n['proteins_100g']||0).toFixed(1)}g protein · ${Math.round(n['energy-kcal_100g']||0)} kcal · ${+(n['fat_100g']||0).toFixed(1)}g fat · ${+(n['carbohydrates_100g']||0).toFixed(1)}g carbs (per 100g)</div>
       </div>`;
     }).join('');
 
@@ -5704,13 +5704,51 @@ function barcodeDetectorAvailable() {
   return typeof window.BarcodeDetector === 'function';
 }
 
-function openBarcodeScanner() {
-  if (barcodeDetectorAvailable()) {
-    startLiveBarcodeScan();
-  } else {
-    // No live detector here; ask for a picture of the barcode instead.
+// Safari still ships no BarcodeDetector, so a ponyfill is vendored alongside
+// the app: 44 KB of glue over a 1.1 MB ZXing wasm build. Both are cached by
+// the service worker, so scanning works in a shop with no signal. It is
+// loaded the first time a scan is asked for, never on launch.
+let barcodeDetectorLoading = null;
+
+function loadBarcodeDetector() {
+  if (barcodeDetectorAvailable()) return Promise.resolve(true);
+  if (barcodeDetectorLoading) return barcodeDetectorLoading;
+
+  barcodeDetectorLoading = new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'vendor/barcode-detector.js';
+    script.onload = () => {
+      const api = window.BarcodeDetectionAPI;
+      if (!api || !api.BarcodeDetector) { resolve(false); return; }
+      // Point the wasm at our copy instead of the CDN the bundle defaults to.
+      try {
+        api.prepareZXingModule({
+          overrides: { locateFile: (file) => new URL('vendor/' + file, document.baseURI).href },
+        });
+      } catch { /* the default path still works when online */ }
+      window.BarcodeDetector = api.BarcodeDetector;
+      resolve(true);
+    };
+    script.onerror = () => resolve(false);
+    document.head.appendChild(script);
+  });
+  return barcodeDetectorLoading;
+}
+
+async function openBarcodeScanner() {
+  const overlay = document.getElementById('barcode-overlay');
+  const hint = document.getElementById('barcode-hint');
+  overlay.classList.add('open');
+  hint.textContent = barcodeDetectorAvailable() ? 'Starting camera…' : 'Loading scanner…';
+
+  const ready = await loadBarcodeDetector();
+  if (!ready) {
+    // Decoder unavailable: fall back to reading a photo of the barcode.
+    closeBarcodeScanner();
     document.getElementById('barcode-input').click();
+    return;
   }
+  startLiveBarcodeScan();
 }
 
 function showBarcodeSheet(message, isError) {
@@ -5724,11 +5762,10 @@ function showBarcodeSheet(message, isError) {
 
 // ── Live camera path ───────────────────────────────────────────
 async function startLiveBarcodeScan() {
-  const overlay = document.getElementById('barcode-overlay');
   const video = document.getElementById('barcode-video');
   const hint = document.getElementById('barcode-hint');
   hint.textContent = 'Point the camera at the barcode';
-  overlay.classList.add('open');
+  document.getElementById('barcode-overlay').classList.add('open');
 
   try {
     barcodeStream = await navigator.mediaDevices.getUserMedia({
@@ -5748,24 +5785,29 @@ async function startLiveBarcodeScan() {
     formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'],
   });
 
+  let busy = false;
   const tick = async () => {
     if (!barcodeStream) return;
-    try {
-      const found = await detector.detect(video);
-      if (found.length && found[0].rawValue) {
-        const code = found[0].rawValue;
-        closeBarcodeScanner();
-        lookUpBarcode(code);
-        return;
-      }
-    } catch { /* a frame that will not decode is normal; keep going */ }
-    barcodeLoopId = requestAnimationFrame(tick);
+    if (!busy && video.readyState >= 2) {
+      busy = true;
+      try {
+        const found = await detector.detect(video);
+        if (found.length && found[0].rawValue) {
+          const code = found[0].rawValue;
+          closeBarcodeScanner();
+          lookUpBarcode(code);
+          return;
+        }
+      } catch { /* a frame that will not decode is normal; keep going */ }
+      busy = false;
+    }
+    barcodeLoopId = setTimeout(tick, 180);
   };
-  barcodeLoopId = requestAnimationFrame(tick);
+  tick();
 }
 
 function closeBarcodeScanner() {
-  if (barcodeLoopId) { cancelAnimationFrame(barcodeLoopId); barcodeLoopId = null; }
+  if (barcodeLoopId) { clearTimeout(barcodeLoopId); barcodeLoopId = null; }
   if (barcodeStream) {
     barcodeStream.getTracks().forEach(track => track.stop());
     barcodeStream = null;
@@ -5835,13 +5877,28 @@ async function lookUpBarcode(code) {
     }
     const product = data.product;
     const n = product.nutriments || {};
-    if (!(n['energy-kcal_100g'] > 0)) {
-      showBarcodeSheet(`Found "${product.product_name || code}" but it has no nutrition data. Add it by name instead.`, true);
+    const brand = (product.brands || '').split(',')[0].trim();
+    const label = [product.product_name, brand].filter(Boolean).join(' · ') || code;
+
+    // Sparkling water really is 0 kcal. Test whether the field is *present*,
+    // not whether it is positive, or every zero-calorie product looks broken.
+    if (n['energy-kcal_100g'] === undefined && n['energy-kcal_serving'] === undefined) {
+      showBarcodeSheet('');
+      document.getElementById('qty-search-results').innerHTML = `
+        <div style="padding:12px 0 4px;font-size:13px;color:var(--muted);line-height:1.6;">
+          Found <strong style="color:var(--text);">${escHtml(label)}</strong>, but Open Food Facts
+          has no nutrition for it.
+        </div>
+        <div class="search-result-item" onclick="estimateFoodWithAI('${escHtml(label)}')">
+          <div class="search-result-name">Estimate it with AI</div>
+        </div>
+        <div class="search-result-item" onclick="showManualForm('${escHtml(label)}')">
+          <div class="search-result-name">+ Enter manually</div>
+        </div>`;
       return;
     }
-    const brand = (product.brands || '').split(',')[0].trim();
     const item = {
-      name: [product.product_name, brand].filter(Boolean).join(' · ') || code,
+      name: label,
       p: +(n['proteins_100g'] || 0).toFixed(1),
       kcal: Math.round(n['energy-kcal_100g']),
       fat: +(n['fat_100g'] || 0).toFixed(1),
@@ -5993,7 +6050,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v16').catch(() => null);
+    const cache = await caches.open('athletelog-v17').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
