@@ -107,6 +107,14 @@ The schedule comes from the 逐日排布 table: rows whose first cell is `M/D`
 and whose fourth cell is A, B or C. Everything else is carried through
 untouched.
 
+## Garmin: there is no relay yet
+
+The app reports "manual entry", not an error, until something is actually
+publishing `athletelog-garmin.json`. Having a Gist token is not the same as
+having a relay — the token is shared with backup and with the eating
+protocol. Enter Active Calories by hand in Summary → Garmin, or set up one
+of the relays below.
+
 ## Alternative relay: iOS Shortcuts
 
 If the Mac is not always on, an iPhone automation can write the same file
