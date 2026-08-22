@@ -1,37 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">AthleteLog Lx app icon</title>
+  <desc id="desc">A warm cream Lx monogram on black, with the bottom of the x aligned to the L.</desc>
   <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#6b8eff"/>
-      <stop offset="100%" stop-color="#3d5ef5"/>
-    </linearGradient>
-    <linearGradient id="arc" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#c8d4ff" stop-opacity="0.7"/>
-    </linearGradient>
+    <filter id="soft-glow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="15"/>
+    </filter>
   </defs>
-
-  <!-- Background: indigo pill -->
-  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
-
-  <!-- Subtle inner highlight -->
-  <rect x="0" y="0" width="512" height="256" rx="120" fill="#ffffff" fill-opacity="0.07"/>
-
-  <!-- Arc track -->
-  <circle cx="256" cy="238" r="108" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="20"/>
-
-  <!-- Arc progress (~75%) -->
-  <circle cx="256" cy="238" r="108" fill="none"
-    stroke="url(#arc)" stroke-width="20"
-    stroke-dasharray="508" stroke-dashoffset="127"
-    stroke-linecap="round"
-    transform="rotate(-90 256 238)"/>
-
-  <!-- "A" lettermark -->
-  <text x="256" y="278"
-    text-anchor="middle"
-    font-family="'Helvetica Neue', Arial, sans-serif"
-    font-weight="900"
-    font-size="130"
-    letter-spacing="-4"
-    fill="#ffffff">A</text>
+  <rect width="1024" height="1024" fill="#151515"/>
+  <g fill="none" stroke="#f8ead2" stroke-width="148" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" filter="url(#soft-glow)">
+    <path d="M204 194 V714 H468"/>
+    <path d="M478 430 L768 714 M768 430 L478 714"/>
+  </g>
+  <g fill="none" stroke="#f8ead2" stroke-width="136" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M204 194 V714 H468"/>
+    <path d="M478 430 L768 714 M768 430 L478 714"/>
+  </g>
 </svg>
