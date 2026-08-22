@@ -53,3 +53,25 @@
   font-size: 24rpx;
   line-height: 1.45;
 }
+
+.welcome-card-pressed {
+  transform: scale(0.985);
+}
+
+.welcome-hint {
+  position: absolute;
+  right: 0;
+  bottom: calc(48rpx + env(safe-area-inset-bottom));
+  left: 0;
+  color: #8a8176;
+  font-size: 24rpx;
+  font-weight: 600;
+  letter-spacing: 3rpx;
+  text-align: center;
+  animation: hint-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}

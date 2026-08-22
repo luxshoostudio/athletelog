@@ -1,9 +1,10 @@
-<view class="welcome-screen">
-  <view class="welcome-card">
+<view class="welcome-screen" bindtap="enter">
+  <view class="welcome-card" hover-class="welcome-card-pressed" hover-stay-time="60">
     <image class="welcome-logo" src="/images/lx-logo.png" mode="aspectFit"></image>
     <view class="welcome-copy">
       <view class="welcome-name">Lux私教笔记</view>
       <view class="welcome-note">记录你的饮食、饮水和训练</view>
     </view>
   </view>
+  <view class="welcome-hint">点击进入</view>
 </view>
