@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AthleteLog">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f5ead8">
+<meta name="theme-color" content="#151515">
 <meta name="description" content="Personal athlete training & nutrition tracker">
 <title>AthleteLog</title>
 <link rel="manifest" href="manifest.json">
@@ -296,7 +296,7 @@ body {
 }
 .back-btn:active { background: rgba(249,115,22,0.15); color: var(--sp-green); }
 .detail-title { flex: 1; font-size: 17px; font-weight: 800; color: var(--text); }
-.detail-inner { padding: 16px 16px 120px; }
+.detail-inner { padding: 16px 16px 132px; }
 
 /* FOOD ENTRY */
 .food-entry-row {
@@ -1081,6 +1081,11 @@ body {
   font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer;
 }
 
+.detail-backfill {
+  margin: 0 0 12px; padding: 9px 14px; border-radius: 14px;
+  background: #fff2eb; color: #8c491a; font-size: 12px; font-weight: 700; line-height: 1.45;
+}
+
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
    Three separate iOS behaviours were shifting the canvas:
@@ -1339,7 +1344,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <button class="back-btn" onclick="backToGymList()">← Back</button>
         <div class="detail-title" id="gym-detail-title">Session</div>
       </div>
-      <div class="detail-inner" id="gym-detail-inner" style="padding:16px 16px 90px;"></div>
+      <div class="detail-inner" id="gym-detail-inner"></div>
     </div>
   </div>
 
@@ -1679,17 +1684,22 @@ const WATER_GOAL_ML = 2500;
 // this list or the health agent reads a different history than the app shows.
 const SESSION_TYPES = [
   'Lower Body', 'Lat & Back', 'Shoulder & Arm',
-  'Handstand Drill', 'Core', 'Running', 'Other',
+  'Handstand Drill', 'Core', 'Running', 'Walking', 'Rest Day', 'Other',
 ];
 
 // Same buckets, same order, as `session_type()` in _Data/_parser_gym.py.
 // First match wins: "Lat & Back+5k" is a back session, not a run.
 const SESSION_TYPE_BUCKETS = [
+  ['Rest Day',        ['rest day', 'resting', 'off day', 'recovery day']],
   ['Lower Body',      ['lower body', 'leg day', 'leg ', 'glute', 'squat day']],
   ['Lat & Back',      ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body']],
   ['Shoulder & Arm',  ['shoulder', 'arm day', 'arm ', 'carving']],
   ['Handstand Drill', ['handstand', 'hand stand']],
   ['Core',            ['core', 'abs']],
+  // Walking is checked before running: health plan v3 puts a >8 km walk on
+  // the same footing as a run, and "Walking 10K" used to land in Running
+  // because of the "10k" keyword.
+  ['Walking',         ['walking', 'walk ', 'hike', 'hiking', 'steps']],
   ['Running',         ['running', 'jog', 'run ', 'marathon', 'km', '10k', '5k']],
 ];
 
@@ -1999,6 +2009,36 @@ const DB = {
   'whole milk 400ml': {p:13.6,kcal:244,fat:13.2,carbs:19.2,fiber:0,unit:'serving',qty:1},
   'safe catch tuna can': {p:40,kcal:150,fat:1,carbs:0,fiber:0,unit:'can',qty:1},
 
+
+  // ── Baked goods & desserts ───────────────────────────────────
+  'banana bread': {p:6.3,kcal:326,fat:10.5,carbs:54.6,fiber:1.5,unit:'g',qty:100},
+  'banana cake': {p:5.2,kcal:310,fat:11,carbs:49,fiber:1.4,unit:'g',qty:100},
+  'carrot cake': {p:4.3,kcal:376,fat:20,carbs:46,fiber:1.5,unit:'g',qty:100},
+  'chocolate cake': {p:4.9,kcal:371,fat:17,carbs:53,fiber:1.9,unit:'g',qty:100},
+  'sponge cake': {p:6.4,kcal:297,fat:9,carbs:48,fiber:0.6,unit:'g',qty:100},
+  'chiffon cake': {p:5.5,kcal:280,fat:10,carbs:41,fiber:0.6,unit:'g',qty:100},
+  'pound cake': {p:5.0,kcal:389,fat:19,carbs:50,fiber:0.7,unit:'g',qty:100},
+  'cupcake': {p:3.0,kcal:305,fat:12,carbs:47,fiber:0.8,unit:'cupcake',qty:1},
+  'mooncake': {p:5.5,kcal:400,fat:14,carbs:63,fiber:2.0,unit:'g',qty:100},
+  'egg tart': {p:4.5,kcal:250,fat:14,carbs:26,fiber:0.5,unit:'tart',qty:1},
+  'pineapple bun': {p:6.5,kcal:340,fat:12,carbs:50,fiber:1.5,unit:'bun',qty:1},
+  'red bean bun': {p:6.0,kcal:280,fat:5,carbs:52,fiber:2.5,unit:'bun',qty:1},
+  'milk bread': {p:8.0,kcal:290,fat:6,carbs:51,fiber:1.5,unit:'g',qty:100},
+  'banana muffin': {p:5.0,kcal:340,fat:13,carbs:52,fiber:2.0,unit:'muffin',qty:1},
+  'blueberry muffin': {p:4.5,kcal:355,fat:14,carbs:54,fiber:1.8,unit:'muffin',qty:1},
+  'donut': {p:4.9,kcal:452,fat:25,carbs:51,fiber:1.4,unit:'donut',qty:1},
+  'cinnamon roll': {p:5.0,kcal:370,fat:15,carbs:54,fiber:1.6,unit:'roll',qty:1},
+  'apple pie': {p:2.4,kcal:265,fat:12.5,carbs:37,fiber:1.6,unit:'g',qty:100},
+  'tiramisu': {p:5.0,kcal:283,fat:17,carbs:26,fiber:0.5,unit:'g',qty:100},
+  'mochi': {p:2.5,kcal:230,fat:1.0,carbs:52,fiber:0.8,unit:'g',qty:100},
+  'macaron': {p:2.5,kcal:404,fat:19,carbs:53,fiber:2.0,unit:'g',qty:100},
+  'biscotti': {p:7.0,kcal:420,fat:15,carbs:64,fiber:2.0,unit:'g',qty:100},
+  'shortbread': {p:5.0,kcal:502,fat:26,carbs:62,fiber:1.7,unit:'g',qty:100},
+  'oatmeal cookie': {p:5.5,kcal:450,fat:18,carbs:68,fiber:3.0,unit:'g',qty:100},
+  'protein cookie': {p:16.0,kcal:380,fat:14,carbs:48,fiber:6.0,unit:'cookie',qty:1},
+  'energy ball': {p:4.0,kcal:150,fat:7,carbs:18,fiber:2.5,unit:'ball',qty:1},
+  'banana pancakes': {p:8.0,kcal:220,fat:7,carbs:32,fiber:2.0,unit:'g',qty:100},
+
   // ── Prepared dishes, East Asian staples, deli, snacks, supplements ──
   'jasmine rice': {p:2.7,kcal:130,fat:0.3,carbs:28.2,fiber:0.4,unit:'g',qty:100},
   'fried rice': {p:6,kcal:163,fat:5.5,carbs:22,fiber:1,unit:'g',qty:100},
@@ -2203,6 +2243,8 @@ const FOOD_ALIASES = {
   'spring greens':'kale', 'chinese cabbage':'napa cabbage',
   'sticky rice':'glutinous rice', 'congee rice':'rice porridge',
   'dumpling':'dumplings', 'boba':'soda', 'coke':'soda',
+  'cake':'sponge cake', 'muffin ':'blueberry muffin', 'doughnut':'donut',
+  'banana loaf':'banana bread', 'egg custard tart':'egg tart',
 };
 
 // ── Name matching ──────────────────────────────────────────────
@@ -2562,7 +2604,8 @@ function showDayDetail(key) {
   if (isToday) detailState = state;
 
   document.getElementById('detail-date-title').textContent = isToday ? 'Today' : formatKey(key);
-  document.getElementById('food-input-row').style.display = isToday ? 'flex' : 'none';
+  // Any day is editable: a meal remembered the next morning still happened.
+  document.getElementById('food-input-row').style.display = 'flex';
 
   renderDetailContent();
 
@@ -2586,15 +2629,15 @@ function renderDetailContent() {
 
   let html = '';
 
-  // Quick Add dropdown (today only)
-  if (isToday) {
-    html += `<div class="quick-add-wrapper">
-      <select class="quick-add-select" id="detail-quick-chips" onchange="quickAddFood(this.value); this.selectedIndex=0;">
-        <option value="">QUICK ADD</option>`;
-    for (const chip of QUICK) {
-      html += `<option value="${chip.replace(/"/g,'&quot;')}">${chip}</option>`;
-    }
-    html += `</select></div>`;
+  html += `<div class="quick-add-wrapper">
+    <select class="quick-add-select" id="detail-quick-chips" onchange="quickAddFood(this.value); this.selectedIndex=0;">
+      <option value="">QUICK ADD</option>`;
+  for (const chip of QUICK) {
+    html += `<option value="${chip.replace(/"/g,'&quot;')}">${chip}</option>`;
+  }
+  html += `</select></div>`;
+  if (!isToday) {
+    html += `<div class="detail-backfill">Editing ${escHtml(formatKey(currentDetailKey))} — entries default to the time you type.</div>`;
   }
 
   // Macro summary
@@ -2614,25 +2657,22 @@ function renderDetailContent() {
   } else {
     html += `<div class="card"><div class="card-body" id="food-entries-list">`;
     for (const f of foods) {
-      html += renderFoodEntryHTML(f, isToday);
+      html += renderFoodEntryHTML(f, true);
     }
     html += `</div></div>`;
   }
 
-  // Frequent foods accordion (today only)
-  if (isToday) {
-    html += `<div class="freq-accordion">
+  html += `<div class="freq-accordion">
       <div class="freq-accordion-header" onclick="toggleFreqAccordion()">
         <span class="freq-accordion-title">⭐ Frequent Foods</span>
         <span class="freq-accordion-toggle" id="freq-accordion-toggle">▼</span>
       </div>
       <div id="freq-accordion-body" class="${freqAccordionOpen?'freq-pills':'hidden freq-pills'}"></div>
     </div>`;
-  }
 
   inner.innerHTML = html;
 
-  if (isToday && freqAccordionOpen) renderFreqAccordionPills();
+  if (freqAccordionOpen) renderFreqAccordionPills();
 }
 
 function renderFoodEntryHTML(f, editable) {
@@ -2716,8 +2756,59 @@ async function resolveFoodQuery(query) {
     openQtyModalWithItem(results[0].item, results[0].key);
     return;
   }
-  if (results.length) { openFoodPicker(query, results); return; }
-  await searchOpenFoodFacts(query);
+  openFoodPicker(query, results, results.length === 0);
+}
+
+
+// The library and Open Food Facts between them still miss the long tail —
+// home baking, a dish from a restaurant, anything regional. Rather than make
+// her guess the macros, ask the model that already reads her food photos.
+async function estimateFoodWithAI(query) {
+  const apiKey = localStorage.getItem('claude_api_key');
+  if (!apiKey) {
+    pendingApiKeyAction = { type: 'estimate', query };
+    openApiKeyModal();
+    return;
+  }
+
+  const box = document.getElementById('qty-search-results');
+  if (box) box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 0;">Estimating ${escHtml(query)}…</div>`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 256,
+        messages: [{
+          role: 'user',
+          content: `Give typical nutrition for "${query}". Reply ONLY with JSON: {"name":"…","unit":"g","qty":100,"p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}. Use per-100g values with unit "g" for anything measured by weight; for a countable item use a unit like "slice" or "piece" with qty 1 and values for one of them.`,
+        }],
+      }),
+    });
+    if (!resp.ok) throw new Error('API error ' + resp.status);
+    const text = (await resp.json()).content[0].text;
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('No usable answer');
+    const guess = JSON.parse(match[0]);
+
+    const item = {
+      name: guess.name || query,
+      p: +guess.p || 0, kcal: Math.round(+guess.kcal || 0), fat: +guess.fat || 0,
+      carbs: +guess.carbs || 0, fiber: +guess.fiber || 0,
+      unit: guess.unit || 'g', qty: +guess.qty || 100,
+    };
+    openQtyModalWithItem(item, item.name);
+  } catch (err) {
+    if (box) box.innerHTML = `<div style="color:var(--red);font-size:13px;padding:14px 0;">Could not estimate: ${escHtml(err.message)}</div>`;
+    showManualForm(query);
+  }
 }
 
 function titleCaseFood(name) {
@@ -2755,6 +2846,10 @@ function openFoodPicker(query, results, autoPackaged) {
     <div class="search-result-item" id="packaged-trigger" onclick="searchOpenFoodFacts('${escHtml(query)}', true)">
       <div class="search-result-name">Search packaged products…</div>
       <div class="search-result-macros">Open Food Facts · branded &amp; barcoded items</div>
+    </div>
+    <div class="search-result-item" onclick="estimateFoodWithAI('${escHtml(query)}')">
+      <div class="search-result-name">Estimate “${escHtml(query)}” with AI</div>
+      <div class="search-result-macros">For anything the library and Open Food Facts do not have</div>
     </div>
     <div class="search-result-item" onclick="showManualForm('${escHtml(query)}')">
       <div class="search-result-name">+ Enter manually</div>
@@ -2967,10 +3062,17 @@ function confirmAddFood() {
 }
 
 function addFoodEntryDirect(entry) {
-  state.food.push(entry);
-  saveState();
-  if (currentDetailKey === todayKey()) detailState = state;
-  if (currentDetailKey) renderDetailContent();
+  if (currentDetailKey && currentDetailKey !== todayKey()) {
+    detailState.food = detailState.food || [];
+    detailState.food.push(entry);
+    saveDetailState();
+    renderDetailContent();
+  } else {
+    state.food.push(entry);
+    saveState();
+    if (currentDetailKey === todayKey()) detailState = state;
+    if (currentDetailKey) renderDetailContent();
+  }
   renderDayList();
   renderHeader();
   renderLogTab();
@@ -3448,7 +3550,8 @@ function getSessionTemplates() {
 function shortSessionLabel(name) {
   const fixed = {
     'Lower Body':'Lower', 'Lat & Back':'Back', 'Shoulder & Arm':'Arms',
-    'Handstand Drill':'Handstand', 'Core':'Core', 'Running':'Run', 'Other':'Other',
+    'Handstand Drill':'Handstand', 'Core':'Core', 'Running':'Run',
+    'Walking':'Walk', 'Rest Day':'Rest', 'Other':'Other',
   };
   return fixed[name] || String(name).split(' ')[0];
 }
@@ -3668,20 +3771,41 @@ function addExercise() {
   renderSessionSuggestions();
 }
 
-function deleteExercise(id) {
-  state.gym.exercises = state.gym.exercises.filter(e => e.id !== id);
-  saveState();
-  renderExerciseList();
-  renderSessionSuggestions();
+// '' means today; anything else is a stored day being backfilled.
+function gymDayState(dayKey) {
+  return (!dayKey || dayKey === todayKey()) ? state : loadState(dayKey);
 }
 
-function toggleExerciseCompleted(id) {
-  const exercise = state.gym.exercises.find(item => item.id === id);
+function saveGymDay(dayKey, dayState) {
+  if (!dayKey || dayKey === todayKey()) { state = dayState; saveState(); }
+  else localStorage.setItem(dayKey, JSON.stringify(dayState));
+}
+
+function afterGymEdit(dayKey) {
+  if (!dayKey || dayKey === todayKey()) {
+    renderExerciseList();
+    renderSessionSuggestions();
+  } else {
+    showGymDayDetail(dayKey);
+  }
+  renderGymHistory();
+  renderLogTab();
+}
+
+function deleteExercise(id, dayKey) {
+  const day = gymDayState(dayKey);
+  day.gym.exercises = day.gym.exercises.filter(e => e.id !== id);
+  saveGymDay(dayKey, day);
+  afterGymEdit(dayKey);
+}
+
+function toggleExerciseCompleted(id, dayKey) {
+  const day = gymDayState(dayKey);
+  const exercise = day.gym.exercises.find(item => item.id === id);
   if (!exercise) return;
   exercise.completed = !exercise.completed;
-  saveState();
-  renderExerciseList();
-  renderSessionSuggestions();
+  saveGymDay(dayKey, day);
+  afterGymEdit(dayKey);
 }
 
 function markExerciseEditing(id, input) {
@@ -3690,13 +3814,53 @@ function markExerciseEditing(id, input) {
   if (exercise && exercise.suggested) { exercise.suggested = false; saveState(); }
 }
 
-function updateExerciseField(id, field, value) {
-  const exercise = state.gym.exercises.find(item => item.id === id);
+function updateExerciseField(id, field, value, dayKey) {
+  const day = gymDayState(dayKey);
+  const exercise = day.gym.exercises.find(item => item.id === id);
   if (!exercise || !['sets','reps','weight','distance','runTime'].includes(field)) return;
   exercise[field] = value.trim();
   exercise.suggested = false;
   exercise.edited = true;
-  saveState();
+  saveGymDay(dayKey, day);
+}
+
+// A past day is edited with exactly the same controls as today; only the
+// day it writes to differs. `dayKey` is '' for today, otherwise an alog_ key.
+function exerciseRowHTML(e, dayKey) {
+  const d = dayKey ? `'${dayKey}'` : `''`;
+  const run  = e.run  || isRunExercise(e.name);
+  const hold = !run && (e.hold || isHoldExercise(e.name));
+  const suggestedClass = e.suggested ? ' suggested-value' : '';
+  const field = (value, placeholder, key) =>
+    `<input class="exercise-field${suggestedClass}" value="${escHtml(value || '')}" placeholder="${placeholder}"
+       aria-label="${escHtml(e.name)} ${placeholder.toLowerCase()}"
+       oninput="updateExerciseField('${e.id}','${key}',this.value,${d})"
+       onfocus="markExerciseEditing('${e.id}',this)">`;
+
+  let fields;
+  if (run) {
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Time', 'runTime')}</div>`;
+  } else if (hold) {
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}</div>`;
+  } else {
+    fields = `<div class="exercise-fields">
+      ${field(e.sets, 'Sets', 'sets')}${field(e.reps, 'Reps', 'reps')}${field(e.weight, 'lbs', 'weight')}</div>`;
+  }
+
+  const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
+  const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
+            : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
+  return `
+  <div class="exercise-row${e.completed ? ' is-complete' : ''}">
+    <button class="exercise-check" role="checkbox" aria-checked="${e.completed ? 'true' : 'false'}" aria-label="Mark ${escHtml(e.name)} ${e.completed ? 'planned' : 'completed'}" onclick="toggleExerciseCompleted('${e.id}',${d})">✓</button>
+    <div class="exercise-info">
+      <div class="exercise-name-line"><div class="exercise-name">${escHtml(e.name)}${tag}${feelBadge}</div>${e.lastDate ? `<span class="exercise-last">Last ${shortLogDate(e.lastDate)}</span>` : ''}</div>
+      ${fields}
+    </div>
+    <button class="exercise-delete" aria-label="Delete ${escHtml(e.name)}" onclick="deleteExercise('${e.id}',${d})">✕</button>
+  </div>`;
 }
 
 function renderExerciseList() {
@@ -3705,44 +3869,10 @@ function renderExerciseList() {
   const status = document.getElementById('exercise-status');
   if (status) status.textContent = `${completed} completed / ${state.gym.exercises.length} planned`;
   if (!state.gym.exercises.length) {
-    list.innerHTML = '<div class="empty-state">Choose a session to load today’s plan</div>';
+    list.innerHTML = '<div class="empty-state">Choose a session to load today\u2019s plan</div>';
     return;
   }
-  list.innerHTML = state.gym.exercises.map(e => {
-    const run  = e.run  || isRunExercise(e.name);
-    const hold = !run && (e.hold || isHoldExercise(e.name));
-    const suggestedClass = e.suggested ? ' suggested-value' : '';
-    let fields;
-    if (run) {
-      fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.distance || '')}" placeholder="Miles" aria-label="${escHtml(e.name)} distance" oninput="updateExerciseField('${e.id}','distance',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.runTime || '')}" placeholder="Time" aria-label="${escHtml(e.name)} time" oninput="updateExerciseField('${e.id}','runTime',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-      </div>`;
-    } else if (hold) {
-      fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.sets || '')}" placeholder="Rounds" aria-label="${escHtml(e.name)} rounds" oninput="updateExerciseField('${e.id}','sets',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.reps || '')}" placeholder="Secs" aria-label="${escHtml(e.name)} seconds" oninput="updateExerciseField('${e.id}','reps',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-      </div>`;
-    } else {
-      fields = `<div class="exercise-fields">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.sets || '')}" placeholder="Sets" aria-label="${escHtml(e.name)} sets" oninput="updateExerciseField('${e.id}','sets',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.reps || '')}" placeholder="Reps" aria-label="${escHtml(e.name)} reps" oninput="updateExerciseField('${e.id}','reps',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-        <input class="exercise-field${suggestedClass}" value="${escHtml(e.weight || '')}" placeholder="lbs" aria-label="${escHtml(e.name)} weight" oninput="updateExerciseField('${e.id}','weight',this.value)" onfocus="markExerciseEditing('${e.id}',this)">
-      </div>`;
-    }
-    const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
-    const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
-              : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
-    return `
-    <div class="exercise-row${e.completed ? ' is-complete' : ''}">
-      <button class="exercise-check" role="checkbox" aria-checked="${e.completed ? 'true' : 'false'}" aria-label="Mark ${escHtml(e.name)} ${e.completed ? 'planned' : 'completed'}" onclick="toggleExerciseCompleted('${e.id}')">✓</button>
-      <div class="exercise-info">
-        <div class="exercise-name-line"><div class="exercise-name">${escHtml(e.name)}${tag}${feelBadge}</div>${e.lastDate ? `<span class="exercise-last">Last ${shortLogDate(e.lastDate)}</span>` : ''}</div>
-        ${fields}
-      </div>
-      <button class="exercise-delete" aria-label="Delete ${escHtml(e.name)}" onclick="deleteExercise('${e.id}')">✕</button>
-    </div>`;
-  }).join('');
+  list.innerHTML = state.gym.exercises.map(e => exerciseRowHTML(e, '')).join('');
 }
 
 function renderFreqExercises() {
@@ -3800,45 +3930,87 @@ function renderGymHistory() {
 }
 
 function showGymDayDetail(key) {
-  const s = loadState(key);
+  const day = loadState(key);
+  const gym = day.gym || { session:'', exercises:[] };
   document.getElementById('gym-detail-title').textContent = formatKey(key);
   const inner = document.getElementById('gym-detail-inner');
-  const exercises = s.gym?.exercises || [];
-  const session = s.gym?.session || '';
-  let html = '';
-  if (session) {
-    html += `<div class="card" style="margin-bottom:14px;"><div class="card-body">
-      <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:4px;">Session</div>
-      <div style="font-size:16px;font-weight:800;color:var(--text);">${escHtml(session)}</div>
-    </div></div>`;
-  }
-  if (exercises.length === 0) {
-    html += `<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No exercises logged</div>`;
-  } else {
-    html += `<div class="card"><div class="card-header"><span class="card-title">Exercises</span></div><div class="card-body">`;
-    for (const e of exercises) {
-      const run  = e.run  || isRunExercise(e.name);
-      const hold = !run && (e.hold || isHoldExercise(e.name));
-      let parts;
-      if (run) {
-        const pace = calcPacePerMile(e.distance, e.runTime);
-        parts = [e.distance ? e.distance+' mi' : '', e.runTime || '', pace].filter(Boolean);
-      } else if (hold) {
-        parts = [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : ''].filter(Boolean);
-      } else {
-        parts = [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : ''].filter(Boolean);
-      }
-      const feelBadge = e.feeling ? ` · Feel ${e.feeling}/10` : '';
-      html += `<div class="gym-detail-exercise">
-        <div style="font-size:14px;font-weight:700;color:var(--text2);">${e.completed === false ? '○' : '✓'} ${escHtml(e.name)}</div>
-        <div style="font-size:11px;color:var(--muted);text-align:right;">${parts.join(' · ') || 'No details'}${feelBadge}</div>
-      </div>`;
-    }
-    html += `</div></div>`;
-  }
-  inner.innerHTML = html;
+  const isToday = key === todayKey();
+
+  const sessionOptions = getSessionTemplates()
+    .map(t => `<option value="${escHtml(t.name)}"${canonicalSessionType(gym.session) === t.name ? ' selected' : ''}>${escHtml(t.name)}</option>`)
+    .join('');
+
+  const completed = (gym.exercises || []).filter(e => e.completed).length;
+
+  inner.innerHTML = `
+    ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(formatKey(key))} — changes save straight to that day.</div>`}
+
+    <div class="organic-segment-label">Session</div>
+    <select class="quick-add-select" style="width:100%;margin-bottom:16px;"
+            onchange="setGymDaySession('${key}', this.value)">
+      <option value="">No session</option>${sessionOptions}
+    </select>
+
+    <div class="organic-segment-label">Add exercise</div>
+    <div class="gym-input-wrap" style="margin-bottom:18px;">
+      <input type="text" class="gym-text-input" id="gym-detail-name" placeholder="Exercise name…" autocomplete="off">
+      <div class="gym-input-row" style="margin-top:8px;">
+        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="Sets" inputmode="numeric">
+        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="Reps" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="lbs" inputmode="text">
+        <button class="green-btn" onclick="addExerciseToDay('${key}')"></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Exercises</span>
+        <span class="exercise-status">${completed} completed / ${(gym.exercises || []).length} planned</span>
+      </div>
+      <div class="card-body" id="gym-detail-list" style="padding:0 18px 18px;">
+        ${(gym.exercises || []).length
+          ? gym.exercises.map(e => exerciseRowHTML(e, isToday ? '' : key)).join('')
+          : '<div class="empty-state">Nothing logged for this day</div>'}
+      </div>
+    </div>`;
+
   document.getElementById('gym-day-list').classList.add('slide-left');
   document.getElementById('gym-day-detail').classList.add('slide-in');
+}
+
+function setGymDaySession(key, session) {
+  const day = gymDayState(key === todayKey() ? '' : key);
+  day.gym = day.gym || { session:'', exercises:[] };
+  day.gym.session = session;
+  saveGymDay(key === todayKey() ? '' : key, day);
+  afterGymEdit(key === todayKey() ? '' : key);
+  if (key === todayKey()) showGymDayDetail(key);
+}
+
+// Backfilling a forgotten session: the exercise is recorded as done, because
+// that is what "I did this yesterday and forgot to write it" means.
+function addExerciseToDay(key) {
+  const name = document.getElementById('gym-detail-name').value.trim();
+  if (!name) return;
+  const dayKey = key === todayKey() ? '' : key;
+  const day = gymDayState(dayKey);
+  day.gym = day.gym || { session:'', exercises:[] };
+
+  const run  = isRunExercise(name);
+  const hold = !run && isHoldExercise(name);
+  const exercise = { id: uid(), name, completed: true, run, hold };
+  const sets   = document.getElementById('gym-detail-sets').value.trim();
+  const reps   = document.getElementById('gym-detail-reps').value.trim();
+  const weight = document.getElementById('gym-detail-weight').value.trim();
+  if (run) { exercise.distance = sets; exercise.runTime = reps; }
+  else { exercise.sets = sets; exercise.reps = reps; exercise.weight = hold ? '' : weight; }
+
+  day.gym.exercises.push(exercise);
+  saveGymDay(dayKey, day);
+  showGymDayDetail(key);
+  renderGymHistory();
+  renderLogTab();
+  if (!dayKey) { renderExerciseList(); renderSessionSuggestions(); }
 }
 
 function backToGymList() {
@@ -4006,7 +4178,8 @@ Keep replies concise. All weights are in lbs.`;
 // Keyed on the canonical types so it survives however the session was written.
 const SESSION_BURN = {
   'Lower Body': 380, 'Lat & Back': 300, 'Shoulder & Arm': 260,
-  'Handstand Drill': 220, 'Core': 180, 'Running': 600, 'Other': 300,
+  'Handstand Drill': 220, 'Core': 180, 'Running': 600,
+  'Walking': 250, 'Rest Day': 0, 'Other': 300,
 };
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
@@ -4754,6 +4927,8 @@ function saveApiKey() {
   if (action) {
     if (action.type === 'ai') openAI(action.context);
     else if (action.type === 'photo') document.getElementById('photo-input').click();
+    else if (action.type === 'barcode') document.getElementById('barcode-input').click();
+    else if (action.type === 'estimate') estimateFoodWithAI(action.query);
   }
 }
 
@@ -5606,7 +5781,7 @@ async function handleBarcodePhoto(event) {
   if (!file) return;
 
   const apiKey = localStorage.getItem('claude_api_key');
-  if (!apiKey) { openApiKeyModalForContext('photo'); return; }
+  if (!apiKey) { openApiKeyModalForContext('barcode'); return; }
 
   showBarcodeSheet('Reading the barcode…');
   // Barcodes are fine stripes; downscaling as far as a food photo loses them.
@@ -5811,13 +5986,14 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Generate PNG icons via canvas (runs once, creates icon-192.png + icon-512.png in SW cache)
+// Generate PNG icons via canvas — the same Lx mark as icon.svg, since a home
+// screen wants a raster and iOS will not rasterise the SVG itself.
 (async function generateIcons() {
   if (!('serviceWorker' in navigator)) return;
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v15').catch(() => null);
+    const cache = await caches.open('athletelog-v16').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
@@ -5825,60 +6001,36 @@ if ('serviceWorker' in navigator) {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d');
-    const r = size * 0.22; // corner radius
+    const u = size / 1024;              // the mark is drawn on a 1024 grid
 
-    // Background rounded rect
-    ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
-    ctx.arcTo(size, 0, size, r, r);
-    ctx.lineTo(size, size - r);
-    ctx.arcTo(size, size, size - r, size, r);
-    ctx.lineTo(r, size); ctx.arcTo(0, size, 0, size - r, r);
-    ctx.lineTo(0, r); ctx.arcTo(0, 0, r, 0, r);
-    ctx.closePath();
-    ctx.fillStyle = '#f5ead8';
-    ctx.fill();
+    ctx.fillStyle = '#151515';
+    ctx.fillRect(0, 0, size, size);
 
-    // Ambient green glow
-    const grd = ctx.createRadialGradient(size*0.35, size*0.25, 0, size*0.35, size*0.25, size*0.55);
-    grd.addColorStop(0, 'rgba(198,113,57,0.18)');
-    grd.addColorStop(1, 'rgba(245,234,216,0)');
-    ctx.fillStyle = grd;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.rect(0, 0, size, size);
-    ctx.fill();
+    const drawMark = (width, alpha) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#f8ead2';
+      ctx.lineWidth = width * u;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();                                   // L
+      ctx.moveTo(204 * u, 194 * u);
+      ctx.lineTo(204 * u, 714 * u);
+      ctx.lineTo(468 * u, 714 * u);
+      ctx.stroke();
+      ctx.beginPath();                                   // x
+      ctx.moveTo(478 * u, 430 * u); ctx.lineTo(768 * u, 714 * u);
+      ctx.moveTo(768 * u, 430 * u); ctx.lineTo(478 * u, 714 * u);
+      ctx.stroke();
+      ctx.restore();
+    };
 
-    // Ring track
-    const cx = size * 0.5, cy = size * 0.42, ring = size * 0.195;
-    ctx.beginPath();
-    ctx.arc(cx, cy, ring, 0, Math.PI * 2);
-    ctx.strokeStyle = '#dcd3c4';
-    ctx.lineWidth = size * 0.04;
-    ctx.stroke();
+    // Soft halo under the solid mark, matching the SVG's blurred layer.
+    ctx.filter = `blur(${Math.max(1, Math.round(15 * u))}px)`;
+    drawMark(148, 0.2);
+    ctx.filter = 'none';
+    drawMark(136, 1);
 
-    // Ring fill (75%)
-    ctx.beginPath();
-    ctx.arc(cx, cy, ring, -Math.PI / 2, -Math.PI / 2 + Math.PI * 1.5);
-    ctx.strokeStyle = '#c67139';
-    ctx.lineWidth = size * 0.04;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-
-    // "A" letter
-    ctx.fillStyle = '#201e1d';
-    ctx.font = `800 ${size * 0.2}px 'Helvetica Neue', Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('A', cx, cy);
-
-    // "LOG" label
-    ctx.fillStyle = '#8c491a';
-    ctx.font = `700 ${size * 0.085}px 'Helvetica Neue', Arial, sans-serif`;
-    ctx.letterSpacing = '0.12em';
-    ctx.fillText('LOG', cx, size * 0.74);
-
-    // Store in cache
     canvas.toBlob(blob => {
       if (blob) cache.put(key, new Response(blob, { headers: { 'Content-Type': 'image/png' } }));
     }, 'image/png');
