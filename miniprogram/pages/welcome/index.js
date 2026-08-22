@@ -19,7 +19,7 @@ Page({
     if (this._timer) {
       clearTimeout(this._timer);
     }
-    wx.redirectTo({ url: '/pages/today/index' });
+    wx.switchTab({ url: '/pages/today/index' });
   },
 
   enter: function () {
