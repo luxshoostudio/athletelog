@@ -107,6 +107,30 @@ The schedule comes from the 逐日排布 table: rows whose first cell is `M/D`
 and whose fourth cell is A, B or C. Everything else is carried through
 untouched.
 
+## `airtable_session_types.py` — keep Session Type in step
+
+The app, `_Data/_parser_gym.py` and `Training.Session Type` in the Health base
+must agree on the list of session types, or the health agent reads a
+different history than the app shows.
+
+```bash
+python3 tools/airtable_session_types.py --dry-run
+python3 tools/airtable_session_types.py
+```
+
+It reads the key from `AIRTABLE_API_KEY`, falling back to the one the
+airtable MCP server already uses.
+
+### Why it writes and deletes a record
+
+Airtable's *update field* API accepts only a name and a description — sending
+`options` comes back `422 "Changing a field's type is not supported"`, and the
+MCP server does not expose select choices either. The supported way to add a
+single-select option is to write a record with `typecast: true`, which makes
+Airtable mint the missing choice instead of rejecting the write. So the script
+creates one throwaway row per missing option and deletes it immediately. The
+real rows are never touched.
+
 ## Garmin: there is no relay yet
 
 The app reports "manual entry", not an error, until something is actually
