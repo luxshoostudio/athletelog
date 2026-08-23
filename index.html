@@ -1522,13 +1522,13 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <!-- GARMIN MODAL -->
 <div class="modal-overlay" id="garmin-modal">
   <div class="modal-sheet">
-    <div class="modal-title">⌚ Garmin</div>
+    <div class="modal-title" id="garmin-modal-title">⌚ Garmin</div>
     <div id="garmin-auto-row" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;margin-bottom:14px;background:var(--surface-raised);border-radius:16px;">
       <div style="min-width:0;">
         <div style="font-size:13px;font-weight:700;color:var(--text);" id="garmin-auto-title">Auto-sync off</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="garmin-auto-sub">Connect a Gist relay to pull daily active calories</div>
       </div>
-      <button class="outline-btn" onclick="garminAutoSync(false)" style="flex-shrink:0;">⟳ Sync</button>
+      <button class="outline-btn" onclick="healthOrRelaySync(false)" style="flex-shrink:0;">⟳ Sync</button>
     </div>
 
     <label class="modal-label">Active calories today (kcal)</label>
@@ -1538,7 +1538,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       Leave empty to fall back to the synced value.
     </div>
 
-    <details style="margin-bottom:12px;">
+    <details style="margin-bottom:12px;" id="garmin-relay-help">
       <summary style="font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;">How auto-sync works</summary>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;">
         Garmin has no public API a browser can call, so a relay writes
@@ -4474,6 +4474,117 @@ function closeGistModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// APPLE HEALTH (native build only)
+// The relay exists because a web page cannot read HealthKit — no exception,
+// no permission that unlocks it. Inside the Capacitor shell it can, so the
+// same numbers arrive from the phone instead of via Garmin's undocumented
+// endpoint, a Mac that has to be awake, and a Gist in between.
+//
+// Everything here is behind a capability check, so the PWA is unaffected and
+// keeps using the relay.
+// ═══════════════════════════════════════════════════════════════
+const HEALTH_PERMISSIONS = ['READ_ACTIVE_CALORIES', 'READ_STEPS', 'READ_WORKOUTS'];
+
+function isNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+function healthPlugin() {
+  return window.Capacitor?.Plugins?.Health || null;
+}
+
+function dayBounds(dateKey) {
+  const [, y, m, d] = dateKey.split('_');
+  const start = new Date(+y, +m - 1, +d, 0, 0, 0, 0);
+  const end = new Date(+y, +m - 1, +d, 23, 59, 59, 999);
+  return { startDate: start.toISOString(), endDate: end.toISOString() };
+}
+
+// Asked for once and remembered; iOS shows its own sheet and cannot tell us
+// afterwards what was granted, so a zero reading is indistinguishable from a
+// refusal. That is why nothing here treats zero as an error.
+async function ensureHealthPermissions() {
+  const health = healthPlugin();
+  if (!health) return false;
+  try {
+    const { available } = await health.isHealthAvailable();
+    if (!available) return false;
+    if (localStorage.getItem('health_permissions_asked')) return true;
+    await health.requestHealthPermissions({ permissions: HEALTH_PERMISSIONS });
+    localStorage.setItem('health_permissions_asked', '1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function healthAggregate(dataType, dateKey) {
+  const health = healthPlugin();
+  if (!health) return null;
+  try {
+    const { startDate, endDate } = dayBounds(dateKey);
+    const res = await health.queryAggregated({ startDate, endDate, dataType, bucket: 'day' });
+    const samples = res?.aggregatedData || [];
+    if (!samples.length) return null;
+    return samples.reduce((sum, s) => sum + (+s.value || 0), 0);
+  } catch {
+    return null;
+  }
+}
+
+// Same shape as garminAutoSync so the callers do not care which one ran.
+async function healthSync(silent = true, days = 7) {
+  if (!isNativeApp()) return false;
+  const status = document.getElementById('garmin-status');
+  if (!(await ensureHealthPermissions())) {
+    if (!silent && status) {
+      status.style.color = 'var(--red)';
+      status.textContent = 'Apple Health is not available on this device.';
+    }
+    return false;
+  }
+  if (!silent && status) { status.style.color = 'var(--muted)'; status.textContent = 'Reading Apple Health…'; }
+
+  let applied = 0;
+  const today = new Date();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const key = `alog_${d.getFullYear()}_${String(d.getMonth()+1).padStart(2,'0')}_${String(d.getDate()).padStart(2,'0')}`;
+
+    const kcal = await healthAggregate('active-calories', key);
+    const steps = await healthAggregate('steps', key);
+    if (kcal == null && steps == null) continue;
+
+    const day = loadState(key);
+    let changed = false;
+    if (kcal != null && Math.round(kcal) !== day.garminAutoKcal) {
+      day.garminAutoKcal = Math.round(kcal);
+      day.garminSyncedAt = garminDateKey();
+      changed = true;
+    }
+    if (steps != null && Math.round(steps) !== day.garminSteps) {
+      day.garminSteps = Math.round(steps);
+      changed = true;
+    }
+    if (changed) { localStorage.setItem(key, JSON.stringify(day)); applied++; }
+  }
+
+  state = loadState(todayKey());
+  localStorage.setItem('garmin_last_sync', new Date().toISOString());
+  renderLogTab();
+  updateGarminBtn();
+  renderGarminAutoRow();
+  if (!silent && status) {
+    status.style.color = 'var(--sp-green)';
+    const kcal = state.garminAutoKcal || 0;
+    status.textContent = kcal
+      ? `✓ Today: ${kcal} kcal${state.garminSteps ? ` · ${state.garminSteps.toLocaleString()} steps` : ''}`
+      : '✓ Apple Health read · nothing recorded for today yet';
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // GARMIN — AUTO-SYNC + MANUAL OVERRIDE
 // Garmin exposes no public API a browser can call: the Health API is a
 // partner programme with server-side OAuth 1.0a and webhooks. So a relay
@@ -4495,7 +4606,19 @@ function garminDateKey(date = new Date()) {
 //   'no-token'  nothing connected at all
 //   'no-relay'  token works, but nothing is publishing Garmin data
 //   'ready'     a relay file exists
+// Native reads Apple Health; the PWA reads the Gist relay. Same contract.
+async function healthOrRelaySync(silent = true) {
+  if (isNativeApp()) return healthSync(silent);
+  if (silent && !garminShouldLook()) return false;
+  return garminAutoSync(silent);
+}
+
+function shouldCheckHealth() {
+  return isNativeApp() || garminShouldLook();
+}
+
 function garminRelayState() {
+  if (isNativeApp()) return 'ready';
   if (!localStorage.getItem('github_gist_token')) return 'no-token';
   if (localStorage.getItem('garmin_gist_id')) return 'ready';
   return localStorage.getItem('garmin_relay_missing') ? 'no-relay' : 'unknown';
@@ -4606,6 +4729,15 @@ function renderGarminAutoRow() {
   const title = document.getElementById('garmin-auto-title');
   const sub = document.getElementById('garmin-auto-sub');
   if (!title || !sub) return;
+  if (isNativeApp()) {
+    const auto = state.garminAutoKcal || 0;
+    const last = localStorage.getItem('garmin_last_sync');
+    title.textContent = auto ? `Today: ${auto} kcal` : 'Apple Health';
+    sub.textContent = state.garminSteps
+      ? `${state.garminSteps.toLocaleString()} steps${last ? ' · read ' + new Date(last).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : ''}`
+      : 'Reads active calories and steps straight from your phone';
+    return;
+  }
   const state_ = garminRelayState();
   if (state_ === 'no-token') {
     title.textContent = 'Auto-sync off';
@@ -4638,9 +4770,14 @@ function openGarminModal() {
   const status = document.getElementById('garmin-status');
   status.style.color = 'var(--sp-green)';
   status.textContent = existing ? `Override set: ${existing} kcal` : '';
+  // The relay explainer is about a problem the native build does not have.
+  const help = document.getElementById('garmin-relay-help');
+  if (help) help.style.display = isNativeApp() ? 'none' : '';
+  const modalTitle = document.getElementById('garmin-modal-title');
+  if (modalTitle) modalTitle.textContent = isNativeApp() ? '⌚ Apple Health' : '⌚ Garmin';
   renderGarminAutoRow();
   document.getElementById('garmin-modal').classList.add('open');
-  if (garminShouldLook()) garminAutoSync(true);
+  if (shouldCheckHealth()) healthOrRelaySync(true);
 }
 
 function closeGarminModal() {
@@ -4955,7 +5092,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (tab === 'gym') initGymTab();
     if (tab === 'log') {
       renderLogTab();
-      if (garminShouldLook()) garminAutoSync(true);
+      healthOrRelaySync(true);
     }
     if (tab === 'food') { renderDayList(); renderPlanPill(); }
   };
@@ -6025,8 +6162,7 @@ function init() {
   renderPlanPill();
   planAutoSync(true);
   checkFirstRun();
-  // Quiet when there is no relay: garminShouldLook stops it re-asking.
-  if (garminShouldLook()) garminAutoSync(true);
+  healthOrRelaySync(true);
 
   // Populate gym sessions
   const sel = document.getElementById('session-select');

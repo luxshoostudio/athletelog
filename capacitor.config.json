@@ -1,0 +1,16 @@
+{
+  "appId": "studio.luxshoo.athletelog",
+  "appName": "AthleteLog",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#151515"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "backgroundColor": "#151515",
+      "launchAutoHide": true,
+      "launchShowDuration": 600
+    }
+  }
+}
