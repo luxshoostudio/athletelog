@@ -62,7 +62,7 @@ body {
     radial-gradient(ellipse at 50% 50%, rgba(99,195,255,0.06) 0%, transparent 38%),
     #eef0f7;
   background-attachment: fixed;
-  display: flex; flex-direction: column; height: 100dvh; overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden;
 }
 
 /* HEADER */
@@ -765,10 +765,12 @@ body {
   --display: 'Caprasimo', 'Figtree', system-ui, sans-serif;
   --mono: 'Space Mono', monospace;
 }
-html { background: var(--bg); }
+/* The canvas shows wherever body does not reach. Painting it the tab bar's
+   colour means a residual strip at the bottom of a standalone PWA reads as
+   part of the bar rather than as a gap. */
+html { background: #ebddc5; }
 body {
   background: var(--bg);
-  height: 100dvh;
   color: var(--text);
   overflow: hidden;
 }
@@ -1120,6 +1122,9 @@ body {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;
@@ -1169,8 +1174,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
    field was covered with no way to scroll to it. --kb carries the measured
    keyboard overlap (see lockViewport) and the sheets sit on top of it. */
 .modal-overlay, .time-edit-overlay, .ai-overlay {
-  height: 100%;
-  height: 100dvh;
+  height: auto;
   padding-bottom: var(--kb, 0px);
   transition: padding-bottom .18s ease-out;
 }
@@ -6055,7 +6059,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v19').catch(() => null);
+    const cache = await caches.open('athletelog-v20').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
