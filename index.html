@@ -820,10 +820,17 @@ body {
 #tabs {
   position:fixed; z-index:90; left:50%; right:auto; width:min(100%, 540px); transform:translateX(-50%);
   bottom:0;
-  display:flex; padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  display:flex; padding:8px 8px max(8px, env(safe-area-inset-bottom));
   border:0; border-radius:28px 28px 0 0;
   background:#ebddc5; box-shadow:0 -6px 28px rgba(46,43,37,.18);
   backdrop-filter:none; -webkit-backdrop-filter:none;
+}
+/* Whatever the viewport does below the bar — a rounding gap, a strip the
+   layout viewport does not cover — is painted in the bar's own colour rather
+   than showing page background through it. Off-screen when there is none. */
+#tabs::after {
+  content:''; position:absolute; left:0; right:0; top:100%;
+  height:80px; background:#ebddc5;
 }
 .tab-btn {
   display:flex; align-items:center; justify-content:center; gap:7px;
@@ -1106,11 +1113,13 @@ html {
   touch-action: manipulation;
 }
 body {
+  /* Pinned by top/bottom, not by a height unit. `height: 100dvh` alongside
+     `bottom: 0` makes the height win, and in a standalone iOS PWA dvh stops
+     short of the home-indicator strip — which left a band of page colour
+     below the tab bar. */
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
   width: 100%;
-  height: 100%;
-  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;
@@ -6046,7 +6055,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v18').catch(() => null);
+    const cache = await caches.open('athletelog-v19').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
