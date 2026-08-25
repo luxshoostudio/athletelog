@@ -1100,6 +1100,24 @@ body {
   background: #fff2eb; color: #8c491a; font-size: 12px; font-weight: 700; line-height: 1.45;
 }
 
+.exercise-rpe { font-variant-numeric: tabular-nums; }
+.exercise-rpe:not(:placeholder-shown) { color: #8c491a; font-weight: 700; }
+
+/* Recipes */
+.recipe-card { padding: 14px 16px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); cursor: pointer; }
+.recipe-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.recipe-card-macros { margin-top: 3px; font-size: 12px; color: #8c491a; font-weight: 700; font-variant-numeric: tabular-nums; }
+.recipe-card-parts { margin-top: 5px; font-size: 11px; color: var(--muted); line-height: 1.5; }
+.recipe-row { display: grid; grid-template-columns: minmax(0,1fr) 76px 34px 34px; gap: 7px; align-items: center; margin-bottom: 8px; }
+.recipe-row .modal-input { margin-bottom: 0; }
+.recipe-qty { text-align: right; font-variant-numeric: tabular-nums; }
+.recipe-unit { color: var(--muted); font-size: 12px; font-weight: 700; }
+.recipe-del { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--dim); font-size: 14px; cursor: pointer; }
+.recipe-totals { margin: 4px 0 16px; padding: 14px 16px; border-radius: 18px; background: #fff2eb; }
+.recipe-totals-label { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.recipe-totals-value { margin-top: 5px; font-size: 13px; font-weight: 700; color: #8c491a; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.recipe-warning { margin-top: 8px; font-size: 11px; color: var(--red); line-height: 1.5; }
+
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
    Three separate iOS behaviours were shifting the canvas:
@@ -1249,6 +1267,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <!-- Action pills -->
         <div class="today-action-row">
           <button class="action-pill" id="plan-pill" onclick="openPlanSheet()">Plan</button>
+          <button class="action-pill" onclick="openRecipeList()">Recipes</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
         </div>
@@ -1635,6 +1654,15 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <button class="barcode-cancel" onclick="closeBarcodeScanner()">Cancel</button>
 </div>
 
+<!-- RECIPES OVERLAY -->
+<div class="ai-overlay" id="recipe-overlay">
+  <div class="ai-header">
+    <button class="ai-close" onclick="closeRecipeOverlay()">✕ Close</button>
+    <div class="ai-title" id="recipe-title">Recipes</div>
+  </div>
+  <div class="plan-body" id="recipe-body"></div>
+</div>
+
 <!-- PHOTO RESULT OVERLAY -->
 <div class="modal-overlay" id="photo-modal">
   <div class="modal-sheet">
@@ -1806,7 +1834,7 @@ function isHoldExercise(name) {
 // Sourced from 2 Areas/Fitness/Food Log/April Food Log.md, in the order she
 // actually ate them that month. Plain names — these go straight into the
 // food search, so an emoji prefix would only have to be stripped again.
-const QUICK = [
+const QUICK_SEED = [
   'Think! Protein Bar',      // ~30 entries in April
   'Protein Shake',           // OWYN, usually with milk
   'Banana',                  // logged at 120–250 g
@@ -1955,6 +1983,8 @@ const DB = {
   'shiitake': {p:2.2,kcal:34,fat:0.5,carbs:6.8,fiber:2.5,unit:'g',qty:100},
   'onion': {p:1.1,kcal:40,fat:0.1,carbs:9.3,fiber:1.7,unit:'g',qty:100},
   'garlic': {p:6.4,kcal:149,fat:0.5,carbs:33.1,fiber:2.1,unit:'g',qty:100},
+  'ginger': {p:1.8,kcal:80,fat:0.8,carbs:17.8,fiber:2,unit:'g',qty:100},
+  'water': {p:0,kcal:0,fat:0,carbs:0,fiber:0,unit:'ml',qty:100},
   'celery': {p:0.7,kcal:14,fat:0.2,carbs:3,fiber:1.6,unit:'g',qty:100},
   'pumpkin': {p:1,kcal:26,fat:0.1,carbs:6.5,fiber:0.5,unit:'g',qty:100},
   'okra': {p:1.9,kcal:33,fat:0.2,carbs:7.5,fiber:3.2,unit:'g',qty:100},
@@ -2265,6 +2295,50 @@ const FOOD_ALIASES = {
   'banana loaf':'banana bread', 'egg custard tart':'egg tart',
 };
 
+// The seed above is where the list starts, not where it stays. What actually
+// gets eaten wins: anything logged often, or logged lately, moves to the top
+// and pushes a seed item off the end. Recency is weighted so a food that
+// enters the rotation this week appears before one eaten twice in April.
+function quickFoods(limit = 18) {
+  const now = Date.now();
+  const scores = new Map();   // lowercase name → { name, score }
+
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    let day;
+    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    if (!day || !Array.isArray(day.food)) continue;
+
+    const ageDays = Math.max(0, (now - keyToDate(key).getTime()) / 86400000);
+    // Halves every three weeks: still counts a month later, barely counts a
+    // season later.
+    const recency = Math.pow(0.5, ageDays / 21);
+
+    for (const entry of day.food) {
+      const name = String(entry.name || '').trim();
+      if (!name) continue;
+      const id = name.toLowerCase();
+      const current = scores.get(id) || { name, score: 0 };
+      current.score += 1 + recency * 2;
+      // Keep the most recent spelling, since that is how she last typed it.
+      if (key >= (current.lastKey || '')) { current.name = name; current.lastKey = key; }
+      scores.set(id, current);
+    }
+  }
+
+  const learned = [...scores.values()].sort((a, b) => b.score - a.score).map(f => f.name);
+  const out = [];
+  const seen = new Set();
+  for (const name of [...learned, ...QUICK_SEED]) {
+    const id = name.toLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(name);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 // ── Name matching ──────────────────────────────────────────────
 // "strawberry" and "strawberries" have to land on the same row, so every
 // name is folded to lowercase singular tokens before it is compared.
@@ -2320,18 +2394,33 @@ function scoreFoodMatch(queryNorm, keyNorm) {
 function searchFoodDb(query, limit = 8) {
   const queryNorm = normFoodName(query);
   if (!queryNorm) return [];
+
+  // Saved recipes rank alongside database entries, so logging one is the same
+  // two taps as logging a banana.
+  const results = [];
+  for (const recipe of loadRecipes()) {
+    const score = scoreFoodMatch(queryNorm, normFoodName(recipe.name));
+    if (score >= 30) results.push({ key: recipe.name, score, item: recipeAsFoodItem(recipe) });
+  }
+
   const bestByKey = new Map();
   for (const [keyNorm, dbKey] of FOOD_INDEX_ENTRIES) {
     const score = scoreFoodMatch(queryNorm, keyNorm);
     if (score < 30) continue;
     if ((bestByKey.get(dbKey) || 0) < score) bestByKey.set(dbKey, score);
   }
-  return [...bestByKey.entries()]
+  for (const [key, score] of bestByKey) {
+    results.push({ key, score, item: { ...DB[key], name: key } });
+  }
+  return results
     // On a tie the longer name is the more specific one: "2 boiled eggs"
-    // should land on `boiled egg`, not on plain `egg`.
-    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length || a[0].localeCompare(b[0]))
-    .slice(0, limit)
-    .map(([key, score]) => ({ key, score, item: { ...DB[key], name: key } }));
+    // should land on `boiled egg`, not on plain `egg`. A recipe outranks a
+    // database entry at equal score — it is the more specific thing she has.
+    .sort((a, b) => b.score - a.score
+      || (b.item.recipe ? 1 : 0) - (a.item.recipe ? 1 : 0)
+      || b.key.length - a.key.length
+      || a.key.localeCompare(b.key))
+    .slice(0, limit);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2550,10 +2639,10 @@ function calculateStreak() {
 // ═══════════════════════════════════════════════════════════════
 function renderDayList() {
 
-  // Populate home quick-add select with QUICK foods
   const homeQS = document.getElementById('home-quick-select');
-  if (homeQS && homeQS.options.length <= 1) {
-    for (const chip of QUICK) {
+  if (homeQS) {
+    homeQS.innerHTML = '<option value="">⭐</option>';
+    for (const chip of quickFoods()) {
       const opt = document.createElement('option');
       opt.value = chip; opt.textContent = chip;
       homeQS.appendChild(opt);
@@ -2650,7 +2739,7 @@ function renderDetailContent() {
   html += `<div class="quick-add-wrapper">
     <select class="quick-add-select" id="detail-quick-chips" onchange="quickAddFood(this.value); this.selectedIndex=0;">
       <option value="">QUICK ADD</option>`;
-  for (const chip of QUICK) {
+  for (const chip of quickFoods()) {
     html += `<option value="${chip.replace(/"/g,'&quot;')}">${chip}</option>`;
   }
   html += `</select></div>`;
@@ -2748,6 +2837,231 @@ function freqFoodTap(name) {
     document.getElementById('qty-name').value = name;
     openQtyModal();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RECIPES
+// Anything cooked from parts. The macros are summed from the food database
+// rather than typed in, so a recipe stays correct when its amounts change,
+// and it becomes searchable like any other food once saved.
+//
+// Stored whole: ingredients and method are kept, not just the totals, so a
+// recipe can be edited later instead of re-entered.
+// ═══════════════════════════════════════════════════════════════
+const RECIPES_KEY = 'alog_recipes';
+
+function loadRecipes() {
+  try { return JSON.parse(localStorage.getItem(RECIPES_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveRecipes(list) {
+  localStorage.setItem(RECIPES_KEY, JSON.stringify(list));
+}
+
+// An ingredient is a name plus an amount in the database's own unit, so
+// "celery 10" means 10 g and "egg 2" means two eggs.
+function recipeIngredientMacros(ingredient) {
+  const match = searchFoodDb(ingredient.name, 1)[0];
+  if (!match) return null;
+  const qty = parseFloat(ingredient.qty);
+  if (!isFinite(qty) || qty <= 0) return null;
+  return { ...calcQty(match.item, qty), matched: match.key, unit: match.item.unit };
+}
+
+function recipeTotals(recipe) {
+  const totals = { p: 0, kcal: 0, fat: 0, carbs: 0, fiber: 0, unresolved: [] };
+  for (const ingredient of recipe.ingredients || []) {
+    const macros = recipeIngredientMacros(ingredient);
+    if (!macros) { if (ingredient.name) totals.unresolved.push(ingredient.name); continue; }
+    totals.p += macros.p; totals.kcal += macros.kcal;
+    totals.fat += macros.fat; totals.carbs += macros.carbs; totals.fiber += macros.fiber;
+  }
+  const servings = Math.max(1, parseFloat(recipe.servings) || 1);
+  return {
+    unresolved: totals.unresolved,
+    servings,
+    perServing: {
+      p: +(totals.p / servings).toFixed(1),
+      kcal: Math.round(totals.kcal / servings),
+      fat: +(totals.fat / servings).toFixed(1),
+      carbs: +(totals.carbs / servings).toFixed(1),
+      fiber: +(totals.fiber / servings).toFixed(1),
+    },
+  };
+}
+
+// Seeded once so it is there on first open rather than needing re-entry.
+// Stored as a recipe, not a fixed food, so changing an amount recomputes it.
+const SEED_RECIPES = [{
+  id: 'seed-green-drink',
+  name: 'Green Drink',
+  servings: 1,
+  ingredients: [
+    { name: 'celery',    qty: '10' },
+    { name: 'pineapple', qty: '5' },
+    { name: 'ginger',    qty: '1' },
+    { name: 'spinach',   qty: '3' },
+    { name: 'water',     qty: '300' },
+  ],
+  method: 'Blend everything with the water.',
+}];
+
+function seedRecipesOnce() {
+  if (localStorage.getItem('alog_recipes_seeded')) return;
+  const existing = loadRecipes();
+  const have = new Set(existing.map(r => r.id));
+  const added = SEED_RECIPES.filter(r => !have.has(r.id));
+  if (added.length) saveRecipes([...existing, ...added]);
+  localStorage.setItem('alog_recipes_seeded', '1');
+}
+
+// ── Editor ─────────────────────────────────────────────────────
+let editingRecipeId = null;
+
+function openRecipeList() {
+  editingRecipeId = null;
+  renderRecipeList();
+  document.getElementById('recipe-overlay').classList.add('open');
+}
+
+function closeRecipeOverlay() {
+  document.getElementById('recipe-overlay').classList.remove('open');
+}
+
+function renderRecipeList() {
+  const recipes = loadRecipes();
+  document.getElementById('recipe-title').textContent = 'Recipes';
+  document.getElementById('recipe-body').innerHTML = `
+    <button class="add-btn" style="width:100%;margin-bottom:16px;" onclick="openRecipeEditor()">+ New recipe</button>
+    ${recipes.length ? recipes.map(r => {
+      const t = recipeTotals(r);
+      return `<div class="recipe-card" onclick="openRecipeEditor('${r.id}')">
+        <div class="recipe-card-name">${escHtml(r.name)}</div>
+        <div class="recipe-card-macros">${t.perServing.p}g protein · ${t.perServing.kcal} kcal per serving${t.servings > 1 ? ` · ${t.servings} servings` : ''}</div>
+        <div class="recipe-card-parts">${escHtml((r.ingredients || []).map(i => i.name).filter(Boolean).join(' · ')) || 'No ingredients yet'}</div>
+      </div>`;
+    }).join('') : '<div class="empty-state">No recipes yet</div>'}`;
+}
+
+function openRecipeEditor(id) {
+  editingRecipeId = id || null;
+  const recipe = id
+    ? loadRecipes().find(r => r.id === id)
+    : { id: uid(), name: '', servings: 1, ingredients: [{ name: '', qty: '' }], method: '' };
+  window._recipeDraft = JSON.parse(JSON.stringify(recipe));
+  renderRecipeEditor();
+}
+
+function renderRecipeEditor() {
+  const draft = window._recipeDraft;
+  const totals = recipeTotals(draft);
+  document.getElementById('recipe-title').textContent = editingRecipeId ? 'Edit recipe' : 'New recipe';
+
+  const rows = draft.ingredients.map((ing, i) => {
+    const macros = recipeIngredientMacros(ing);
+    const unit = macros ? (macros.unit === 'g' || macros.unit === 'ml' ? macros.unit : macros.unit) : '';
+    return `<div class="recipe-row">
+      <input class="modal-input recipe-ing" value="${escHtml(ing.name)}" placeholder="Ingredient"
+             oninput="updateRecipeIngredient(${i},'name',this.value)" list="recipe-food-list">
+      <input class="modal-input recipe-qty" value="${escHtml(ing.qty)}" placeholder="Amt" inputmode="decimal"
+             oninput="updateRecipeIngredient(${i},'qty',this.value)">
+      <span class="recipe-unit">${escHtml(unit)}</span>
+      <button class="recipe-del" onclick="removeRecipeIngredient(${i})" aria-label="Remove">✕</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('recipe-body').innerHTML = `
+    <label class="modal-label">Name</label>
+    <input class="modal-input" value="${escHtml(draft.name)}" placeholder="e.g. Green Drink"
+           oninput="updateRecipeField('name', this.value)">
+
+    <label class="modal-label">Makes how many servings</label>
+    <input class="modal-input" value="${escHtml(draft.servings)}" inputmode="decimal"
+           oninput="updateRecipeField('servings', this.value)">
+
+    <div class="modal-label">Ingredients</div>
+    <datalist id="recipe-food-list">${Object.keys(DB).map(k => `<option value="${escHtml(k)}">`).join('')}</datalist>
+    ${rows}
+    <button class="action-pill" style="width:100%;margin:4px 0 16px;" onclick="addRecipeIngredient()">+ Add ingredient</button>
+
+    <div class="recipe-totals">
+      <div class="recipe-totals-label">Per serving</div>
+      <div class="recipe-totals-value">${totals.perServing.p}g protein · ${totals.perServing.kcal} kcal
+        · ${totals.perServing.fat}g fat · ${totals.perServing.carbs}g carbs · ${totals.perServing.fiber}g fiber</div>
+      ${totals.unresolved.length
+        ? `<div class="recipe-warning">Not in the food database: ${escHtml(totals.unresolved.join(', '))} — these count as zero.</div>`
+        : ''}
+    </div>
+
+    <label class="modal-label">Method</label>
+    <textarea class="modal-input" rows="4" placeholder="How it is made"
+              style="height:auto;resize:vertical;" oninput="updateRecipeField('method', this.value)">${escHtml(draft.method || '')}</textarea>
+
+    <div class="modal-btn-row">
+      ${editingRecipeId ? `<button class="outline-btn" onclick="deleteRecipe()" style="color:var(--red);">Delete</button>` : ''}
+      <button class="outline-btn" onclick="renderRecipeList()">Back</button>
+      <button class="green-btn" onclick="saveRecipeDraft()">Save</button>
+    </div>`;
+}
+
+function updateRecipeField(field, value) {
+  window._recipeDraft[field] = value;
+  if (field === 'servings') renderRecipeTotalsOnly();
+}
+
+function updateRecipeIngredient(index, field, value) {
+  window._recipeDraft.ingredients[index][field] = value;
+  renderRecipeTotalsOnly();
+}
+
+// Re-rendering the whole editor on every keystroke would steal focus.
+function renderRecipeTotalsOnly() {
+  const totals = recipeTotals(window._recipeDraft);
+  const box = document.querySelector('.recipe-totals');
+  if (!box) return;
+  box.innerHTML = `<div class="recipe-totals-label">Per serving</div>
+    <div class="recipe-totals-value">${totals.perServing.p}g protein · ${totals.perServing.kcal} kcal
+      · ${totals.perServing.fat}g fat · ${totals.perServing.carbs}g carbs · ${totals.perServing.fiber}g fiber</div>
+    ${totals.unresolved.length
+      ? `<div class="recipe-warning">Not in the food database: ${escHtml(totals.unresolved.join(', '))} — these count as zero.</div>`
+      : ''}`;
+}
+
+function addRecipeIngredient() {
+  window._recipeDraft.ingredients.push({ name: '', qty: '' });
+  renderRecipeEditor();
+}
+
+function removeRecipeIngredient(index) {
+  window._recipeDraft.ingredients.splice(index, 1);
+  if (!window._recipeDraft.ingredients.length) window._recipeDraft.ingredients.push({ name: '', qty: '' });
+  renderRecipeEditor();
+}
+
+function saveRecipeDraft() {
+  const draft = window._recipeDraft;
+  if (!String(draft.name).trim()) { showToast('Give the recipe a name'); return; }
+  draft.ingredients = draft.ingredients.filter(i => String(i.name).trim());
+  const list = loadRecipes();
+  const at = list.findIndex(r => r.id === draft.id);
+  if (at >= 0) list[at] = draft; else list.push(draft);
+  saveRecipes(list);
+  showToast(`✓ Saved “${draft.name}”`);
+  renderRecipeList();
+}
+
+function deleteRecipe() {
+  saveRecipes(loadRecipes().filter(r => r.id !== editingRecipeId));
+  editingRecipeId = null;
+  renderRecipeList();
+}
+
+// Saved recipes answer the food search like anything else, so logging one is
+// the same two taps as logging a banana.
+function recipeAsFoodItem(recipe) {
+  const t = recipeTotals(recipe);
+  return { ...t.perServing, unit: 'serving', qty: 1, name: recipe.name, recipe: true };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3200,9 +3514,8 @@ function renderWater() {
 function openFreqModal() {
   const container = document.getElementById('freq-modal-pills');
   const logged = getFreqFoods();
-  // Seed with QUICK foods (strip emoji prefix for matching)
-  const quickNames = QUICK.map(q => ({ name: q.replace(/^\S+\s+/, ''), emoji: q.split(' ')[0], count: -1 }));
-  // Merge: logged history first, then QUICK items not already in history
+  const quickNames = QUICK_SEED.map(q => ({ name: q, emoji: '', count: -1 }));
+  // Merge: logged history first, then seed items not already in history
   const loggedNames = new Set(logged.map(f => f.name.toLowerCase()));
   const merged = [
     ...logged.map(f => ({ ...f, emoji: '' })),
@@ -3826,8 +4139,13 @@ function markExerciseEditing(id, input) {
 function updateExerciseField(id, field, value, dayKey) {
   const day = gymDayState(dayKey);
   const exercise = day.gym.exercises.find(item => item.id === id);
-  if (!exercise || !['sets','reps','weight','distance','runTime'].includes(field)) return;
-  exercise[field] = value.trim();
+  if (!exercise || !['sets','reps','weight','distance','runTime','feeling'].includes(field)) return;
+  if (field === 'feeling') {
+    const n = parseFloat(value);
+    exercise.feeling = isFinite(n) && n > 0 && n <= 10 ? n : null;
+  } else {
+    exercise[field] = value.trim();
+  }
   exercise.suggested = false;
   exercise.edited = true;
   saveGymDay(dayKey, day);
@@ -3846,19 +4164,27 @@ function exerciseRowHTML(e, dayKey) {
        oninput="updateExerciseField('${e.id}','${key}',this.value,${d})"
        onfocus="markExerciseEditing('${e.id}',this)">`;
 
+  // RPE belongs on the exercise, not the session: it moves with the load,
+  // which is the whole point of the scale. Accepts halves — 7.5 and 8.5 are
+  // all over the handwritten logs.
+  const rpe = `<input class="exercise-field exercise-rpe${suggestedClass}" value="${escHtml(e.feeling ?? '')}"
+     placeholder="RPE" inputmode="decimal" aria-label="${escHtml(e.name)} RPE"
+     oninput="updateExerciseField('${e.id}','feeling',this.value,${d})"
+     onfocus="markExerciseEditing('${e.id}',this)">`;
+
   let fields;
   if (run) {
-    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Time', 'runTime')}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Time', 'runTime')}${rpe}</div>`;
   } else if (hold) {
-    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-      ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}${rpe}</div>`;
   } else {
-    fields = `<div class="exercise-fields">
-      ${field(e.sets, 'Sets', 'sets')}${field(e.reps, 'Reps', 'reps')}${field(e.weight, 'lbs', 'weight')}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      ${field(e.sets, 'Sets', 'sets')}${field(e.reps, 'Reps', 'reps')}${field(e.weight, 'lbs', 'weight')}${rpe}</div>`;
   }
 
-  const feelBadge = e.feeling ? `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.3);color:var(--sp-green);margin-left:6px;">Feel ${e.feeling}/10</span>` : '';
+  const feelBadge = '';
   const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
             : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
   return `
@@ -6152,6 +6478,7 @@ function migrateWeightsToLbs() {
 
 function init() {
   migrateWeightsToLbs();
+  seedRecipesOnce();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
@@ -6195,7 +6522,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v20').catch(() => null);
+    const cache = await caches.open('athletelog-v21').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
