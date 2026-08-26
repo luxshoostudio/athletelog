@@ -835,9 +835,11 @@ body {
   height:80px; background:#ebddc5;
 }
 .tab-btn {
-  display:flex; align-items:center; justify-content:center; gap:7px;
-  min-height:48px; padding:8px 10px; border:0; border-radius:20px;
+  flex:1; min-width:0;
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  min-height:48px; padding:8px 4px; border:0; border-radius:20px;
   color:#655f57; font-size:11px; letter-spacing:0; text-transform:none;
+  white-space:nowrap;
 }
 .tab-btn.active { color:#8c491a; background:#fff2eb; border:0; }
 .tab-btn:focus-visible, button:focus-visible, select:focus-visible { outline:2px solid #8c491a; outline-offset:2px; }
@@ -1118,6 +1120,34 @@ body {
 .recipe-totals-value { margin-top: 5px; font-size: 13px; font-weight: 700; color: #8c491a; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .recipe-warning { margin-top: 8px; font-size: 11px; color: var(--red); line-height: 1.5; }
 
+/* Check-in */
+.checkin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.checkin-date { font-family: var(--display); font-size: 24px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
+.checkin-scores { padding: 6px 16px; margin-bottom: 4px; border-radius: 20px; background: var(--surface); }
+.checkin-score { display: flex; align-items: center; gap: 10px; padding: 11px 0; }
+.checkin-score + .checkin-score { border-top: 1px solid var(--glass-border); }
+.checkin-score-label { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text); }
+.checkin-score-input {
+  width: 62px; padding: 7px 10px; text-align: right;
+  border: 1px solid var(--glass-border); border-radius: 12px;
+  background: rgba(255,255,255,.45); color: #8c491a;
+  font-family: var(--font); font-weight: 700; font-variant-numeric: tabular-nums;
+  outline: none; -moz-appearance: textfield;
+}
+.checkin-score-input:focus { border-color: #c67139; background: rgba(255,255,255,.78); }
+.checkin-score-max { width: 26px; color: var(--muted); font-size: 12px; font-weight: 700; }
+/* The firework question is the entry, not a field label. */
+.checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
+.checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.checkin-text {
+  width: 100%; padding: 13px 15px; margin-bottom: 4px;
+  border: 1px solid var(--glass-border); border-radius: 18px;
+  background: var(--surface); color: var(--text);
+  font-family: var(--font); font-size: 16px; line-height: 1.6;
+  outline: none; resize: vertical;
+}
+.checkin-text:focus { border-color: #c67139; background: var(--surface-raised); }
+
 /* ══════════════════════════════════════════════════════════════
    VIEWPORT LOCK — the app shell never moves, zooms, or drifts.
    Three separate iOS behaviours were shifting the canvas:
@@ -1385,6 +1415,20 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     </div>
   </div>
 
+
+  <!-- FEELINGS PANEL -->
+  <div id="feelings-panel" class="panel">
+    <div class="panel-inner">
+      <div class="checkin-head">
+        <div>
+          <div class="organic-kicker" id="checkin-kicker">Check-in</div>
+          <div id="checkin-date" class="checkin-date"></div>
+        </div>
+        <button class="outline-btn" onclick="copyCheckin()" style="flex-shrink:0;">Copy</button>
+      </div>
+      <div id="checkin-body"></div>
+    </div>
+  </div>
   <!-- SUMMARY PANEL -->
   <div id="log-panel" class="panel">
     <div class="panel-inner">
@@ -1431,8 +1475,9 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
 <!-- Persistent bottom navigation -->
 <nav id="tabs" aria-label="Main navigation">
-  <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Today</button>
-  <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Gym</button>
+  <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
+  <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
+  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Feelings</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
 
@@ -2493,6 +2538,7 @@ function loadState(key) {
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
     if (s.garminAutoKcal === undefined) s.garminAutoKcal = 0;
+    if (!s.checkin) s.checkin = { scores:{}, firework:'', tomorrow:'', thoughts:'' };
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -2836,6 +2882,163 @@ function freqFoodTap(name) {
     // open manual modal
     document.getElementById('qty-name').value = name;
     openQtyModal();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHECK-IN
+// The same template Lux already keeps in the vault, in the same order and
+// with the same wording, so what is typed here can be pasted straight back.
+//
+// Deliberately absent: any average, trend, streak or verdict on the numbers.
+// The moment this scores her it becomes another exam, which is the thing the
+// practice is meant to avoid. It records; it does not grade.
+// ═══════════════════════════════════════════════════════════════
+const CHECKIN_SCORES = [
+  { key: 'mood',  label: '情绪能量' },
+  { key: 'body',  label: '身体能量' },
+  { key: 'diet',  label: '饮食健康度' },
+  { key: 'focus', label: '专注度' },
+  { key: 'sleep', label: '睡眠质量（昨晚）' },
+];
+
+// Verbatim from the vault template. It is the whole point of the entry —
+// what became real today, not what got finished — so it is shown as the
+// question rather than reduced to a field label.
+const FIREWORK_PROMPT = '今天，哪个本来只在我脑子 / 想象里的东西，变成真的了？';
+const FIREWORK_HINT = '不限产出——读懂一段西语、想通一件事、一个画面动起来都算。一行即可。';
+
+let checkinKey = null;   // which day is open; defaults to today
+
+function checkinDayKey() {
+  return checkinKey || todayKey();
+}
+
+function loadCheckin(key) {
+  const day = loadState(key);
+  return day.checkin || { scores: {}, firework: '', tomorrow: '', thoughts: '' };
+}
+
+function saveCheckin(key, checkin) {
+  const day = loadState(key);
+  day.checkin = checkin;
+  if (key === todayKey()) { state.checkin = checkin; saveState(); }
+  else localStorage.setItem(key, JSON.stringify(day));
+}
+
+function isoDate(key) {
+  const [, y, m, d] = key.split('_');
+  return `${y}-${m}-${d}`;
+}
+
+function setCheckinScore(scoreKey, value) {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  const n = parseFloat(value);
+  // Halves are used throughout the vault log (6.5, 8.5).
+  checkin.scores[scoreKey] = isFinite(n) && n > 0 && n <= 10 ? n : null;
+  saveCheckin(key, checkin);
+}
+
+function setCheckinText(field, value) {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  checkin[field] = value;
+  saveCheckin(key, checkin);
+}
+
+function openCheckinDay(key) {
+  checkinKey = key;
+  renderCheckin();
+}
+
+function renderCheckin() {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  const isToday = key === todayKey();
+
+  const dateEl = document.getElementById('checkin-date');
+  if (dateEl) dateEl.textContent = `${isoDate(key)} Check-In`;
+  const kicker = document.getElementById('checkin-kicker');
+  if (kicker) kicker.textContent = isToday ? 'Today' : 'Editing a past day';
+
+  const scoreRows = CHECKIN_SCORES.map(s => `
+    <div class="checkin-score">
+      <label class="checkin-score-label" for="ci-${s.key}">${s.label}</label>
+      <input class="checkin-score-input" id="ci-${s.key}" inputmode="decimal"
+             value="${checkin.scores[s.key] ?? ''}" placeholder="–"
+             aria-label="${s.label}"
+             oninput="setCheckinScore('${s.key}', this.value)">
+      <span class="checkin-score-max">/10</span>
+    </div>`).join('');
+
+  const past = Object.keys(localStorage)
+    .filter(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k) && k !== todayKey())
+    .sort().reverse()
+    .map(k => ({ key: k, checkin: loadState(k).checkin }))
+    .filter(d => d.checkin && (Object.values(d.checkin.scores || {}).some(v => v != null)
+                               || d.checkin.firework || d.checkin.tomorrow || d.checkin.thoughts))
+    .slice(0, 14);
+
+  document.getElementById('checkin-body').innerHTML = `
+    ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(isoDate(key))} — <a href="#" onclick="openCheckinDay(todayKey());return false;" style="color:inherit;">back to today</a></div>`}
+
+    <div class="section-label">状态（1-10）</div>
+    <div class="checkin-scores">${scoreRows}</div>
+
+    <div class="section-label">今天的礼花 🎆</div>
+    <div class="checkin-prompt">${FIREWORK_PROMPT}</div>
+    <div class="checkin-hint">${FIREWORK_HINT}</div>
+    <textarea class="checkin-text" rows="3" placeholder="一行即可"
+              oninput="setCheckinText('firework', this.value)">${escHtml(checkin.firework || '')}</textarea>
+
+    <div class="section-label">明天的关键动作</div>
+    <textarea class="checkin-text" rows="3" placeholder=""
+              oninput="setCheckinText('tomorrow', this.value)">${escHtml(checkin.tomorrow || '')}</textarea>
+
+    <div class="section-label">今日的思考</div>
+    <textarea class="checkin-text" rows="5" placeholder=""
+              oninput="setCheckinText('thoughts', this.value)">${escHtml(checkin.thoughts || '')}</textarea>
+
+    ${past.length ? `<div class="section-label">History</div>${past.map(d => {
+      const scores = CHECKIN_SCORES.map(s => d.checkin.scores?.[s.key]).filter(v => v != null);
+      return `<div class="past-day-card" onclick="openCheckinDay('${d.key}')">
+        <div style="min-width:0;">
+          <div class="past-day-date">${escHtml(isoDate(d.key))}</div>
+          <div class="past-day-name">${escHtml((d.checkin.firework || '').split('\n')[0] || '—')}</div>
+        </div>
+        <div class="past-day-stats">${scores.length ? scores.join(' · ') : ''}</div>
+        <span class="chevron-right">›</span>
+      </div>`;
+    }).join('')}` : ''}`;
+}
+
+// The vault file is the record; this produces a block that pastes into it
+// unchanged, in the same order and with the same punctuation.
+function checkinAsText(key) {
+  const checkin = loadCheckin(key);
+  const lines = [`# ${isoDate(key)} Check-In`, ' 状态（1-10）'];
+  for (const s of CHECKIN_SCORES) {
+    const v = checkin.scores[s.key];
+    lines.push(`\t- ${s.label}：${v ?? ''} /10`);
+  }
+  const section = (title, body) => {
+    lines.push('', ` ${title}`);
+    for (const line of String(body || '').split('\n')) lines.push(`\t${line}`);
+  };
+  section('今天的礼花 🎆', checkin.firework);
+  section('明天的关键动作', checkin.tomorrow);
+  section('今日的思考', checkin.thoughts);
+  return lines.join('\n');
+}
+
+async function copyCheckin() {
+  const text = checkinAsText(checkinDayKey());
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✓ Copied — paste into 0 Lux Daily Checkin.md', 4000);
+  } catch {
+    showToast('Could not copy');
   }
 }
 
@@ -5421,6 +5624,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       healthOrRelaySync(true);
     }
     if (tab === 'food') { renderDayList(); renderPlanPill(); }
+    if (tab === 'feelings') renderCheckin();
   };
 });
 
@@ -6522,7 +6726,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v21').catch(() => null);
+    const cache = await caches.open('athletelog-v22').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
