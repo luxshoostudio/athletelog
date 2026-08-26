@@ -2331,6 +2331,9 @@ const FOOD_ALIASES = {
   'tuna can':'safe catch tuna can', 'safe catch tuna':'safe catch tuna can',
   'greek yoghurt':'greek yogurt', 'cottage':'cottage cheese', 'shake':'protein shake',
   'americano':'coffee', 'flat white':'latte', 'cappuccino':'latte',
+  'cooked rice':'white rice', 'steamed white rice':'white rice',
+  'green peas':'peas', 'sweet peas':'peas', 'cooked shrimp':'shrimp',
+  'sliced egg white':'egg white', 'red bell pepper':'bell pepper',
   'owyn':'owyn protein shake', 'owyn shake':'owyn protein shake',
   'blood tofu':'duck blood', 'duck blood tofu':'duck blood',
   'liver':'pork liver', 'seaweed snack':'roasted seaweed snack',
@@ -5722,8 +5725,11 @@ function stripInlineMarkup(line) {
     .replace(/\\([\[\]])/g, '$1')         // \[8\] → [8]
     .replace(/\*\*/g, '')
     .replace(/[（(]\s*[\d.]+\s*(kg|lbs?)\s*[）)]/gi, '')  // parenthesised conversions
-    // A one-rep max noted at the end is a record, not the working weight.
-    .replace(/[-–—|·]?\s*1\s*RM\s*[，,:]?\s*[\d.,]+\s*(?:lbs?|kgs?)?\s*$/i, '')
+    // Everything after a 1RM / RM / RP marker is commentary — a record, an
+    // old best, a note about pain — not this set. "…198 lbs - 7.5 — 1RM，230lbs"
+    // was storing 230 as the working weight, and "…— 1RM 12reps wide pullups"
+    // was stealing the rep count. Cut from the marker to the end of the line.
+    .replace(/\s*[-–—|·,]\s*(?:1\s*RM|RM|RP)\b[\s\S]*$/i, '')
     // Her keyboard produces full-width commas mid-number, which split the
     // weight: "132,176，198,220lbs" was read as just "198,220".
     .replace(/，/g, ',')
@@ -5790,6 +5796,14 @@ function readExerciseMeasurements(body, exercise) {
     exercise.unit = 'lbs';
   } else if (bodyweight) {
     exercise.weight = 'bw';
+  } else if (setsMatch) {
+    // "3 sets x 10reps -132-7.5" writes the load with no unit at all. The
+    // last field is the RPE; a bare number before it above 10 can only be a
+    // weight. Ten and under is left alone — it is not worth confusing a
+    // light dumbbell with an RPE.
+    const bare = parts.slice(0, rpe == null ? parts.length : -1)
+      .filter(part => /^[\d.,]+$/.test(part) && parseFloat(part) > 10);
+    if (bare.length) { exercise.weight = bare[bare.length - 1]; exercise.unit = 'lbs'; }
   }
   const isRun = Boolean(distMatch) || isRunExercise(exercise.name);
   if (isRun) {
@@ -6773,7 +6787,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v24').catch(() => null);
+    const cache = await caches.open('athletelog-v25').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
