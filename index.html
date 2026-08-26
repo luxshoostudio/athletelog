@@ -4863,11 +4863,13 @@ function closeRestoreModal() {
 function _importData(data) {
   let count = 0;
   for (const [key, val] of Object.entries(data)) {
-    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) {
-      localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
-      count++;
-    }
+    if (!isBackupKey(key)) continue;
+    localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+    // The count is shown as "restored N days", so only days are counted.
+    if (isDayKey(key)) count++;
   }
+  // A restored file already carries her recipes; do not paste the seed on top.
+  if (data.alog_recipes) localStorage.setItem('alog_recipes_seeded', '1');
   return count;
 }
 
@@ -4951,13 +4953,7 @@ async function restoreFromGist() {
 }
 
 function exportData() {
-  const allData = {};
-  for (const key of Object.keys(localStorage)) {
-    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key) || key === 'claude_api_key') {
-      if (key !== 'claude_api_key') allData[key] = JSON.parse(localStorage.getItem(key));
-    }
-  }
-  const json = JSON.stringify(allData, null, 2);
+  const json = JSON.stringify(collectBackupData(), null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -5331,14 +5327,31 @@ function saveGistToken() {
   syncToGist();
 }
 
-function getAllLogData() {
+// ── What gets backed up ────────────────────────────────────────
+// Day records plus anything else that is *data she created*. Settings,
+// tokens and caches are excluded: they are either secrets or re-derivable.
+// Export, Gist sync and restore all go through here so they cannot drift.
+const BACKUP_EXTRA_KEYS = ['alog_recipes'];
+
+function isDayKey(key) {
+  return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
+}
+
+function isBackupKey(key) {
+  return isDayKey(key) || BACKUP_EXTRA_KEYS.includes(key);
+}
+
+function collectBackupData() {
   const data = {};
   for (const key of Object.keys(localStorage)) {
-    if (/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) {
-      try { data[key] = JSON.parse(localStorage.getItem(key)); } catch {}
-    }
+    if (!isBackupKey(key)) continue;
+    try { data[key] = JSON.parse(localStorage.getItem(key)); } catch {}
   }
   return data;
+}
+
+function getAllLogData() {
+  return collectBackupData();
 }
 
 async function syncToGist(silent = false) {
@@ -6726,7 +6739,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v22').catch(() => null);
+    const cache = await caches.open('athletelog-v23').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
