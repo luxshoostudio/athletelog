@@ -1378,8 +1378,9 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets" inputmode="numeric" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps" inputmode="text" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs" inputmode="text" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Kilometres" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
+            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="Duration" style="display:none" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
+            <input type="text" class="gym-num-input" id="gym-pace" placeholder="Pace /km" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="this.dataset.manual='1'">
             <button class="green-btn" aria-label="Add exercise" onclick="addExercise()">+ Add</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1796,23 +1797,24 @@ const WATER_GOAL_ML = 2500;
 // (app4zOmpexx6EK48F). The app, the vault parser and Airtable must agree on
 // this list or the health agent reads a different history than the app shows.
 const SESSION_TYPES = [
-  'Lower Body', 'Lat & Back', 'Shoulder & Arm',
-  'Handstand Drill', 'Core', 'Running', 'Walking', 'Rest Day', 'Other',
+  'Lower Body', 'Upper', 'Shoulder & Arm',
+  'Handstand Drill', 'Core', 'Running', 'Walking', 'Hiking', 'Resting', 'Other',
 ];
 
 // Same buckets, same order, as `session_type()` in _Data/_parser_gym.py.
 // First match wins: "Lat & Back+5k" is a back session, not a run.
 const SESSION_TYPE_BUCKETS = [
-  ['Rest Day',        ['rest day', 'resting', 'off day', 'recovery day']],
+  ['Resting',         ['rest day', 'resting', 'off day', 'recovery day']],
   ['Lower Body',      ['lower body', 'leg day', 'leg ', 'glute', 'squat day']],
-  ['Lat & Back',      ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body']],
+  ['Upper',           ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body', 'upper']],
   ['Shoulder & Arm',  ['shoulder', 'arm day', 'arm ', 'carving']],
   ['Handstand Drill', ['handstand', 'hand stand']],
   ['Core',            ['core', 'abs']],
   // Walking is checked before running: health plan v3 puts a >8 km walk on
   // the same footing as a run, and "Walking 10K" used to land in Running
   // because of the "10k" keyword.
-  ['Walking',         ['walking', 'walk ', 'hike', 'hiking', 'steps']],
+  ['Hiking',          ['hike', 'hiking', 'trail walk']],
+  ['Walking',         ['walking', 'walk ', 'steps']],
   ['Running',         ['running', 'jog', 'run ', 'marathon', 'km', '10k', '5k']],
 ];
 
@@ -1838,7 +1840,7 @@ const STARTER_TEMPLATES = [
     'L-sit practice', 'Bulgarian split squats on bench',
     'Goblet Squats (heels on plate)', 'Single Leg Press',
   ]},
-  { name:'Lat & Back', exercises:[            // 27 sessions
+  { name:'Upper', exercises:[                 // formerly Lat & Back
     '15min Stretch and Warmup', 'Bent over row', 'Over head thruster', 'Dips',
     'Wide grip pullups with band assist', 'Toe to bar', 'Narrow grip Pull-ups',
   ]},
@@ -1859,6 +1861,9 @@ const STARTER_TEMPLATES = [
     'Hanging knee raises', 'L-Sit holding',
   ]},
   { name:'Running', exercises:[] },           // logged as a heading, no lines
+  { name:'Walking', exercises:[] },
+  { name:'Hiking', exercises:[] },
+  { name:'Resting', exercises:[] },
   { name:'Other', exercises:[] },
 ];
 
@@ -1873,17 +1878,17 @@ function isRunExercise(name) {
   return RUN_EXERCISES_LIST.some(r => n.includes(r));
 }
 
-function calcPacePerMile(miles, timeStr) {
-  if (!miles || !timeStr) return '';
+function calcPacePerKm(km, timeStr) {
+  if (!km || !timeStr) return '';
   const parts = String(timeStr).split(':').map(Number);
   let mins = 0;
   if (parts.length === 3) mins = parts[0] * 60 + parts[1] + parts[2] / 60;
   else if (parts.length === 2) mins = parts[0] * 60 + parts[1];
   else mins = parts[0];
-  if (!mins || !parseFloat(miles)) return '';
-  const pace = mins / parseFloat(miles);
+  if (!mins || !parseFloat(km)) return '';
+  const pace = mins / parseFloat(km);
   const m = Math.floor(pace), s = Math.round((pace - m) * 60);
-  return `${m}:${String(s).padStart(2,'0')}/mi`;
+  return `${m}:${String(s).padStart(2,'0')}/km`;
 }
 
 // Hold-type exercises (track seconds + rounds, not sets × reps)
@@ -4137,9 +4142,9 @@ function getSessionTemplates() {
 
 function shortSessionLabel(name) {
   const fixed = {
-    'Lower Body':'Lower', 'Lat & Back':'Back', 'Shoulder & Arm':'Arms',
+    'Lower Body':'Lower', 'Upper':'Upper', 'Shoulder & Arm':'Arms',
     'Handstand Drill':'Handstand', 'Core':'Core', 'Running':'Run',
-    'Walking':'Walk', 'Rest Day':'Rest', 'Other':'Other',
+    'Walking':'Walking', 'Hiking':'Hiking', 'Resting':'Resting', 'Other':'Other',
   };
   return fixed[name] || String(name).split(' ')[0];
 }
@@ -4189,7 +4194,7 @@ function makePlannedExercise(name) {
   const hold = !run && isHoldExercise(name);
   const exercise = { id:uid(), name, completed:false, run, hold };
   if (last) {
-    ['sets','reps','weight','distance','runTime'].forEach(field => exercise[field] = String(last[field] || ''));
+    ['sets','reps','weight','distance','runTime','pace'].forEach(field => exercise[field] = String(last[field] || ''));
     exercise.lastDate = last.key;
     exercise.suggested = true;
   }
@@ -4247,6 +4252,12 @@ function selectOrganicSession(session) {
   renderFreqExercises();
 }
 
+function selectCustomSession() {
+  const name = prompt('Custom workout name');
+  if (!name || !name.trim()) return;
+  selectOrganicSession(name.trim());
+}
+
 function renderOrganicSessionSegments() {
   const container = document.getElementById('organic-session-segments');
   if (!container) return;
@@ -4254,7 +4265,7 @@ function renderOrganicSessionSegments() {
   const activeSession = canonicalSessionType(state.gym.session || '');
   container.innerHTML = templates.map(template => `
     <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
-  `).join('');
+  `).join('') + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
 }
 
 function renderSessionSuggestions() {
@@ -4298,6 +4309,7 @@ function prefillGymInputs(name) {
   const values = {
     'gym-sets':last?.sets || '', 'gym-reps':last?.reps || '', 'gym-weight':last?.weight || '',
     'gym-distance':last?.distance || '', 'gym-run-time':last?.runTime || '',
+    'gym-pace':last?.pace || calcPacePerKm(last?.distance, last?.runTime) || '',
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.getElementById(id);
@@ -4310,9 +4322,10 @@ function prefillGymInputs(name) {
 }
 
 function resetGymEntryForm() {
-  ['gym-ex-name','gym-sets','gym-reps','gym-weight','gym-distance','gym-run-time'].forEach(id => {
+  ['gym-ex-name','gym-sets','gym-reps','gym-weight','gym-distance','gym-run-time','gym-pace'].forEach(id => {
     const input = document.getElementById(id);
     input.value = '';
+    if (id === 'gym-pace') delete input.dataset.manual;
     input.classList.remove('suggested-value');
   });
   document.getElementById('gym-last-hint').textContent = '';
@@ -4330,6 +4343,8 @@ function addExercise() {
   if (run) {
     exercise.distance = document.getElementById('gym-distance').value.trim();
     exercise.runTime  = document.getElementById('gym-run-time').value.trim();
+    exercise.pace = document.getElementById('gym-pace').value.trim()
+      || calcPacePerKm(exercise.distance, exercise.runTime);
     exercise.run = true;
   } else {
     exercise.sets   = document.getElementById('gym-sets').value.trim();
@@ -4396,7 +4411,7 @@ function markExerciseEditing(id, input) {
 function updateExerciseField(id, field, value, dayKey) {
   const day = gymDayState(dayKey);
   const exercise = day.gym.exercises.find(item => item.id === id);
-  if (!exercise || !['sets','reps','weight','distance','runTime','feeling'].includes(field)) return;
+  if (!exercise || !['sets','reps','weight','distance','runTime','pace','feeling'].includes(field)) return;
   if (field === 'feeling') {
     const n = parseFloat(value);
     exercise.feeling = isFinite(n) && n > 0 && n <= 10 ? n : null;
@@ -4431,8 +4446,8 @@ function exerciseRowHTML(e, dayKey) {
 
   let fields;
   if (run) {
-    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Time', 'runTime')}${rpe}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      ${field(e.distance, 'Km', 'distance')}${field(e.runTime, 'Duration', 'runTime')}${field(e.pace || calcPacePerKm(e.distance, e.runTime), 'Pace /km', 'pace')}${rpe}</div>`;
   } else if (hold) {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}${rpe}</div>`;
@@ -4533,6 +4548,7 @@ function showGymDayDetail(key) {
     .join('');
 
   const completed = (gym.exercises || []).filter(e => e.completed).length;
+  const runningDay = canonicalSessionType(gym.session) === 'Running';
 
   inner.innerHTML = `
     ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(formatKey(key))} — changes save straight to that day.</div>`}
@@ -4547,9 +4563,9 @@ function showGymDayDetail(key) {
     <div class="gym-input-wrap" style="margin-bottom:18px;">
       <input type="text" class="gym-text-input" id="gym-detail-name" placeholder="Exercise name…" autocomplete="off">
       <div class="gym-input-row" style="margin-top:8px;">
-        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="Sets" inputmode="numeric">
-        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="Reps" inputmode="text">
-        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="lbs" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Km' : 'Sets'}" inputmode="decimal">
+        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${runningDay ? 'Duration' : 'Reps'}" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${runningDay ? 'Pace /km' : 'lbs'}" inputmode="text">
         <button class="green-btn" onclick="addExerciseToDay('${key}')"></button>
       </div>
     </div>
@@ -4601,7 +4617,7 @@ function addExerciseToDay(key) {
   const sets   = document.getElementById('gym-detail-sets').value.trim();
   const reps   = document.getElementById('gym-detail-reps').value.trim();
   const weight = document.getElementById('gym-detail-weight').value.trim();
-  if (run) { exercise.distance = sets; exercise.runTime = reps; }
+  if (run) { exercise.distance = sets; exercise.runTime = reps; exercise.pace = weight || calcPacePerKm(sets, reps); }
   else { exercise.sets = sets; exercise.reps = reps; exercise.weight = hold ? '' : weight; }
 
   day.gym.exercises.push(exercise);
@@ -4639,6 +4655,7 @@ function updateGymInputMode() {
   const weightEl   = document.getElementById('gym-weight');
   const distEl     = document.getElementById('gym-distance');
   const timeEl     = document.getElementById('gym-run-time');
+  const paceEl     = document.getElementById('gym-pace');
   if (!repsEl) return;
   const run  = isRunExercise(name);
   const hold = !run && isHoldExercise(name);
@@ -4648,8 +4665,17 @@ function updateGymInputMode() {
   weightEl.style.display = (run || hold) ? 'none' : '';
   distEl.style.display   = run ? '' : 'none';
   timeEl.style.display   = run ? '' : 'none';
+  paceEl.style.display   = run ? '' : 'none';
   if (hold) { setsEl.placeholder = 'Rounds'; repsEl.placeholder = 'Secs'; }
   else      { setsEl.placeholder = 'Sets';   repsEl.placeholder = 'Reps'; }
+}
+
+function updateRunPacePreview() {
+  const distance = document.getElementById('gym-distance')?.value.trim();
+  const duration = document.getElementById('gym-run-time')?.value.trim();
+  const pace = document.getElementById('gym-pace');
+  if (!pace || pace.dataset.manual === '1') return;
+  pace.value = calcPacePerKm(distance, duration);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4761,9 +4787,9 @@ Keep replies concise. All weights are in lbs.`;
 // Rough burn per session type, used only when Garmin has nothing for the day.
 // Keyed on the canonical types so it survives however the session was written.
 const SESSION_BURN = {
-  'Lower Body': 400, 'Lat & Back': 320, 'Shoulder & Arm': 260,
+  'Lower Body': 400, 'Upper': 320, 'Shoulder & Arm': 260,
   'Handstand Drill': 240, 'Core': 220, 'Running': 700,
-  'Walking': 250, 'Rest Day': 0, 'Other': 300,
+  'Walking': 250, 'Hiking': 500, 'Resting': 0, 'Other': 300,
 };
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
@@ -6123,6 +6149,7 @@ function formatExerciseLine(exercise) {
   if (exercise.run) {
     if (exercise.distance) bits.push(exercise.distance);
     if (exercise.runTime) bits.push(exercise.runTime);
+    if (exercise.pace) bits.push(exercise.pace);
   } else if (exercise.hold) {
     if (exercise.sets) bits.push(`${exercise.sets} sets`);
     if (exercise.reps) bits.push(`${exercise.reps}sec`);
