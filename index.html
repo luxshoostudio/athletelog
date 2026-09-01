@@ -2604,6 +2604,10 @@ let aiHistory = [];
 let aiStreaming = false;
 let recognition = null;
 let voiceActive = false;
+let mediaRecorder = null;
+let voiceMediaStream = null;
+let voiceChunks = [];
+let voiceStopTimer = null;
 
 // ═══════════════════════════════════════════════════════════════
 // DATE HELPERS
@@ -3947,20 +3951,29 @@ function showToast(msg, dur = 3000) {
   setTimeout(() => t.remove(), dur);
 }
 
-function startVoice(targetInputId, btnId, onTranscript) {
-  // Always reset stuck state first
-  voiceActive = false;
-  if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
-
+async function startVoice(targetInputId, btnId, onTranscript) {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   const btn = document.getElementById(btnId);
   const input = document.getElementById(targetInputId);
 
-  if (!SpeechRec) {
-    showToast('🎤 Tap the mic key on your keyboard to dictate');
-    if (input) input.focus();
+  // The same button stops an active recording instead of accidentally
+  // starting a second recognizer over it.
+  if (voiceActive) {
+    if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+    else stopVoice(btnId);
     return;
   }
+
+  // Web Speech is missing or unreliable in installed iPhone PWAs. Record a
+  // short clip there and use OpenAI transcription, which accepts m4a/webm.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS || !SpeechRec) {
+    await startRecordedVoice(targetInputId, btnId, onTranscript);
+    return;
+  }
+
+  if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
 
   const rec = new SpeechRec();
   recognition = rec;
@@ -4003,6 +4016,88 @@ function startVoice(targetInputId, btnId, onTranscript) {
     showToast('🎤 Tap mic key on keyboard to dictate');
     if (input) input.focus();
   }
+}
+
+async function startRecordedVoice(targetInputId, btnId, onTranscript) {
+  const input = document.getElementById(targetInputId);
+  const btn = document.getElementById(btnId);
+  if (!getOpenAIKey()) {
+    pendingApiKeyAction = { type: btnId === 'feeling-voice-btn' ? 'feeling-voice-start' : btnId === 'voice-btn' ? 'detail-voice-start' : 'food-voice-start' };
+    openApiKeyModal();
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    showToast('Microphone recording is not available. Use keyboard dictation.', 5000);
+    if (input) input.focus();
+    return;
+  }
+
+  try {
+    voiceMediaStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    const preferred = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm']
+      .find(type => MediaRecorder.isTypeSupported?.(type));
+    mediaRecorder = preferred
+      ? new MediaRecorder(voiceMediaStream, { mimeType:preferred })
+      : new MediaRecorder(voiceMediaStream);
+    voiceChunks = [];
+    mediaRecorder.ondataavailable = event => { if (event.data?.size) voiceChunks.push(event.data); };
+    mediaRecorder.onerror = () => {
+      cleanupRecordedVoice(btnId);
+      showToast('Could not record audio. Check microphone permission.', 5000);
+    };
+    mediaRecorder.onstop = async () => {
+      clearTimeout(voiceStopTimer);
+      const mime = mediaRecorder?.mimeType || voiceChunks[0]?.type || 'audio/webm';
+      const audio = new Blob(voiceChunks, { type:mime });
+      cleanupRecordedVoice(btnId);
+      if (!audio.size) { showToast('No audio recorded. Try again.'); return; }
+      showToast('Transcribing voice…', 10000);
+      try {
+        const transcript = await transcribeVoice(audio, mime);
+        if (!transcript) throw new Error('No speech detected');
+        if (onTranscript) onTranscript(transcript);
+        else if (input) { input.value = transcript; input.dispatchEvent(new Event('input')); }
+      } catch (err) {
+        showToast('Voice transcription failed: ' + err.message, 5000);
+      }
+    };
+    mediaRecorder.start();
+    voiceActive = true;
+    if (btn) { btn.classList.add('recording'); btn.setAttribute('aria-label', 'Stop recording'); }
+    showToast('🎤 Listening · tap again to finish', 4500);
+    voiceStopTimer = setTimeout(() => {
+      if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+    }, 45000);
+  } catch (err) {
+    cleanupRecordedVoice(btnId);
+    showToast(err.name === 'NotAllowedError'
+      ? 'Mic blocked. Open Settings › Safari › Microphone'
+      : 'Could not start microphone: ' + err.message, 5000);
+  }
+}
+
+function cleanupRecordedVoice(btnId) {
+  clearTimeout(voiceStopTimer);
+  voiceStopTimer = null;
+  voiceMediaStream?.getTracks().forEach(track => track.stop());
+  voiceMediaStream = null;
+  mediaRecorder = null;
+  voiceActive = false;
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.remove('recording');
+}
+
+async function transcribeVoice(blob, mime) {
+  const form = new FormData();
+  const extension = /mp4|m4a/i.test(mime) ? 'm4a' : 'webm';
+  form.append('file', blob, `athletelog-voice.${extension}`);
+  form.append('model', 'gpt-4o-mini-transcribe');
+  const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method:'POST', headers:{ Authorization:'Bearer ' + getOpenAIKey() }, body:form,
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error?.message || `HTTP ${resp.status}`);
+  return String(data.text || '').trim();
 }
 
 function stopVoice(btnId) {
@@ -4057,7 +4152,13 @@ async function organizeSpokenFood(transcript) {
 }
 function toggleFeelingVoice() {
   startVoice(null, 'feeling-voice-btn', transcript => {
-    const normalized = transcript.toLowerCase().replace('point', '.');
+    const wordNumbers = { one:'1', two:'2', three:'3', four:'4', five:'5', six:'6', seven:'7', eight:'8', nine:'9', ten:'10' };
+    const chineseNumbers = { 一:'1', 二:'2', 三:'3', 四:'4', 五:'5', 六:'6', 七:'7', 八:'8', 九:'9', 十:'10' };
+    const normalized = transcript.toLowerCase()
+      .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/g, word => wordNumbers[word])
+      .replace(/[一二三四五六七八九十]/g, word => chineseNumbers[word])
+      .replace(/point|点/g, '.')
+      .replace(/\s*\.\s*/g, '.');
     const match = normalized.match(/(?:feeling|rpe|feel)?\s*(\d+(?:\.\d)?)/i);
     const value = match ? parseFloat(match[1]) : NaN;
     if (!isFinite(value) || value < 1 || value > 10) { showToast('Say a feeling from 1 to 10'); return; }
@@ -5962,6 +6063,9 @@ function saveApiKey() {
     else if (action.type === 'barcode') document.getElementById('barcode-input').click();
     else if (action.type === 'estimate') estimateFoodWithAI(action.query);
     else if (action.type === 'food-voice') organizeSpokenFood(action.transcript);
+    else if (action.type === 'food-voice-start') toggleFoodVoice();
+    else if (action.type === 'detail-voice-start') toggleVoice();
+    else if (action.type === 'feeling-voice-start') toggleFeelingVoice();
     else if (action.type === 'life-summary') generateLifeCoachSummary();
   }
 }
@@ -6763,6 +6867,7 @@ function askCoachAboutPlan() {
 //     iPhones fall back to. Slower and costs a call, but it works.
 // ═══════════════════════════════════════════════════════════════
 const OFF_PRODUCT_URL = 'https://world.openfoodfacts.org/api/v2/product/';
+const USDA_SEARCH_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 let barcodeStream = null;
 let barcodeLoopId = null;
 
@@ -6922,7 +7027,7 @@ async function lookUpBarcode(code) {
     const resp = await fetch(`${OFF_PRODUCT_URL}${encodeURIComponent(code)}.json?${params}`);
     const data = await resp.json();
     if (data.status !== 1 || !data.product) {
-      showBarcodeSheet(`Barcode ${code} is not in Open Food Facts. Add it by name instead.`, true);
+      await lookUpUsdaBarcode(code);
       return;
     }
     const product = data.product;
@@ -6933,18 +7038,7 @@ async function lookUpBarcode(code) {
     // Sparkling water really is 0 kcal. Test whether the field is *present*,
     // not whether it is positive, or every zero-calorie product looks broken.
     if (n['energy-kcal_100g'] === undefined && n['energy-kcal_serving'] === undefined) {
-      showBarcodeSheet('');
-      document.getElementById('qty-search-results').innerHTML = `
-        <div style="padding:12px 0 4px;font-size:13px;color:var(--muted);line-height:1.6;">
-          Found <strong style="color:var(--text);">${escHtml(label)}</strong>, but Open Food Facts
-          has no nutrition for it.
-        </div>
-        <div class="search-result-item" onclick="estimateFoodWithAI('${escHtml(label)}')">
-          <div class="search-result-name">Estimate it with AI</div>
-        </div>
-        <div class="search-result-item" onclick="showManualForm('${escHtml(label)}')">
-          <div class="search-result-name">+ Enter manually</div>
-        </div>`;
+      await lookUpUsdaBarcode(code, label);
       return;
     }
     const item = {
@@ -6969,8 +7063,90 @@ async function lookUpBarcode(code) {
       amount.dispatchEvent(new Event('input', { bubbles: true }));
     }
   } catch (err) {
-    showBarcodeSheet('Lookup failed: ' + err.message, true);
+    await lookUpUsdaBarcode(code).catch(() => showMissingBarcode(code));
   }
+}
+
+function normalizedBarcode(value) {
+  return String(value || '').replace(/\D/g, '').replace(/^0+/, '');
+}
+
+function usdaNutrient(food, id, name) {
+  const nutrient = (food.foodNutrients || []).find(item =>
+    +item.nutrientId === id || String(item.nutrientName || '').toLowerCase() === name
+  );
+  return +(nutrient?.value || 0);
+}
+
+// Open Food Facts is strongest for globally scanned products; USDA's Global
+// Branded Foods database is a useful second source for US private-label UPCs.
+async function lookUpUsdaBarcode(code, fallbackLabel = '') {
+  showBarcodeSheet(`Checking USDA branded foods for ${code}…`);
+  try {
+    const apiKey = localStorage.getItem('usda_api_key') || 'DEMO_KEY';
+    const params = new URLSearchParams({
+      api_key:apiKey, query:String(code), dataType:'Branded', pageSize:'25',
+      sortBy:'publishedDate', sortOrder:'desc',
+    });
+    const resp = await fetch(`${USDA_SEARCH_URL}?${params}`);
+    if (!resp.ok) throw new Error(`USDA HTTP ${resp.status}`);
+    const data = await resp.json();
+    const target = normalizedBarcode(code);
+    const foods = data.foods || [];
+    const food = foods.find(item => normalizedBarcode(item.gtinUpc) === target)
+      || (foods.length === 1 ? foods[0] : null);
+    if (!food) { showMissingBarcode(code, fallbackLabel); return false; }
+
+    const hasEnergy = (food.foodNutrients || []).some(item =>
+      +item.nutrientId === 1008 || String(item.nutrientName || '').toLowerCase() === 'energy'
+    );
+    const kcal = usdaNutrient(food, 1008, 'energy');
+    if (!hasEnergy || !isFinite(kcal)) {
+      showMissingBarcode(code, fallbackLabel || food.description);
+      return false;
+    }
+    const brand = food.brandName || food.brandOwner || '';
+    const label = [food.description, brand].filter(Boolean).join(' · ');
+    const item = {
+      name:label || fallbackLabel || code,
+      p:+usdaNutrient(food, 1003, 'protein').toFixed(1),
+      kcal:Math.round(kcal),
+      fat:+usdaNutrient(food, 1004, 'total lipid (fat)').toFixed(1),
+      carbs:+usdaNutrient(food, 1005, 'carbohydrate, by difference').toFixed(1),
+      fiber:+usdaNutrient(food, 1079, 'fiber, total dietary').toFixed(1),
+      unit:'g', qty:100, source:'USDA FoodData Central', barcode:String(code),
+    };
+    openQtyModalWithItem(item, item.name);
+
+    const servingSize = parseFloat(food.servingSize);
+    const servingUnit = String(food.servingSizeUnit || '').toLowerCase();
+    if (servingSize > 0 && /^(g|gram|ml|milliliter)/.test(servingUnit)) {
+      const amount = document.getElementById('qty-amount');
+      amount.value = Math.round(servingSize);
+      amount.dispatchEvent(new Event('input', { bubbles:true }));
+    }
+    return true;
+  } catch {
+    showMissingBarcode(code, fallbackLabel);
+    return false;
+  }
+}
+
+function showMissingBarcode(code, label = '') {
+  showBarcodeSheet('');
+  const knownLabel = String(label || '').trim();
+  document.getElementById('qty-search-results').innerHTML = `
+    <div style="padding:12px 0 4px;font-size:13px;color:var(--muted);line-height:1.6;">
+      Barcode <strong style="color:var(--text);">${escHtml(code)}</strong> was not found in
+      Open Food Facts or USDA Branded Foods.${knownLabel ? ` The product name found was <strong style="color:var(--text);">${escHtml(knownLabel)}</strong>.` : ''}
+    </div>
+    ${knownLabel ? `<div class="search-result-item" onclick="estimateFoodWithAI('${escHtml(knownLabel)}')">
+      <div class="search-result-name">Estimate ${escHtml(knownLabel)} with AI</div>
+      <div class="search-result-macros">Fallback estimate when no verified label data exists</div>
+    </div>` : ''}
+    <div class="search-result-item" onclick="showManualForm('${escHtml(knownLabel)}')">
+      <div class="search-result-name">+ Add product name or nutrition label</div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -7104,7 +7280,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v27').catch(() => null);
+    const cache = await caches.open('athletelog-v28').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
