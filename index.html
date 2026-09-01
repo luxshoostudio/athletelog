@@ -873,7 +873,6 @@ body {
 }
 .action-pill { min-height:40px; padding:9px 10px; font-size:12px; letter-spacing:0; text-transform:none; }
 .action-pill:active, .outline-btn:active, .freq-pill:active { color:#8c491a; background:#fff2eb; }
-#water-row { display:flex; justify-content:flex-end; margin:-6px 0 16px; }
 .section-label { margin:20px 0 10px; font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--muted); }
 #home-today-food .home-food-item, .past-day-card, .gym-history-card, .exercise-row {
   padding:13px 14px; margin-bottom:8px; background:var(--surface); border:0;
@@ -1360,16 +1359,12 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
         <!-- Action pills -->
         <div class="today-action-row">
-          <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
-          <button class="action-pill" onclick="triggerPhoto()">Photo</button>
-          <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
-        </div>
-
-        <!-- Water tracker -->
-        <div id="water-row">
           <button class="water-add-icon" id="water-add-btn" onclick="addWater(500)" title="Water · Add 500 ml" aria-label="Add 500 millilitres of water">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5S5.5 9.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 9.5 12 2.5 12 2.5Zm0 16.5a4 4 0 0 1-4-4c0-2.5 2.3-5.8 4-7.9 1.7 2.1 4 5.4 4 7.9a4 4 0 0 1-4 4Z"/></svg>
           </button>
+          <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
+          <button class="action-pill" onclick="triggerPhoto()">Photo</button>
+          <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
         </div>
 
         <!-- Today's food entries (inline) -->
