@@ -1293,7 +1293,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             </select>
           </div>
           <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food or describe a meal…" autocomplete="off" style="flex:1;">
-          <button class="action-pill" id="home-voice-btn" onclick="toggleFoodVoice()" title="Describe food by voice" aria-label="Describe food by voice">🎤</button>
+          <button class="action-pill" id="home-voice-btn" onclick="toggleFoodVoice()" title="Describe food by voice" aria-label="Describe food by voice">Voice</button>
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">Add</button>
         </div>
 
@@ -1386,7 +1386,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="feeling-label">Feel</span>
             <div class="feeling-row" id="feeling-row"></div>
-            <button class="action-pill" id="feeling-voice-btn" onclick="toggleFeelingVoice()" title="Say your RPE, for example: feeling seven point five">🎤</button>
+            <button class="action-pill" id="feeling-voice-btn" onclick="toggleFeelingVoice()" title="Say your RPE, for example: feeling seven point five">Voice</button>
             <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
           </div>
           <button class="outline-btn" onclick="openAI('gym')">Ask coach</button>
@@ -3796,7 +3796,7 @@ function startVoice(targetInputId, btnId, onTranscript) {
 
   rec.onstart = () => {
     voiceActive = true;
-    if (btn) { btn.classList.add('recording'); btn.innerHTML = '🔴'; }
+    if (btn) { btn.classList.add('recording'); btn.textContent = 'Listening…'; }
     showToast('🎤 Listening…', 10000);
   };
 
@@ -3836,7 +3836,7 @@ function stopVoice(btnId) {
   document.querySelectorAll('.nm-toast').forEach(t => t.remove());
   const id = btnId || 'voice-btn';
   const btn = document.getElementById(id);
-  if (btn) { btn.classList.remove('recording'); btn.innerHTML = '🎤'; }
+  if (btn) { btn.classList.remove('recording'); btn.textContent = 'Voice'; }
   try { recognition && recognition.abort(); } catch {}
   recognition = null;
 }
