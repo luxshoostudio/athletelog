@@ -792,12 +792,18 @@ body {
 .organic-kicker { font-size:11px; line-height:1; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
 #header-date { font-family:var(--display); font-size:26px; line-height:1.08; font-weight:400; color:var(--text); }
 .organic-header-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+#last-period-label {
+  min-height:34px; display:flex; align-items:center; padding:8px 12px;
+  border-radius:999px; background:#fff; color:#6e6e73;
+  font-size:11px; font-weight:700; white-space:nowrap;
+}
 #period-btn {
   border:0; border-radius:999px; padding:8px 12px; min-height:34px;
   font-family:var(--font); font-size:11px; font-weight:700; letter-spacing:0;
   text-transform:none; white-space:nowrap;
 }
-#period-btn { color:#8c491a; background:#fff2eb; cursor:pointer; }
+#period-btn { color:#ff2d55; background:#ffebef; cursor:pointer; }
+#period-btn.is-on { color:#fff; background:#ff2d55; }
 .organic-macro-hero {
   display:flex; align-items:center; gap:20px; padding:22px 20px; margin-bottom:18px;
   border-radius:32px; background:var(--surface); box-shadow:var(--glass-shadow);
@@ -980,6 +986,7 @@ body {
   .panel-inner, .day-list-inner { padding-left:16px; padding-right:16px; }
   .organic-header-row { flex-direction:column; align-items:stretch; gap:12px; }
   .organic-header-actions { width:100%; max-width:none; justify-content:flex-start; }
+  #last-period-label { min-width:0; max-width:calc(100% - 82px); overflow:hidden; text-overflow:ellipsis; }
   #period-btn { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .organic-macro-hero { gap:14px; padding:18px 16px; }
   #protein-ring-wrap, #protein-ring-wrap svg { width:108px; height:108px; }
@@ -1331,7 +1338,8 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
               <div id="header-date">Today</div>
             </div>
             <div class="organic-header-actions">
-              <button id="period-btn">Period: No</button>
+              <span id="last-period-label">Last period · —</span>
+              <button id="period-btn" aria-pressed="false">Turn on</button>
             </div>
           </div>
           <div class="organic-macro-hero">
@@ -2807,7 +2815,7 @@ function getPeriodForecast() {
   const last = cycles[cycles.length - 1];
   const next = new Date(last.start);
   next.setDate(next.getDate() + cycleDays);
-  return { last, next, cycleDays };
+  return { cycles, last, next, cycleDays };
 }
 
 function shortPeriodDate(date) {
@@ -2822,14 +2830,17 @@ function periodRange(cycle) {
 
 function renderPeriodStatus() {
   const button = document.getElementById('period-btn');
+  const label = document.getElementById('last-period-label');
   const forecast = getPeriodForecast();
-  if (!forecast) {
-    button.textContent = state.period ? 'Period · Today' : 'Period · Add date';
-    button.title = 'Tap to mark today as a period day';
-    return;
-  }
-  button.textContent = `Last ${periodRange(forecast.last)} · Next ${shortPeriodDate(forecast.next)}`;
-  button.title = `${state.period ? 'Today is marked as a period day. ' : ''}Estimated ${forecast.cycleDays}-day cycle. Tap to toggle today.`;
+  const previousCycle = forecast
+    ? (state.period ? forecast.cycles[forecast.cycles.length - 2] : forecast.last)
+    : null;
+  label.textContent = previousCycle ? `Last period · ${periodRange(previousCycle)}` : 'Last period · —';
+  label.title = previousCycle ? `Previous period: ${periodRange(previousCycle)}` : 'No previous period recorded';
+  button.textContent = state.period ? 'Turn off' : 'Turn on';
+  button.classList.toggle('is-on', state.period);
+  button.setAttribute('aria-pressed', state.period ? 'true' : 'false');
+  button.title = state.period ? 'Today is marked as a period day' : 'Mark today as a period day';
 }
 
 function checkPeriodReminder() {
@@ -5802,6 +5813,7 @@ document.getElementById('period-btn').onclick = () => {
   state.period = !state.period;
   saveState();
   renderHeader();
+  showToast(state.period ? 'Period turned on for today' : 'Period turned off for today');
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -7092,7 +7104,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v26').catch(() => null);
+    const cache = await caches.open('athletelog-v27').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
