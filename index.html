@@ -1300,7 +1300,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <!-- Action pills -->
         <div class="today-action-row">
           <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
-          <button class="action-pill" onclick="openRecipeList()">Recipes</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
         </div>
@@ -2466,13 +2465,7 @@ function searchFoodDb(query, limit = 8) {
   const queryNorm = normFoodName(query);
   if (!queryNorm) return [];
 
-  // Saved recipes rank alongside database entries, so logging one is the same
-  // two taps as logging a banana.
   const results = [];
-  for (const recipe of loadRecipes()) {
-    const score = scoreFoodMatch(queryNorm, normFoodName(recipe.name));
-    if (score >= 30) results.push({ key: recipe.name, score, item: recipeAsFoodItem(recipe) });
-  }
 
   const bestByKey = new Map();
   for (const [keyNorm, dbKey] of FOOD_INDEX_ENTRIES) {
@@ -6288,12 +6281,12 @@ function todayPlanEntry() {
   return entry ? { ...entry, plan } : null;
 }
 
-// The pill carries the letter when today is scheduled: "Plan · C".
+// AI Coach may use the synced plan as context, but the feature is always
+// presented as a coach rather than as a separate Plan destination.
 function renderPlanPill() {
   const pill = document.getElementById('plan-pill');
   if (!pill) return;
-  const entry = todayPlanEntry();
-  pill.textContent = entry ? `Plan · ${entry.template}` : 'Plan';
+  pill.textContent = 'AI Coach';
 }
 
 async function planAutoSync(silent = true) {
@@ -6801,7 +6794,6 @@ function migrateWeightsToLbs() {
 
 function init() {
   migrateWeightsToLbs();
-  seedRecipesOnce();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
