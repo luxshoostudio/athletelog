@@ -1292,13 +1292,14 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
               <option value="">⭐</option>
             </select>
           </div>
-          <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food…" autocomplete="off" style="flex:1;">
+          <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food or describe a meal…" autocomplete="off" style="flex:1;">
+          <button class="action-pill" id="home-voice-btn" onclick="toggleFoodVoice()" title="Describe food by voice" aria-label="Describe food by voice">🎤</button>
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">Add</button>
         </div>
 
         <!-- Action pills -->
         <div class="today-action-row">
-          <button class="action-pill" id="plan-pill" onclick="openPlanSheet()">Plan</button>
+          <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
           <button class="action-pill" onclick="openRecipeList()">Recipes</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
@@ -1385,6 +1386,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="feeling-label">Feel</span>
             <div class="feeling-row" id="feeling-row"></div>
+            <button class="action-pill" id="feeling-voice-btn" onclick="toggleFeelingVoice()" title="Say your RPE, for example: feeling seven point five">🎤</button>
             <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
           </div>
           <button class="outline-btn" onclick="openAI('gym')">Ask coach</button>
@@ -1403,6 +1405,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
         <!-- Past gym sessions history -->
         <div class="section-label" style="margin-top:8px">History</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="date" class="modal-input" id="gym-history-date" style="margin:0;flex:1;">
+          <button class="outline-btn" onclick="openGymDate()">Add / edit date</button>
+        </div>
         <div id="gym-history-list"></div>
       </div>
     </div>
@@ -1439,7 +1445,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
           <div class="summary-tools">
             <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">Garmin</button>
-            <button class="outline-btn" onclick="openGymIoModal()" style="padding:7px 12px;font-size:10px;" id="gymio-btn">Gym log</button>
             <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">Sync</button>
             <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">Save</button>
           </div>
@@ -1456,12 +1461,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       <div class="card">
         <div class="card-header"><span class="card-title">Goals</span></div>
         <div class="card-body" id="goal-bars"></div>
-      </div>
-
-      <!-- Today's training -->
-      <div class="card" id="summary-training-card">
-        <div class="card-header"><span class="card-title">Training</span></div>
-        <div class="card-body" id="summary-training-body"></div>
       </div>
 
       <!-- 14-day history -->
@@ -1586,6 +1585,28 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 </div>
 
 <!-- GARMIN MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Save AthleteLog</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Choose the dates included in this backup.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label class="modal-label">From</label><input type="date" class="modal-input" id="export-from"></div>
+      <div><label class="modal-label">To</label><input type="date" class="modal-input" id="export-to"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="action-pill" onclick="setExportRange(7)">Past 7 days</button>
+      <button class="action-pill" onclick="setExportRange(14)">14 days</button>
+      <button class="action-pill" onclick="setExportRange(30)">30 days</button>
+      <button class="action-pill" onclick="setExportRange(0)">All</button>
+    </div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeExportModal()">Cancel</button>
+      <button class="green-btn" onclick="confirmExportData()">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- GARMIN MODAL -->
 <div class="modal-overlay" id="garmin-modal">
   <div class="modal-sheet">
     <div class="modal-title" id="garmin-modal-title">⌚ Garmin</div>
@@ -1656,10 +1677,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <!-- API KEY MODAL -->
 <div class="modal-overlay" id="api-key-modal">
   <div class="modal-sheet">
-    <div class="modal-title">🤖 Claude AI Setup</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter your Anthropic API key to enable AI chat. Your key is stored locally only.</p>
+    <div class="modal-title">🤖 OpenAI Setup</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter an OpenAI API key for AI Coach, food voice cleanup and photo recognition. The key stays on this device. For a published app, use a server-side proxy instead.</p>
     <label class="modal-label">API Key</label>
-    <input type="password" class="modal-input" id="api-key-input" placeholder="sk-ant-...">
+    <input type="password" class="modal-input" id="api-key-input" placeholder="sk-...">
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeApiKeyModal()">Cancel</button>
       <button class="green-btn" onclick="saveApiKey()">Save & Open Chat</button>
@@ -2715,6 +2736,10 @@ function renderDayList() {
     const dm = sumMacros(s.food);
     const card = document.createElement('div');
     card.className = 'past-day-card';
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
+    card.onclick = () => showDayDetail(key);
+    card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') showDayDetail(key); };
     card.innerHTML = `
       <div>
         <div class="past-day-date">${formatKey(key)}</div>
@@ -3304,7 +3329,7 @@ async function resolveFoodQuery(query) {
 // home baking, a dish from a restaurant, anything regional. Rather than make
 // her guess the macros, ask the model that already reads her food photos.
 async function estimateFoodWithAI(query) {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     pendingApiKeyAction = { type: 'estimate', query };
     openApiKeyModal();
@@ -3315,25 +3340,9 @@ async function estimateFoodWithAI(query) {
   if (box) box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 0;">Estimating ${escHtml(query)}…</div>`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 256,
-        messages: [{
-          role: 'user',
-          content: `Give typical nutrition for "${query}". Reply ONLY with JSON: {"name":"…","unit":"g","qty":100,"p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}. Use per-100g values with unit "g" for anything measured by weight; for a countable item use a unit like "slice" or "piece" with qty 1 and values for one of them.`,
-        }],
-      }),
-    });
-    if (!resp.ok) throw new Error('API error ' + resp.status);
-    const text = (await resp.json()).content[0].text;
+    const text = await callOpenAI([
+      { role:'user', content:[{ type:'input_text', text:`Give typical nutrition for "${query}". Reply ONLY with JSON: {"name":"…","unit":"g","qty":100,"p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}. Prefer values for the edible cooked form. Use per-100g values with unit "g" for weighted foods; for a countable item use one realistic serving. This is an estimate, not laboratory data.` }] }
+    ], 'You are a precise nutrition data assistant. Keep calories consistent with protein, carbohydrate and fat.', 300);
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('No usable answer');
     const guess = JSON.parse(match[0]);
@@ -3342,7 +3351,7 @@ async function estimateFoodWithAI(query) {
       name: guess.name || query,
       p: +guess.p || 0, kcal: Math.round(+guess.kcal || 0), fat: +guess.fat || 0,
       carbs: +guess.carbs || 0, fiber: +guess.fiber || 0,
-      unit: guess.unit || 'g', qty: +guess.qty || 100,
+      unit: guess.unit || 'g', qty: +guess.qty || 100, source:'OpenAI estimate', estimated:true,
     };
     openQtyModalWithItem(item, item.name);
   } catch (err) {
@@ -3766,7 +3775,7 @@ function showToast(msg, dur = 3000) {
   setTimeout(() => t.remove(), dur);
 }
 
-function startVoice(targetInputId, btnId) {
+function startVoice(targetInputId, btnId, onTranscript) {
   // Always reset stuck state first
   voiceActive = false;
   if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
@@ -3795,7 +3804,8 @@ function startVoice(targetInputId, btnId) {
 
   rec.onresult = (e) => {
     const t = e.results[0][0].transcript;
-    if (input) { input.value = t; input.dispatchEvent(new Event('input')); }
+    if (onTranscript) onTranscript(t);
+    else if (input) { input.value = t; input.dispatchEvent(new Event('input')); }
     showToast('✓ ' + t, 2000);
     stopVoice(btnId);
   };
@@ -3834,9 +3844,59 @@ function stopVoice(btnId) {
 }
 
 function toggleVoice() { startVoice('food-text', 'voice-btn'); }
+function toggleFoodVoice() {
+  startVoice('home-food-text', 'home-voice-btn', transcript => {
+    const input = document.getElementById('home-food-text');
+    input.value = transcript;
+    input.dispatchEvent(new Event('input'));
+    organizeSpokenFood(transcript);
+  });
+}
+
+async function organizeSpokenFood(transcript) {
+  if (!getOpenAIKey()) {
+    pendingApiKeyAction = { type:'food-voice', transcript };
+    openApiKeyModal();
+    return;
+  }
+  showToast('AI is organizing your meal…', 10000);
+  try {
+    const text = await callOpenAI([{ role:'user', content:[{ type:'input_text', text:transcript }] }],
+      'Turn the spoken meal description into a JSON array only. Schema: [{"name":"food","qty":100,"unit":"g","p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}]. Split distinct foods. Use a realistic portion when omitted and internally consistent nutrition estimates.', 900);
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No foods recognized');
+    const foods = JSON.parse(match[0]);
+    const time = nowTime();
+    for (const food of foods) {
+      const local = searchFoodDb(food.name, 1)[0];
+      let macros = { p:+food.p||0, kcal:+food.kcal||0, fat:+food.fat||0, carbs:+food.carbs||0, fiber:+food.fiber||0 };
+      let source = 'OpenAI estimate';
+      if (local && local.score >= 85 && ['g','ml'].includes(String(food.unit).toLowerCase()) && ['g','ml'].includes(local.item.unit)) {
+        macros = calcQty(local.item, +food.qty || 100);
+        source = 'nutrition bank';
+      }
+      state.food.push({ ...makeEntry(food.name || 'Food', macros, time), source, qty:+food.qty||null, unit:food.unit||'' });
+    }
+    saveState();
+    document.getElementById('home-food-text').value = '';
+    renderDayList(); renderHeader(); renderLogTab();
+    showToast(`✓ Added ${foods.length} food${foods.length === 1 ? '' : 's'}`);
+  } catch (err) { showToast('Could not organize food: ' + err.message, 5000); }
+}
+function toggleFeelingVoice() {
+  startVoice(null, 'feeling-voice-btn', transcript => {
+    const normalized = transcript.toLowerCase().replace('point', '.');
+    const match = normalized.match(/(?:feeling|rpe|feel)?\s*(\d+(?:\.\d)?)/i);
+    const value = match ? parseFloat(match[1]) : NaN;
+    if (!isFinite(value) || value < 1 || value > 10) { showToast('Say a feeling from 1 to 10'); return; }
+    currentFeeling = Math.round(value * 2) / 2;
+    [5,6,7,8,9,10].forEach(n => document.getElementById('feel-' + n)?.classList.toggle('active', n === currentFeeling));
+    document.getElementById('feel-hint').textContent = `RPE ${currentFeeling}`;
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
-// PHOTO UPLOAD + CLAUDE VISION
+// PHOTO UPLOAD + OPENAI VISION
 // ═══════════════════════════════════════════════════════════════
 // iPhone photos run 10–20 MB and the API caps around 5, so everything sent
 // to the model goes through here first. Barcodes need more detail than a
@@ -3861,7 +3921,7 @@ async function compressImage(file, maxSizePx = 1280) {
 }
 
 function triggerPhoto() {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('photo'); return; }
   document.getElementById('photo-input').click();
 }
@@ -3870,7 +3930,7 @@ async function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = '';
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('photo'); return; }
 
   document.getElementById('photo-results').innerHTML = '';
@@ -3885,29 +3945,12 @@ async function handlePhotoUpload(event) {
   }
 
   try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 1024,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-              { type: 'text', text: 'Identify all foods in this image and estimate their macros. Respond ONLY with a valid JSON array: [{"name":"Food Name","qty":100,"unit":"g","p":20,"kcal":200,"fat":5,"carbs":10,"fiber":2}]. Be specific with quantities. If uncertain, make your best estimate.' }
-            ]
-          }]
-        })
-      });
-      if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
-      const data = await resp.json();
-      const text = data.content[0].text;
+      const text = await callOpenAI([{
+        role:'user', content:[
+          { type:'input_image', image_url:'data:image/jpeg;base64,' + base64, detail:'high' },
+          { type:'input_text', text:'Identify every visible food and estimate the edible portion. Reply ONLY with valid JSON: [{"name":"Food Name","qty":100,"unit":"g","p":20,"kcal":200,"fat":5,"carbs":10,"fiber":2}]. Use grams or millilitres when possible. Do not invent packaged brands that are not visible.' }
+        ]
+      }], 'You are a careful food-photo analyst. Portion estimates may be uncertain; keep macro arithmetic internally consistent.', 1200);
       // Parse JSON from response
       const match = text.match(/\[[\s\S]*\]/);
       if (!match) throw new Error('No JSON in response');
@@ -4534,6 +4577,13 @@ function showGymDayDetail(key) {
   document.getElementById('gym-day-detail').classList.add('slide-in');
 }
 
+function openGymDate() {
+  const value = document.getElementById('gym-history-date').value;
+  if (!value) { showToast('Choose a date first'); return; }
+  if (value > new Date().toISOString().slice(0, 10)) { showToast('Future dates cannot be logged'); return; }
+  showGymDayDetail('alog_' + value.replace(/-/g, '_'));
+}
+
 function setGymDaySession(key, session) {
   const day = gymDayState(key === todayKey() ? '' : key);
   day.gym = day.gym || { session:'', exercises:[] };
@@ -4616,7 +4666,7 @@ let gymAiHistory = [];
 let gymAiStreaming = false;
 
 function openGymAI() {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { pendingApiKeyAction = { type: 'ai', context: 'gym-modal' }; openApiKeyModal(); return; }
   gymAiHistory = [];
   const msgs = document.getElementById('gym-ai-messages');
@@ -4649,7 +4699,7 @@ async function sendGymAI() {
   const input = document.getElementById('gym-ai-input');
   const text = input.value.trim();
   if (!text) return;
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModal(); return; }
   input.value = '';
   gymAiHistory.push({ role:'user', content:text });
@@ -4673,25 +4723,10 @@ If the user is just chatting (not logging), answer normally without JSON.
 Keep replies concise. All weights are in lbs.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({ model:'claude-haiku-4-5', max_tokens:600, stream:true, system:sys, messages:gymAiHistory })
-    });
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
-    bubble.classList.remove('thinking'); bubble.innerHTML='';
-    let full='';
-    const reader=resp.body.getReader(); const dec=new TextDecoder(); let buf='';
-    while(true){
-      const {done,value}=await reader.read(); if(done) break;
-      buf+=dec.decode(value,{stream:true});
-      const lines=buf.split('\n'); buf=lines.pop();
-      for(const line of lines){
-        if(!line.startsWith('data: ')) continue;
-        const d=line.slice(6); if(d==='[DONE]') break;
-        try{const ev=JSON.parse(d);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){full+=ev.delta.text;bubble.textContent=full;document.getElementById('gym-ai-messages').scrollTop=9999;}}catch{}
-      }
-    }
+    const full = await callOpenAI(
+      gymAiHistory.map(message => ({ role:message.role, content:message.content })),
+      sys, 800);
+    bubble.classList.remove('thinking'); bubble.textContent=full;
     gymAiHistory.push({role:'assistant',content:full});
 
     // Parse JSON exercises from response
@@ -4733,8 +4768,8 @@ Keep replies concise. All weights are in lbs.`;
 // Rough burn per session type, used only when Garmin has nothing for the day.
 // Keyed on the canonical types so it survives however the session was written.
 const SESSION_BURN = {
-  'Lower Body': 380, 'Lat & Back': 300, 'Shoulder & Arm': 260,
-  'Handstand Drill': 220, 'Core': 180, 'Running': 600,
+  'Lower Body': 400, 'Lat & Back': 320, 'Shoulder & Arm': 260,
+  'Handstand Drill': 240, 'Core': 220, 'Running': 700,
   'Walking': 250, 'Rest Day': 0, 'Other': 300,
 };
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
@@ -4946,7 +4981,7 @@ async function restoreFromGist() {
     });
     if (!gistResp.ok) throw new Error('Could not fetch backup file');
     const gistData = await gistResp.json();
-    const raw = gistData.files['athletelog-backup.json']?.content;
+    const raw = await gistFileText(gistData.files['athletelog-backup.json'], token);
     if (!raw) throw new Error('Backup file is empty');
 
     const parsed = JSON.parse(raw);
@@ -4970,21 +5005,51 @@ async function restoreFromGist() {
   }
 }
 
+function dateToDayKey(date) { return 'alog_' + String(date).replace(/-/g, '_'); }
+function dayKeyToIso(key) { return key.slice(5).replace(/_/g, '-'); }
+
+function setExportRange(days) {
+  const allDays = Object.keys(localStorage).filter(isDayKey).sort();
+  const to = new Date();
+  const from = new Date();
+  if (days > 0) from.setDate(to.getDate() - days + 1);
+  document.getElementById('export-to').value = to.toISOString().slice(0, 10);
+  document.getElementById('export-from').value = days > 0
+    ? from.toISOString().slice(0, 10)
+    : (allDays[0] ? dayKeyToIso(allDays[0]) : to.toISOString().slice(0, 10));
+}
+
 function exportData() {
-  const json = JSON.stringify(collectBackupData(), null, 2);
+  setExportRange(7);
+  document.getElementById('export-modal').classList.add('open');
+}
+
+function closeExportModal() { document.getElementById('export-modal').classList.remove('open'); }
+
+function confirmExportData() {
+  const from = document.getElementById('export-from').value;
+  const to = document.getElementById('export-to').value;
+  if (!from || !to || from > to) { showToast('Choose a valid date range'); return; }
+  const all = collectBackupData();
+  const selected = {};
+  for (const [key, value] of Object.entries(all)) {
+    if (!isDayKey(key) || (dayKeyToIso(key) >= from && dayKeyToIso(key) <= to)) selected[key] = value;
+  }
+  const json = JSON.stringify(selected, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `athletelog-backup-${dateStr}.json`;
+  a.download = `athletelog-${from}-to-${to}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   // Record last backup date
   localStorage.setItem('alog_last_backup', dateStr);
-  showToast('✓ Data exported! Save the file to your files app or email it.', 4000);
+  closeExportModal();
+  showToast(`✓ Exported ${from} → ${to}`, 4000);
 }
 
 // Check if weekly backup is due (auto-sync if token available, else remind)
@@ -5003,6 +5068,22 @@ function checkBackupReminder() {
   }
 }
 
+async function setupNativeReminders() {
+  if (!isNativeApp() || localStorage.getItem('alog_native_reminders') === '1') return;
+  const notifications = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!notifications) return;
+  try {
+    const permission = await notifications.requestPermissions();
+    if (permission.display !== 'granted') return;
+    const weekday = new Date().getDay() + 1; // Capacitor: Sunday=1 … Saturday=7
+    await notifications.schedule({ notifications:[
+      { id:701, title:'AthleteLog', body:'记录今天的训练、饮食和 Feeling。', schedule:{ on:{ hour:21, minute:0 } } },
+      { id:707, title:'AthleteLog backup', body:'导出并保存最近 7 天的 AthleteLog 备份。', schedule:{ on:{ weekday, hour:9, minute:0 } } }
+    ] });
+    localStorage.setItem('alog_native_reminders', '1');
+  } catch (err) { console.warn('Could not schedule native reminders:', err); }
+}
+
 // ═══════════════════════════════════════════════════════════════
 // GITHUB GIST CLOUD SYNC
 // ═══════════════════════════════════════════════════════════════
@@ -5014,6 +5095,15 @@ function openGistModal() {
 }
 function closeGistModal() {
   document.getElementById('gist-modal').classList.remove('open');
+}
+
+async function gistFileText(file, token) {
+  if (!file) throw new Error('Gist file is missing');
+  if (!file.truncated && typeof file.content === 'string') return file.content;
+  if (!file.raw_url) throw new Error('Gist file has no downloadable content');
+  const resp = await fetch(file.raw_url, { headers:{ Authorization:'Bearer ' + token } });
+  if (!resp.ok) throw new Error(`Could not download full Gist file (${resp.status})`);
+  return resp.text();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5221,7 +5311,8 @@ async function garminAutoSync(silent = true) {
       headers: { Authorization: 'Bearer ' + token },
     });
     if (!resp.ok) throw new Error('Could not read the relay file');
-    const raw = (await resp.json()).files?.[GARMIN_GIST_FILE]?.content;
+    const relayFile = (await resp.json()).files?.[GARMIN_GIST_FILE];
+    const raw = await gistFileText(relayFile, token);
     if (!raw) throw new Error('Relay file is empty');
     const days = JSON.parse(raw);
 
@@ -5406,7 +5497,9 @@ async function syncToGist(silent = false) {
     }
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err.message || 'HTTP ' + resp.status);
+      const failure = new Error(err.message || 'HTTP ' + resp.status);
+      failure.status = resp.status;
+      throw failure;
     }
 
     const result = await resp.json();
@@ -5416,8 +5509,9 @@ async function syncToGist(silent = false) {
   } catch(err) {
     if (!silent) showToast('Sync failed: ' + err.message, 4000);
     else console.warn('Auto-sync failed:', err.message);
-    if (err.message.includes('401') || err.message.includes('403')) {
+    if (err.status === 401 || err.status === 403 || /bad credentials|requires authentication/i.test(err.message)) {
       localStorage.removeItem('github_gist_token');
+      localStorage.removeItem('github_gist_id');
       if (!silent) openGistModal();
     }
   } finally {
@@ -5474,8 +5568,30 @@ document.getElementById('period-btn').onclick = () => {
 // ═══════════════════════════════════════════════════════════════
 let pendingApiKeyAction = null;
 
+const OPENAI_MODEL = 'gpt-5.4-mini';
+function getOpenAIKey() { return localStorage.getItem('openai_api_key') || ''; }
+function openAIOutputText(payload) {
+  if (payload.output_text) return payload.output_text;
+  return (payload.output || []).flatMap(item => item.content || [])
+    .filter(item => item.type === 'output_text').map(item => item.text || '').join('');
+}
+async function callOpenAI(input, instructions, maxOutputTokens = 900) {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) throw new Error('OpenAI API key is not set');
+  const resp = await fetch('https://api.openai.com/v1/responses', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + apiKey },
+    body:JSON.stringify({ model:OPENAI_MODEL, input, instructions, max_output_tokens:maxOutputTokens, store:false })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error?.message || `OpenAI API error ${resp.status}`);
+  const text = openAIOutputText(data);
+  if (!text) throw new Error('OpenAI returned no text');
+  return text;
+}
+
 function openAI(context) {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     pendingApiKeyAction = { type: 'ai', context };
     openApiKeyModal();
@@ -5532,7 +5648,7 @@ async function sendAIMessage() {
   const input = document.getElementById('ai-input');
   const text = input.value.trim();
   if (!text) return;
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModal(); return; }
 
   input.value = '';
@@ -5548,54 +5664,11 @@ async function sendAIMessage() {
   aiStreaming = true;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 1024,
-        stream: true,
-        system: buildSystemPrompt(),
-        messages: aiHistory
-      })
-    });
-
-    if (!resp.ok) {
-      const errData = await resp.json().catch(()=>({}));
-      throw new Error(errData.error?.message || 'API error ' + resp.status);
-    }
-
+    const fullText = await callOpenAI(
+      aiHistory.map(message => ({ role:message.role, content:message.content })),
+      buildSystemPrompt(), 1100);
     assistantBubble.classList.remove('thinking');
-    assistantBubble.innerHTML = '';
-    let fullText = '';
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6);
-        if (data === '[DONE]') break;
-        try {
-          const ev = JSON.parse(data);
-          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-            fullText += ev.delta.text;
-            assistantBubble.textContent = fullText;
-            document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-          }
-        } catch {}
-      }
-    }
+    assistantBubble.textContent = fullText;
     aiHistory.push({ role: 'assistant', content: fullText });
   } catch(err) {
     assistantBubble.classList.remove('thinking');
@@ -5628,13 +5701,14 @@ function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
   if (!key) { alert('Please enter a valid API key'); return; }
   const action = pendingApiKeyAction;
-  localStorage.setItem('claude_api_key', key);
+  localStorage.setItem('openai_api_key', key);
   closeApiKeyModal();
   if (action) {
     if (action.type === 'ai') openAI(action.context);
     else if (action.type === 'photo') document.getElementById('photo-input').click();
     else if (action.type === 'barcode') document.getElementById('barcode-input').click();
     else if (action.type === 'estimate') estimateFoodWithAI(action.query);
+    else if (action.type === 'food-voice') organizeSpokenFood(action.transcript);
   }
 }
 
@@ -6559,7 +6633,7 @@ async function handleBarcodePhoto(event) {
   event.target.value = '';
   if (!file) return;
 
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('barcode'); return; }
 
   showBarcodeSheet('Reading the barcode…');
@@ -6568,28 +6642,12 @@ async function handleBarcodePhoto(event) {
   if (!base64) { showBarcodeSheet('Could not read that image.', true); return; }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 64,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-            { type: 'text', text: 'Read the barcode number printed on this package. Reply with the digits only, no spaces or punctuation. If no barcode is legible, reply exactly: NONE' },
-          ],
-        }],
-      }),
-    });
-    if (!resp.ok) throw new Error('API error ' + resp.status);
-    const text = (await resp.json()).content[0].text.trim();
+    const text = (await callOpenAI([{
+      role:'user', content:[
+        { type:'input_image', image_url:'data:image/jpeg;base64,' + base64, detail:'high' },
+        { type:'input_text', text:'Read the barcode number printed on this package. Reply with digits only. If none is legible, reply NONE.' }
+      ]
+    }], 'You read retail barcodes exactly and never guess missing digits.', 80)).trim();
     const digits = text.replace(/\D/g, '');
     if (!digits || digits.length < 8) {
       showBarcodeSheet('No barcode found in that photo. Try again closer, or add it by name.', true);
@@ -6749,6 +6807,7 @@ function init() {
   renderHeader();
   renderDayList();
   checkBackupReminder();
+  setupNativeReminders();
   updateGarminBtn();
   renderGymIoStatus();
   renderPlanPill();
