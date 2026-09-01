@@ -1136,6 +1136,11 @@ body {
 }
 .checkin-score-input:focus { border-color: #c67139; background: rgba(255,255,255,.78); }
 .checkin-score-max { width: 26px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.checkin-tasks { padding: 6px 16px; margin-bottom: 16px; border-radius: 20px; background: var(--surface); }
+.checkin-task { display:flex; align-items:center; gap:12px; padding:12px 0; cursor:pointer; }
+.checkin-task + .checkin-task { border-top:1px solid var(--glass-border); }
+.checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
+.checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
 /* The firework question is the entry, not a field label. */
 .checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
 .checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -1478,7 +1483,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <nav id="tabs" aria-label="Main navigation">
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
-  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Feelings</button>
+  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Today</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
 
@@ -2562,7 +2567,8 @@ function loadState(key) {
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
     if (s.garminAutoKcal === undefined) s.garminAutoKcal = 0;
-    if (!s.checkin) s.checkin = { scores:{}, firework:'', tomorrow:'', thoughts:'' };
+    if (!s.checkin) s.checkin = { scores:{}, tasks:{}, firework:'', tomorrow:'', thoughts:'' };
+    if (!s.checkin.tasks) s.checkin.tasks = {};
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -2930,11 +2936,18 @@ const CHECKIN_SCORES = [
   { key: 'sleep', label: '睡眠质量（昨晚）' },
 ];
 
-// Verbatim from the vault template. It is the whole point of the entry —
-// what became real today, not what got finished — so it is shown as the
-// question rather than reduced to a field label.
-const FIREWORK_PROMPT = '今天，哪个本来只在我脑子 / 想象里的东西，变成真的了？';
-const FIREWORK_HINT = '不限产出——读懂一段西语、想通一件事、一个画面动起来都算。一行即可。';
+const CHECKIN_TASKS = [
+  { key:'school', label:'School course', target:'4 hours/day' },
+  { key:'ceo', label:'Match Studio CEO Duty', target:'2 hours/day' },
+  { key:'workouts', label:'Workouts', target:'2 hours · 3–4/week' },
+  { key:'acsm', label:'ACSM test prep', target:'0.5 hour/day' },
+  { key:'spanish', label:'Spanish', target:'0.5 hour/day' },
+  { key:'reading', label:'Readings & Podcast', target:'1 hour/day' },
+  { key:'running', label:'10 miles running', target:'2/week' },
+  { key:'food', label:'Food intake ≥ 7.5/10', target:'6/7 week' },
+  { key:'protein', label:'Log protein intake > 120 g', target:'6/7 week' },
+  { key:'slate', label:'Slate Voice Memo', target:'' },
+];
 
 let checkinKey = null;   // which day is open; defaults to today
 
@@ -2944,7 +2957,9 @@ function checkinDayKey() {
 
 function loadCheckin(key) {
   const day = loadState(key);
-  return day.checkin || { scores: {}, firework: '', tomorrow: '', thoughts: '' };
+  const checkin = day.checkin || { scores:{}, tasks:{} };
+  if (!checkin.tasks) checkin.tasks = {};
+  return checkin;
 }
 
 function saveCheckin(key, checkin) {
@@ -2968,10 +2983,10 @@ function setCheckinScore(scoreKey, value) {
   saveCheckin(key, checkin);
 }
 
-function setCheckinText(field, value) {
+function setCheckinTask(taskKey, checked) {
   const key = checkinDayKey();
   const checkin = loadCheckin(key);
-  checkin[field] = value;
+  checkin.tasks[taskKey] = Boolean(checked);
   saveCheckin(key, checkin);
 }
 
@@ -2999,13 +3014,19 @@ function renderCheckin() {
              oninput="setCheckinScore('${s.key}', this.value)">
       <span class="checkin-score-max">/10</span>
     </div>`).join('');
+  const taskRows = CHECKIN_TASKS.map(task => `
+    <label class="checkin-task">
+      <input type="checkbox" ${checkin.tasks?.[task.key] ? 'checked' : ''}
+             onchange="setCheckinTask('${task.key}', this.checked)">
+      <span class="checkin-task-label">${escHtml(task.label)}${task.target ? ` · ${escHtml(task.target)}` : ''}</span>
+    </label>`).join('');
 
   const past = Object.keys(localStorage)
     .filter(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k) && k !== todayKey())
     .sort().reverse()
     .map(k => ({ key: k, checkin: loadState(k).checkin }))
     .filter(d => d.checkin && (Object.values(d.checkin.scores || {}).some(v => v != null)
-                               || d.checkin.firework || d.checkin.tomorrow || d.checkin.thoughts))
+                               || Object.values(d.checkin.tasks || {}).some(Boolean)))
     .slice(0, 14);
 
   document.getElementById('checkin-body').innerHTML = `
@@ -3014,26 +3035,16 @@ function renderCheckin() {
     <div class="section-label">状态（1-10）</div>
     <div class="checkin-scores">${scoreRows}</div>
 
-    <div class="section-label">今天的礼花 🎆</div>
-    <div class="checkin-prompt">${FIREWORK_PROMPT}</div>
-    <div class="checkin-hint">${FIREWORK_HINT}</div>
-    <textarea class="checkin-text" rows="3" placeholder="一行即可"
-              oninput="setCheckinText('firework', this.value)">${escHtml(checkin.firework || '')}</textarea>
-
-    <div class="section-label">明天的关键动作</div>
-    <textarea class="checkin-text" rows="3" placeholder=""
-              oninput="setCheckinText('tomorrow', this.value)">${escHtml(checkin.tomorrow || '')}</textarea>
-
-    <div class="section-label">今日的思考</div>
-    <textarea class="checkin-text" rows="5" placeholder=""
-              oninput="setCheckinText('thoughts', this.value)">${escHtml(checkin.thoughts || '')}</textarea>
+    <div class="section-label">Checklist</div>
+    <div class="checkin-tasks">${taskRows}</div>
 
     ${past.length ? `<div class="section-label">History</div>${past.map(d => {
       const scores = CHECKIN_SCORES.map(s => d.checkin.scores?.[s.key]).filter(v => v != null);
+      const done = CHECKIN_TASKS.filter(task => d.checkin.tasks?.[task.key]).length;
       return `<div class="past-day-card" onclick="openCheckinDay('${d.key}')">
         <div style="min-width:0;">
           <div class="past-day-date">${escHtml(isoDate(d.key))}</div>
-          <div class="past-day-name">${escHtml((d.checkin.firework || '').split('\n')[0] || '—')}</div>
+          <div class="past-day-name">${done}/${CHECKIN_TASKS.length} checked</div>
         </div>
         <div class="past-day-stats">${scores.length ? scores.join(' · ') : ''}</div>
         <span class="chevron-right">›</span>
@@ -3050,13 +3061,10 @@ function checkinAsText(key) {
     const v = checkin.scores[s.key];
     lines.push(`\t- ${s.label}：${v ?? ''} /10`);
   }
-  const section = (title, body) => {
-    lines.push('', ` ${title}`);
-    for (const line of String(body || '').split('\n')) lines.push(`\t${line}`);
-  };
-  section('今天的礼花 🎆', checkin.firework);
-  section('明天的关键动作', checkin.tomorrow);
-  section('今日的思考', checkin.thoughts);
+  lines.push('', ' Checklist');
+  for (const task of CHECKIN_TASKS) {
+    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${task.label}${task.target ? ` · ${task.target}` : ''}`);
+  }
   return lines.join('\n');
 }
 
