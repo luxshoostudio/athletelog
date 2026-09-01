@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="AthleteLog">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#151515">
+<meta name="theme-color" content="#f2f2f7">
 <meta name="description" content="Personal athlete training & nutrition tracker">
 <title>AthleteLog</title>
 <link rel="manifest" href="manifest.json">
@@ -792,12 +792,11 @@ body {
 .organic-kicker { font-size:11px; line-height:1; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
 #header-date { font-family:var(--display); font-size:26px; line-height:1.08; font-weight:400; color:var(--text); }
 .organic-header-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-#streak-pill, #period-btn {
+#period-btn {
   border:0; border-radius:999px; padding:8px 12px; min-height:34px;
   font-family:var(--font); font-size:11px; font-weight:700; letter-spacing:0;
   text-transform:none; white-space:nowrap;
 }
-#streak-pill { color:#3d472b; background:#f0fae1; }
 #period-btn { color:#8c491a; background:#fff2eb; cursor:pointer; }
 .organic-macro-hero {
   display:flex; align-items:center; gap:20px; padding:22px 20px; margin-bottom:18px;
@@ -874,14 +873,6 @@ body {
 }
 .action-pill { min-height:40px; padding:9px 10px; font-size:12px; letter-spacing:0; text-transform:none; }
 .action-pill:active, .outline-btn:active, .freq-pill:active { color:#8c491a; background:#fff2eb; }
-#water-row.organic-water {
-  display:flex; align-items:center; gap:12px; margin-bottom:22px; padding:12px 16px;
-  background:var(--surface); border:0; border-radius:20px; box-shadow:none;
-}
-.water-mark { width:34px; height:34px; border-radius:50%; background:#e1eecc; flex-shrink:0; position:relative; }
-.water-mark::after { content:''; position:absolute; width:9px; height:13px; left:12px; top:9px; border-radius:7px 7px 9px 9px; background:#7a8a5e; }
-#water-display { color:#201e1d !important; font-family:var(--font) !important; }
-.water-reset { width:38px !important; height:38px !important; border-radius:50% !important; background:transparent !important; border:1px solid var(--glass-border) !important; box-shadow:none !important; }
 .section-label { margin:20px 0 10px; font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--muted); }
 #home-today-food .home-food-item, .past-day-card, .gym-history-card, .exercise-row {
   padding:13px 14px; margin-bottom:8px; background:var(--surface); border:0;
@@ -1019,6 +1010,63 @@ body {
 .plan-today-meta { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 .plan-today-note { margin-top: 4px; font-size: 12px; color: #8c491a; font-weight: 600; }
 
+/* Apple Health-inspired visual system: calm grouped canvas, white metric
+   cards, system typography and one clear health accent. */
+:root {
+  --bg:#f2f2f7; --surface:#ffffff; --surface-raised:#ffffff;
+  --glass-border:#e5e5ea; --text:#1c1c1e; --text2:#3a3a3c;
+  --muted:#6e6e73; --dim:#aeaeb2; --sp-green:#ff2d55; --sp-green-d:#d7003a;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",sans-serif;
+}
+html, body, #panels, .panel, #food-day-list, #gym-day-list { background:#f2f2f7; }
+body { background-image:none; }
+.panel-inner, .day-list-inner { padding-top:calc(env(safe-area-inset-top) + 22px); }
+#header-date, #summary-date-label, .checkin-date { font-weight:750 !important; letter-spacing:-.025em !important; }
+.organic-macro-hero, .card, .macro-stat-card,
+#home-today-food .home-food-item, .past-day-card, .gym-history-card, .exercise-row,
+.checkin-scores, .checkin-tasks {
+  background:#fff; border:0; box-shadow:0 .5px 0 rgba(0,0,0,.08); border-radius:20px;
+}
+.organic-macro-hero { border-radius:24px; }
+#protein-ring-wrap circle:first-child { stroke:#f2f2f7; }
+#protein-arc { stroke:#ff2d55; }
+#ring-pct, .energy-value.net { color:#ff2d55; }
+.quick-add-select, .food-text-input, .gym-text-input, .gym-num-input, .modal-input,
+.ai-text-input, .session-select { background:#fff; border:1px solid #e5e5ea; }
+.food-text-input:focus, .gym-text-input:focus, .gym-num-input:focus, .modal-input:focus,
+.ai-text-input:focus { background:#fff; border-color:#007aff; outline:3px solid rgba(0,122,255,.12); }
+.voice-icon-btn { width:44px; min-width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; flex:0 0 44px; }
+.voice-icon-btn svg { width:19px; height:19px; fill:#007aff; }
+.voice-icon-btn.recording { background:#ffebef; border-color:#ff2d55; animation:pulseVoice 1.1s ease-in-out infinite; }
+.voice-icon-btn.recording svg { fill:#ff2d55; }
+@keyframes pulseVoice { 50% { transform:scale(.92); opacity:.7; } }
+.water-add-icon { width:34px; height:34px; flex:0 0 34px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; background:#eaf4ff; color:#007aff; cursor:pointer; box-shadow:none; }
+.water-add-icon svg { width:17px; height:17px; fill:#007aff; }
+.water-add-icon:active { transform:scale(.94); }
+.add-btn, .green-btn, .ai-send-btn { background:#007aff; color:#fff; font-family:var(--font); font-weight:700; }
+.add-btn:active, .green-btn:active, .ai-send-btn:active { background:#0062cc; }
+.action-pill, .outline-btn, .back-btn, .freq-pill { border-color:#d1d1d6; color:#007aff; background:#fff; }
+.organic-segment { background:#fff; border-color:#e5e5ea; color:#3a3a3c; }
+.organic-segment.active { background:#ff2d55; border-color:#ff2d55; color:#fff; }
+.exercise-check[aria-checked="true"] { background:#34c759; border-color:#34c759; color:#fff; }
+.exercise-row.is-complete { background:#f3fbf5 !important; }
+#tabs { background:rgba(249,249,249,.92); border-top:1px solid rgba(0,0,0,.08); border-radius:0; box-shadow:none; backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px); }
+#tabs::after { background:rgba(249,249,249,.96); }
+.tab-btn { color:#8e8e93; }
+.tab-btn.active { color:#ff2d55; background:transparent; }
+.macro-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.macro-stat-card:nth-child(n) { display:block; }
+.macro-stat-card:last-child { grid-column:1 / -1; }
+.goal-bar-fill.prot { background:#ff2d55; }
+.goal-bar-fill.fiber { background:#af52de; }
+.goal-bar-fill.kcal { background:#ff9500; }
+.goal-bar-fill.carbs { background:#34c759; }
+.goal-bar-fill.fat { background:#5ac8fa; }
+.life-coach-card { background:linear-gradient(145deg,#fff,#f7f2ff); }
+#life-coach-summary { white-space:pre-wrap; color:#3a3a3c; font-size:13px; line-height:1.65; }
+#life-coach-btn { min-height:32px; padding:6px 11px; font-size:11px; }
+
 .plan-markdown { color: var(--text); font-size: 14px; line-height: 1.75; }
 .plan-markdown h2 { margin: 26px 0 10px; font-family: var(--display); font-size: 20px; font-weight: 400; }
 .plan-markdown h3 { margin: 22px 0 8px; font-size: 15px; font-weight: 700; }
@@ -1136,6 +1184,13 @@ body {
 }
 .checkin-score-input:focus { border-color: #c67139; background: rgba(255,255,255,.78); }
 .checkin-score-max { width: 26px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.checkin-tasks { padding: 6px 16px; margin-bottom: 16px; border-radius: 20px; background: var(--surface); }
+.checkin-task { display:flex; align-items:center; gap:12px; padding:12px 0; cursor:pointer; }
+.checkin-task + .checkin-task { border-top:1px solid var(--glass-border); }
+.checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
+.checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
+.checkin-custom-input { flex:1; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:6px 2px; color:var(--text); font:inherit; outline:none; }
+.checkin-custom-input:focus { border-color:var(--sp-green); }
 /* The firework question is the entry, not a field label. */
 .checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
 .checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -1215,7 +1270,7 @@ input, select, textarea {
 .exercise-field, .gym-num-input { letter-spacing: -0.01em; }
 /* Buttons never trigger focus zoom, but they do trigger double-tap zoom. */
 button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
-.water-mark, .search-result-item, .past-day-card, .gym-history-card {
+.search-result-item, .past-day-card, .gym-history-card {
   touch-action: manipulation;
 }
 /* Fixed overlays reflow with the keyboard instead of floating off-screen.
@@ -1253,7 +1308,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
               <div id="header-date">Today</div>
             </div>
             <div class="organic-header-actions">
-              <span id="streak-pill">0-day streak</span>
               <button id="period-btn">Period: No</button>
             </div>
           </div>
@@ -1273,12 +1327,16 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             </div>
             <div class="organic-macro-totals">
               <div class="organic-macro-total">
-                <div class="organic-macro-value"><span id="header-protein-total">0</span><span class="organic-macro-goal"> / 160 g</span></div>
+                <div class="organic-macro-value"><span id="header-protein-total">0</span><span class="organic-macro-goal"> / 140 g</span></div>
                 <div class="organic-macro-label">Protein</div>
               </div>
               <div class="organic-macro-total">
-                <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / 2400 kcal</span></div>
+                <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / <span id="header-kcal-goal">1306</span> kcal</span></div>
                 <div class="organic-macro-label">Calories</div>
+              </div>
+              <div class="organic-macro-total">
+                <div class="organic-macro-value"><span id="header-fiber-total">0</span><span class="organic-macro-goal"> / 30 g</span></div>
+                <div class="organic-macro-label">Fiber</div>
               </div>
             </div>
           </div>
@@ -1292,27 +1350,21 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
               <option value="">⭐</option>
             </select>
           </div>
-          <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food…" autocomplete="off" style="flex:1;">
+          <button class="action-pill voice-icon-btn" id="home-voice-btn" onclick="toggleFoodVoice()" title="Describe food by voice" aria-label="Describe food by voice">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm-7-3h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.92V22h-2v-3.08A7 7 0 0 1 5 12Z"/></svg>
+          </button>
+          <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food or describe a meal…" autocomplete="off" style="flex:1;">
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">Add</button>
         </div>
 
         <!-- Action pills -->
         <div class="today-action-row">
-          <button class="action-pill" id="plan-pill" onclick="openPlanSheet()">Plan</button>
-          <button class="action-pill" onclick="openRecipeList()">Recipes</button>
+          <button class="water-add-icon" id="water-add-btn" onclick="addWater(500)" title="Water · Add 500 ml" aria-label="Add 500 millilitres of water">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5S5.5 9.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 9.5 12 2.5 12 2.5Zm0 16.5a4 4 0 0 1-4-4c0-2.5 2.3-5.8 4-7.9 1.7 2.1 4 5.4 4 7.9a4 4 0 0 1-4 4Z"/></svg>
+          </button>
+          <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
-        </div>
-
-        <!-- Water tracker -->
-        <div id="water-row" class="organic-water">
-          <span class="water-mark" aria-hidden="true"></span>
-          <div style="flex:1;">
-            <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Water</div>
-            <div id="water-display" style="font-size:14px;font-weight:700;">0 / 2500 ml</div>
-          </div>
-          <button class="action-pill" onclick="addWater(500)" style="flex:0 0 auto;padding:9px 16px;">+500 ml</button>
-          <button class="icon-btn water-reset" onclick="resetWater()" style="font-size:13px;color:var(--dim);" title="Reset water">↺</button>
         </div>
 
         <!-- Today's food entries (inline) -->
@@ -1378,13 +1430,15 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets" inputmode="numeric" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps" inputmode="text" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs" inputmode="text" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="h:mm:ss" style="display:none" onfocus="markPrefillEdited(this)">
+            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Kilometres" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
+            <input type="text" class="gym-num-input" id="gym-run-time" placeholder="Duration" style="display:none" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
+            <input type="text" class="gym-num-input" id="gym-pace" placeholder="Pace /km" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="this.dataset.manual='1'">
             <button class="green-btn" aria-label="Add exercise" onclick="addExercise()">+ Add</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <span class="feeling-label">Feel</span>
             <div class="feeling-row" id="feeling-row"></div>
+            <button class="action-pill" id="feeling-voice-btn" onclick="toggleFeelingVoice()" title="Say your RPE, for example: feeling seven point five">Voice</button>
             <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
           </div>
           <button class="outline-btn" onclick="openAI('gym')">Ask coach</button>
@@ -1403,6 +1457,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
         <!-- Past gym sessions history -->
         <div class="section-label" style="margin-top:8px">History</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input type="date" class="modal-input" id="gym-history-date" style="margin:0;flex:1;">
+          <button class="outline-btn" onclick="openGymDate()">Add / edit date</button>
+        </div>
         <div id="gym-history-list"></div>
       </div>
     </div>
@@ -1439,8 +1497,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div id="summary-date-label" style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;flex:1;"></div>
           <div class="summary-tools">
             <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">Garmin</button>
-            <button class="outline-btn" onclick="openGymIoModal()" style="padding:7px 12px;font-size:10px;" id="gymio-btn">Gym log</button>
-            <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">Sync</button>
+            <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">Cloud Backup</button>
             <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">Save</button>
           </div>
         </div>
@@ -1458,10 +1515,12 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div class="card-body" id="goal-bars"></div>
       </div>
 
-      <!-- Today's training -->
-      <div class="card" id="summary-training-card">
-        <div class="card-header"><span class="card-title">Training</span></div>
-        <div class="card-body" id="summary-training-body"></div>
+      <div class="card life-coach-card">
+        <div class="card-header">
+          <span class="card-title">Life Coach AI Summary</span>
+          <button class="outline-btn" id="life-coach-btn" onclick="generateLifeCoachSummary()">Generate</button>
+        </div>
+        <div class="card-body" id="life-coach-summary">Review today’s data and generate a concise coaching summary.</div>
       </div>
 
       <!-- 14-day history -->
@@ -1479,7 +1538,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <nav id="tabs" aria-label="Main navigation">
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
-  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Feelings</button>
+  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Today</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
 
@@ -1586,6 +1645,28 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 </div>
 
 <!-- GARMIN MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Save AthleteLog</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Choose the dates included in this backup.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><label class="modal-label">From</label><input type="date" class="modal-input" id="export-from"></div>
+      <div><label class="modal-label">To</label><input type="date" class="modal-input" id="export-to"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="action-pill" onclick="setExportRange(7)">Past 7 days</button>
+      <button class="action-pill" onclick="setExportRange(14)">14 days</button>
+      <button class="action-pill" onclick="setExportRange(30)">30 days</button>
+      <button class="action-pill" onclick="setExportRange(0)">All</button>
+    </div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeExportModal()">Cancel</button>
+      <button class="green-btn" onclick="confirmExportData()">Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- GARMIN MODAL -->
 <div class="modal-overlay" id="garmin-modal">
   <div class="modal-sheet">
     <div class="modal-title" id="garmin-modal-title">⌚ Garmin</div>
@@ -1594,7 +1675,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div style="font-size:13px;font-weight:700;color:var(--text);" id="garmin-auto-title">Auto-sync off</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="garmin-auto-sub">Connect a Gist relay to pull daily active calories</div>
       </div>
-      <button class="outline-btn" onclick="healthOrRelaySync(false)" style="flex-shrink:0;">⟳ Sync</button>
+      <button class="outline-btn" onclick="healthOrRelaySync(false)" style="flex-shrink:0;" id="health-sync-btn">⟳ Sync</button>
     </div>
 
     <label class="modal-label">Active calories today (kcal)</label>
@@ -1607,11 +1688,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <details style="margin-bottom:12px;" id="garmin-relay-help">
       <summary style="font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;">How auto-sync works</summary>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;">
-        Garmin has no public API a browser can call, so a relay writes
-        <strong>athletelog-garmin.json</strong> into your GitHub Gist and this app reads it.
-        Set up either relay once — the Mac <code>garmin_sync.py</code> LaunchAgent, or an
-        iOS Shortcuts automation that posts Active Energy from Apple Health.
-        Uses the same token as Gist backup.
+        Garmin has no public API that this browser app can call. Reliable automatic sync uses
+        the AthleteLog iOS app: allow Garmin Connect to write workouts and Active Energy to
+        Apple Health, then allow AthleteLog to read Active Energy and Steps. In the browser,
+        enter Active Calories manually below.
       </p>
     </details>
 
@@ -1656,10 +1736,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <!-- API KEY MODAL -->
 <div class="modal-overlay" id="api-key-modal">
   <div class="modal-sheet">
-    <div class="modal-title">🤖 Claude AI Setup</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter your Anthropic API key to enable AI chat. Your key is stored locally only.</p>
+    <div class="modal-title">🤖 OpenAI Setup</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter an OpenAI API key for AI Coach, food voice cleanup and photo recognition. The key stays on this device. For a published app, use a server-side proxy instead.</p>
     <label class="modal-label">API Key</label>
-    <input type="password" class="modal-input" id="api-key-input" placeholder="sk-ant-...">
+    <input type="password" class="modal-input" id="api-key-input" placeholder="sk-...">
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeApiKeyModal()">Cancel</button>
       <button class="green-btn" onclick="saveApiKey()">Save & Open Chat</button>
@@ -1769,30 +1849,32 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS & DATA
 // ═══════════════════════════════════════════════════════════════
-const GOALS = { protein: 160, kcal: 2400, fat: 70, carbs: 220 };
+const GOALS = { protein: 140, fat: 70, carbs: 220, fiber: 30 };
 const WATER_GOAL_ML = 2500;
 
 // The seven values of Training.Session Type in the Health Airtable base
 // (app4zOmpexx6EK48F). The app, the vault parser and Airtable must agree on
 // this list or the health agent reads a different history than the app shows.
 const SESSION_TYPES = [
-  'Lower Body', 'Lat & Back', 'Shoulder & Arm',
-  'Handstand Drill', 'Core', 'Running', 'Walking', 'Rest Day', 'Other',
+  'Lower Body', 'Upper', 'Shoulder & Arm',
+  'Handstand Drill', 'Calisthenics', 'Core', 'Running', 'Walking', 'Hiking', 'Resting', 'Other',
 ];
 
 // Same buckets, same order, as `session_type()` in _Data/_parser_gym.py.
 // First match wins: "Lat & Back+5k" is a back session, not a run.
 const SESSION_TYPE_BUCKETS = [
-  ['Rest Day',        ['rest day', 'resting', 'off day', 'recovery day']],
+  ['Resting',         ['rest day', 'resting', 'off day', 'recovery day']],
   ['Lower Body',      ['lower body', 'leg day', 'leg ', 'glute', 'squat day']],
-  ['Lat & Back',      ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body']],
+  ['Upper',           ['lat &', 'lat and', 'lat&', 'back day', 'pull-up session', 'upper body', 'upper']],
   ['Shoulder & Arm',  ['shoulder', 'arm day', 'arm ', 'carving']],
   ['Handstand Drill', ['handstand', 'hand stand']],
+  ['Calisthenics',    ['calisthenics', 'bodyweight', 'body weight', 'street workout']],
   ['Core',            ['core', 'abs']],
   // Walking is checked before running: health plan v3 puts a >8 km walk on
   // the same footing as a run, and "Walking 10K" used to land in Running
   // because of the "10k" keyword.
-  ['Walking',         ['walking', 'walk ', 'hike', 'hiking', 'steps']],
+  ['Hiking',          ['hike', 'hiking', 'trail walk']],
+  ['Walking',         ['walking', 'walk ', 'steps']],
   ['Running',         ['running', 'jog', 'run ', 'marathon', 'km', '10k', '5k']],
 ];
 
@@ -1818,7 +1900,7 @@ const STARTER_TEMPLATES = [
     'L-sit practice', 'Bulgarian split squats on bench',
     'Goblet Squats (heels on plate)', 'Single Leg Press',
   ]},
-  { name:'Lat & Back', exercises:[            // 27 sessions
+  { name:'Upper', exercises:[                 // formerly Lat & Back
     '15min Stretch and Warmup', 'Bent over row', 'Over head thruster', 'Dips',
     'Wide grip pullups with band assist', 'Toe to bar', 'Narrow grip Pull-ups',
   ]},
@@ -1834,11 +1916,18 @@ const STARTER_TEMPLATES = [
     'Declined pushups', 'Frog handstand', 'Handstand wall-walk',
     'Seated shoulder press',
   ]},
+  { name:'Calisthenics', exercises:[
+    'Pull-ups', 'Dips', 'Push-ups', 'Pistol Squat', 'L-Sit Hold',
+    'Hanging Knee Raises', 'Muscle-up Practice',
+  ]},
   { name:'Core', exercises:[                  // 5 sessions
     'Hollow hold', 'Toe to bar', 'Rope jump', 'single leg dragon Fly',
     'Hanging knee raises', 'L-Sit holding',
   ]},
   { name:'Running', exercises:[] },           // logged as a heading, no lines
+  { name:'Walking', exercises:[] },
+  { name:'Hiking', exercises:[] },
+  { name:'Resting', exercises:[] },
   { name:'Other', exercises:[] },
 ];
 
@@ -1853,17 +1942,17 @@ function isRunExercise(name) {
   return RUN_EXERCISES_LIST.some(r => n.includes(r));
 }
 
-function calcPacePerMile(miles, timeStr) {
-  if (!miles || !timeStr) return '';
+function calcPacePerKm(km, timeStr) {
+  if (!km || !timeStr) return '';
   const parts = String(timeStr).split(':').map(Number);
   let mins = 0;
   if (parts.length === 3) mins = parts[0] * 60 + parts[1] + parts[2] / 60;
   else if (parts.length === 2) mins = parts[0] * 60 + parts[1];
   else mins = parts[0];
-  if (!mins || !parseFloat(miles)) return '';
-  const pace = mins / parseFloat(miles);
+  if (!mins || !parseFloat(km)) return '';
+  const pace = mins / parseFloat(km);
   const m = Math.floor(pace), s = Math.round((pace - m) * 60);
-  return `${m}:${String(s).padStart(2,'0')}/mi`;
+  return `${m}:${String(s).padStart(2,'0')}/km`;
 }
 
 // Hold-type exercises (track seconds + rounds, not sets × reps)
@@ -2445,13 +2534,7 @@ function searchFoodDb(query, limit = 8) {
   const queryNorm = normFoodName(query);
   if (!queryNorm) return [];
 
-  // Saved recipes rank alongside database entries, so logging one is the same
-  // two taps as logging a banana.
   const results = [];
-  for (const recipe of loadRecipes()) {
-    const score = scoreFoodMatch(queryNorm, normFoodName(recipe.name));
-    if (score >= 30) results.push({ key: recipe.name, score, item: recipeAsFoodItem(recipe) });
-  }
 
   const bestByKey = new Map();
   for (const [keyNorm, dbKey] of FOOD_INDEX_ENTRIES) {
@@ -2543,7 +2626,8 @@ function loadState(key) {
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
     if (s.garminAutoKcal === undefined) s.garminAutoKcal = 0;
-    if (!s.checkin) s.checkin = { scores:{}, firework:'', tomorrow:'', thoughts:'' };
+    if (!s.checkin) s.checkin = { scores:{}, tasks:{}, firework:'', tomorrow:'', thoughts:'' };
+    if (!s.checkin.tasks) s.checkin.tasks = {};
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -2665,24 +2749,80 @@ function renderHeader() {
   document.getElementById('header-macros').textContent = `${Math.round(m.p)}g protein · ${Math.round(m.kcal)} kcal`;
   document.getElementById('header-protein-total').textContent = Math.round(m.p);
   document.getElementById('header-kcal-total').textContent = Math.round(m.kcal);
+  const kcalGoal = document.getElementById('header-kcal-goal');
+  if (kcalGoal) kcalGoal.textContent = dailyCalorieGoal(state);
+  const fiberTotal = document.getElementById('header-fiber-total');
+  if (fiberTotal) fiberTotal.textContent = Math.round(m.fiber);
   const hour = d.getHours();
   document.getElementById('greeting-label').textContent = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-  const streak = calculateStreak();
-  document.getElementById('streak-pill').textContent = `${streak}-day streak`;
-  document.getElementById('period-btn').textContent = `Period: ${state.period?'Yes':'No'}`;
+  renderPeriodStatus();
 }
 
-function calculateStreak() {
-  let streak = 0;
-  for (const key of getRecentKeys(365)) {
-    const day = loadState(key);
-    const hasFood = Array.isArray(day.food) && day.food.length > 0;
-    const hasGym = Array.isArray(day.gym?.exercises) && day.gym.exercises.some(exercise => exercise.completed !== false);
-    const hasWater = (day.waterMl || 0) > 0;
-    if (!hasFood && !hasGym && !hasWater) break;
-    streak++;
+function getPeriodForecast() {
+  const periodDays = Object.keys(localStorage)
+    .filter(isDayKey)
+    .filter(key => loadState(key).period)
+    .sort();
+  const cycles = [];
+  for (const key of periodDays) {
+    const date = keyToDate(key);
+    const previous = cycles[cycles.length - 1];
+    if (!previous || Math.round((date - previous.end) / 86400000) > 1) {
+      cycles.push({ start: date, end: date });
+    } else {
+      previous.end = date;
+    }
   }
-  return streak;
+  if (!cycles.length) return null;
+
+  const intervals = cycles.slice(1).map((cycle, index) =>
+    Math.round((cycle.start - cycles[index].start) / 86400000)
+  ).filter(days => days >= 21 && days <= 40).slice(-6);
+  const cycleDays = intervals.length
+    ? Math.round(intervals.reduce((sum, days) => sum + days, 0) / intervals.length)
+    : 28;
+  const last = cycles[cycles.length - 1];
+  const next = new Date(last.start);
+  next.setDate(next.getDate() + cycleDays);
+  return { last, next, cycleDays };
+}
+
+function shortPeriodDate(date) {
+  return date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+
+function periodRange(cycle) {
+  const start = shortPeriodDate(cycle.start);
+  const end = shortPeriodDate(cycle.end);
+  return start === end ? start : `${start}–${end}`;
+}
+
+function renderPeriodStatus() {
+  const button = document.getElementById('period-btn');
+  const forecast = getPeriodForecast();
+  if (!forecast) {
+    button.textContent = state.period ? 'Period · Today' : 'Period · Add date';
+    button.title = 'Tap to mark today as a period day';
+    return;
+  }
+  button.textContent = `Last ${periodRange(forecast.last)} · Next ${shortPeriodDate(forecast.next)}`;
+  button.title = `${state.period ? 'Today is marked as a period day. ' : ''}Estimated ${forecast.cycleDays}-day cycle. Tap to toggle today.`;
+}
+
+function checkPeriodReminder() {
+  const forecast = getPeriodForecast();
+  if (!forecast || state.period) return;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const daysUntil = Math.round((forecast.next - today) / 86400000);
+  if (daysUntil < -2 || daysUntil > 3) return;
+  const reminderKey = `alog_period_reminder_${todayKey()}`;
+  if (localStorage.getItem(reminderKey)) return;
+  const timing = daysUntil < 0 ? `${Math.abs(daysUntil)} day${daysUntil === -1 ? '' : 's'} overdue`
+    : daysUntil === 0 ? 'expected today'
+    : `expected in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
+  setTimeout(() => showToast(`Period ${timing} · last ${periodRange(forecast.last)}`, 5000), 1800);
+  localStorage.setItem(reminderKey, '1');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2715,6 +2855,10 @@ function renderDayList() {
     const dm = sumMacros(s.food);
     const card = document.createElement('div');
     card.className = 'past-day-card';
+    card.setAttribute('role', 'button');
+    card.tabIndex = 0;
+    card.onclick = () => showDayDetail(key);
+    card.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') showDayDetail(key); };
     card.innerHTML = `
       <div>
         <div class="past-day-date">${formatKey(key)}</div>
@@ -2907,11 +3051,19 @@ const CHECKIN_SCORES = [
   { key: 'sleep', label: '睡眠质量（昨晚）' },
 ];
 
-// Verbatim from the vault template. It is the whole point of the entry —
-// what became real today, not what got finished — so it is shown as the
-// question rather than reduced to a field label.
-const FIREWORK_PROMPT = '今天，哪个本来只在我脑子 / 想象里的东西，变成真的了？';
-const FIREWORK_HINT = '不限产出——读懂一段西语、想通一件事、一个画面动起来都算。一行即可。';
+const CHECKIN_TASKS = [
+  { key:'school', label:'School course', target:'4 hours/day' },
+  { key:'ceo', label:'Match Studio CEO Duty', target:'2 hours/day' },
+  { key:'workouts', label:'Workouts', target:'2 hours · 3–4/week' },
+  { key:'acsm', label:'ACSM test prep', target:'0.5 hour/day' },
+  { key:'spanish', label:'Spanish', target:'0.5 hour/day' },
+  { key:'reading', label:'Readings & Podcast', target:'1 hour/day' },
+  { key:'running', label:'10 miles running', target:'2/week' },
+  { key:'food', label:'Food intake ≥ 7.5/10', target:'6/7 week' },
+  { key:'protein', label:'Log protein intake > 120 g', target:'6/7 week' },
+  { key:'slate', label:'Slate Voice Memo', target:'' },
+  { key:'custom', label:'Custom', target:'', custom:true },
+];
 
 let checkinKey = null;   // which day is open; defaults to today
 
@@ -2921,7 +3073,9 @@ function checkinDayKey() {
 
 function loadCheckin(key) {
   const day = loadState(key);
-  return day.checkin || { scores: {}, firework: '', tomorrow: '', thoughts: '' };
+  const checkin = day.checkin || { scores:{}, tasks:{} };
+  if (!checkin.tasks) checkin.tasks = {};
+  return checkin;
 }
 
 function saveCheckin(key, checkin) {
@@ -2945,10 +3099,17 @@ function setCheckinScore(scoreKey, value) {
   saveCheckin(key, checkin);
 }
 
-function setCheckinText(field, value) {
+function setCheckinTask(taskKey, checked) {
   const key = checkinDayKey();
   const checkin = loadCheckin(key);
-  checkin[field] = value;
+  checkin.tasks[taskKey] = Boolean(checked);
+  saveCheckin(key, checkin);
+}
+
+function setCheckinCustomLabel(value) {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  checkin.customLabel = value;
   saveCheckin(key, checkin);
 }
 
@@ -2976,13 +3137,25 @@ function renderCheckin() {
              oninput="setCheckinScore('${s.key}', this.value)">
       <span class="checkin-score-max">/10</span>
     </div>`).join('');
+  const taskRows = CHECKIN_TASKS.map(task => task.custom ? `
+    <div class="checkin-task">
+      <input type="checkbox" aria-label="Complete custom item" ${checkin.tasks?.custom ? 'checked' : ''}
+             onchange="setCheckinTask('custom', this.checked)">
+      <input class="checkin-custom-input" value="${escHtml(checkin.customLabel || '')}" placeholder="Custom item…"
+             aria-label="Custom checklist item" oninput="setCheckinCustomLabel(this.value)">
+    </div>` : `
+    <label class="checkin-task">
+      <input type="checkbox" ${checkin.tasks?.[task.key] ? 'checked' : ''}
+             onchange="setCheckinTask('${task.key}', this.checked)">
+      <span class="checkin-task-label">${escHtml(task.label)}${task.target ? ` · ${escHtml(task.target)}` : ''}</span>
+    </label>`).join('');
 
   const past = Object.keys(localStorage)
     .filter(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k) && k !== todayKey())
     .sort().reverse()
     .map(k => ({ key: k, checkin: loadState(k).checkin }))
     .filter(d => d.checkin && (Object.values(d.checkin.scores || {}).some(v => v != null)
-                               || d.checkin.firework || d.checkin.tomorrow || d.checkin.thoughts))
+                               || Object.values(d.checkin.tasks || {}).some(Boolean)))
     .slice(0, 14);
 
   document.getElementById('checkin-body').innerHTML = `
@@ -2991,26 +3164,16 @@ function renderCheckin() {
     <div class="section-label">状态（1-10）</div>
     <div class="checkin-scores">${scoreRows}</div>
 
-    <div class="section-label">今天的礼花 🎆</div>
-    <div class="checkin-prompt">${FIREWORK_PROMPT}</div>
-    <div class="checkin-hint">${FIREWORK_HINT}</div>
-    <textarea class="checkin-text" rows="3" placeholder="一行即可"
-              oninput="setCheckinText('firework', this.value)">${escHtml(checkin.firework || '')}</textarea>
-
-    <div class="section-label">明天的关键动作</div>
-    <textarea class="checkin-text" rows="3" placeholder=""
-              oninput="setCheckinText('tomorrow', this.value)">${escHtml(checkin.tomorrow || '')}</textarea>
-
-    <div class="section-label">今日的思考</div>
-    <textarea class="checkin-text" rows="5" placeholder=""
-              oninput="setCheckinText('thoughts', this.value)">${escHtml(checkin.thoughts || '')}</textarea>
+    <div class="section-label">Checklist</div>
+    <div class="checkin-tasks">${taskRows}</div>
 
     ${past.length ? `<div class="section-label">History</div>${past.map(d => {
       const scores = CHECKIN_SCORES.map(s => d.checkin.scores?.[s.key]).filter(v => v != null);
+      const done = CHECKIN_TASKS.filter(task => d.checkin.tasks?.[task.key]).length;
       return `<div class="past-day-card" onclick="openCheckinDay('${d.key}')">
         <div style="min-width:0;">
           <div class="past-day-date">${escHtml(isoDate(d.key))}</div>
-          <div class="past-day-name">${escHtml((d.checkin.firework || '').split('\n')[0] || '—')}</div>
+          <div class="past-day-name">${done}/${CHECKIN_TASKS.length} checked</div>
         </div>
         <div class="past-day-stats">${scores.length ? scores.join(' · ') : ''}</div>
         <span class="chevron-right">›</span>
@@ -3027,13 +3190,11 @@ function checkinAsText(key) {
     const v = checkin.scores[s.key];
     lines.push(`\t- ${s.label}：${v ?? ''} /10`);
   }
-  const section = (title, body) => {
-    lines.push('', ` ${title}`);
-    for (const line of String(body || '').split('\n')) lines.push(`\t${line}`);
-  };
-  section('今天的礼花 🎆', checkin.firework);
-  section('明天的关键动作', checkin.tomorrow);
-  section('今日的思考', checkin.thoughts);
+  lines.push('', ' Checklist');
+  for (const task of CHECKIN_TASKS) {
+    const label = task.custom ? (checkin.customLabel || 'Custom') : task.label;
+    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${label}${task.target ? ` · ${task.target}` : ''}`);
+  }
   return lines.join('\n');
 }
 
@@ -3304,7 +3465,7 @@ async function resolveFoodQuery(query) {
 // home baking, a dish from a restaurant, anything regional. Rather than make
 // her guess the macros, ask the model that already reads her food photos.
 async function estimateFoodWithAI(query) {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     pendingApiKeyAction = { type: 'estimate', query };
     openApiKeyModal();
@@ -3315,25 +3476,9 @@ async function estimateFoodWithAI(query) {
   if (box) box.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:14px 0;">Estimating ${escHtml(query)}…</div>`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 256,
-        messages: [{
-          role: 'user',
-          content: `Give typical nutrition for "${query}". Reply ONLY with JSON: {"name":"…","unit":"g","qty":100,"p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}. Use per-100g values with unit "g" for anything measured by weight; for a countable item use a unit like "slice" or "piece" with qty 1 and values for one of them.`,
-        }],
-      }),
-    });
-    if (!resp.ok) throw new Error('API error ' + resp.status);
-    const text = (await resp.json()).content[0].text;
+    const text = await callOpenAI([
+      { role:'user', content:[{ type:'input_text', text:`Give typical nutrition for "${query}". Reply ONLY with JSON: {"name":"…","unit":"g","qty":100,"p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}. Prefer values for the edible cooked form. Use per-100g values with unit "g" for weighted foods; for a countable item use one realistic serving. This is an estimate, not laboratory data.` }] }
+    ], 'You are a precise nutrition data assistant. Keep calories consistent with protein, carbohydrate and fat.', 300);
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) throw new Error('No usable answer');
     const guess = JSON.parse(match[0]);
@@ -3342,7 +3487,7 @@ async function estimateFoodWithAI(query) {
       name: guess.name || query,
       p: +guess.p || 0, kcal: Math.round(+guess.kcal || 0), fat: +guess.fat || 0,
       carbs: +guess.carbs || 0, fiber: +guess.fiber || 0,
-      unit: guess.unit || 'g', qty: +guess.qty || 100,
+      unit: guess.unit || 'g', qty: +guess.qty || 100, source:'OpenAI estimate', estimated:true,
     };
     openQtyModalWithItem(item, item.name);
   } catch (err) {
@@ -3701,6 +3846,7 @@ function addWater(ml) {
   state.waterMl = (state.waterMl || 0) + ml;
   saveState();
   renderWater();
+  showToast(`Water · ${state.waterMl} / ${WATER_GOAL_ML} ml`);
 }
 
 function resetWater() {
@@ -3710,10 +3856,11 @@ function resetWater() {
 }
 
 function renderWater() {
-  const el = document.getElementById('water-display');
-  if (!el) return;
+  const button = document.getElementById('water-add-btn');
+  if (!button) return;
   const ml = state.waterMl || 0;
-  el.textContent = `${ml} / ${WATER_GOAL_ML} ml`;
+  button.title = `Water · ${ml} / ${WATER_GOAL_ML} ml · Add 500 ml`;
+  button.setAttribute('aria-label', `Water ${ml} of ${WATER_GOAL_ML} millilitres. Add 500 millilitres`);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3766,7 +3913,7 @@ function showToast(msg, dur = 3000) {
   setTimeout(() => t.remove(), dur);
 }
 
-function startVoice(targetInputId, btnId) {
+function startVoice(targetInputId, btnId, onTranscript) {
   // Always reset stuck state first
   voiceActive = false;
   if (recognition) { try { recognition.abort(); } catch {} recognition = null; }
@@ -3789,13 +3936,14 @@ function startVoice(targetInputId, btnId) {
 
   rec.onstart = () => {
     voiceActive = true;
-    if (btn) { btn.classList.add('recording'); btn.innerHTML = '🔴'; }
+    if (btn) { btn.classList.add('recording'); btn.setAttribute('aria-label', 'Listening'); }
     showToast('🎤 Listening…', 10000);
   };
 
   rec.onresult = (e) => {
     const t = e.results[0][0].transcript;
-    if (input) { input.value = t; input.dispatchEvent(new Event('input')); }
+    if (onTranscript) onTranscript(t);
+    else if (input) { input.value = t; input.dispatchEvent(new Event('input')); }
     showToast('✓ ' + t, 2000);
     stopVoice(btnId);
   };
@@ -3828,15 +3976,65 @@ function stopVoice(btnId) {
   document.querySelectorAll('.nm-toast').forEach(t => t.remove());
   const id = btnId || 'voice-btn';
   const btn = document.getElementById(id);
-  if (btn) { btn.classList.remove('recording'); btn.innerHTML = '🎤'; }
+  if (btn) { btn.classList.remove('recording'); btn.setAttribute('aria-label', 'Describe food by voice'); }
   try { recognition && recognition.abort(); } catch {}
   recognition = null;
 }
 
 function toggleVoice() { startVoice('food-text', 'voice-btn'); }
+function toggleFoodVoice() {
+  startVoice('home-food-text', 'home-voice-btn', transcript => {
+    const input = document.getElementById('home-food-text');
+    input.value = transcript;
+    input.dispatchEvent(new Event('input'));
+    organizeSpokenFood(transcript);
+  });
+}
+
+async function organizeSpokenFood(transcript) {
+  if (!getOpenAIKey()) {
+    pendingApiKeyAction = { type:'food-voice', transcript };
+    openApiKeyModal();
+    return;
+  }
+  showToast('AI is organizing your meal…', 10000);
+  try {
+    const text = await callOpenAI([{ role:'user', content:[{ type:'input_text', text:transcript }] }],
+      'Turn the spoken meal description into a JSON array only. Schema: [{"name":"food","qty":100,"unit":"g","p":0,"kcal":0,"fat":0,"carbs":0,"fiber":0}]. Split distinct foods. Use a realistic portion when omitted and internally consistent nutrition estimates.', 900);
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('No foods recognized');
+    const foods = JSON.parse(match[0]);
+    const time = nowTime();
+    for (const food of foods) {
+      const local = searchFoodDb(food.name, 1)[0];
+      let macros = { p:+food.p||0, kcal:+food.kcal||0, fat:+food.fat||0, carbs:+food.carbs||0, fiber:+food.fiber||0 };
+      let source = 'OpenAI estimate';
+      if (local && local.score >= 85 && ['g','ml'].includes(String(food.unit).toLowerCase()) && ['g','ml'].includes(local.item.unit)) {
+        macros = calcQty(local.item, +food.qty || 100);
+        source = 'nutrition bank';
+      }
+      state.food.push({ ...makeEntry(food.name || 'Food', macros, time), source, qty:+food.qty||null, unit:food.unit||'' });
+    }
+    saveState();
+    document.getElementById('home-food-text').value = '';
+    renderDayList(); renderHeader(); renderLogTab();
+    showToast(`✓ Added ${foods.length} food${foods.length === 1 ? '' : 's'}`);
+  } catch (err) { showToast('Could not organize food: ' + err.message, 5000); }
+}
+function toggleFeelingVoice() {
+  startVoice(null, 'feeling-voice-btn', transcript => {
+    const normalized = transcript.toLowerCase().replace('point', '.');
+    const match = normalized.match(/(?:feeling|rpe|feel)?\s*(\d+(?:\.\d)?)/i);
+    const value = match ? parseFloat(match[1]) : NaN;
+    if (!isFinite(value) || value < 1 || value > 10) { showToast('Say a feeling from 1 to 10'); return; }
+    currentFeeling = Math.round(value * 2) / 2;
+    [5,6,7,8,9,10].forEach(n => document.getElementById('feel-' + n)?.classList.toggle('active', n === currentFeeling));
+    document.getElementById('feel-hint').textContent = `RPE ${currentFeeling}`;
+  });
+}
 
 // ═══════════════════════════════════════════════════════════════
-// PHOTO UPLOAD + CLAUDE VISION
+// PHOTO UPLOAD + OPENAI VISION
 // ═══════════════════════════════════════════════════════════════
 // iPhone photos run 10–20 MB and the API caps around 5, so everything sent
 // to the model goes through here first. Barcodes need more detail than a
@@ -3861,7 +4059,7 @@ async function compressImage(file, maxSizePx = 1280) {
 }
 
 function triggerPhoto() {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('photo'); return; }
   document.getElementById('photo-input').click();
 }
@@ -3870,7 +4068,7 @@ async function handlePhotoUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = '';
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('photo'); return; }
 
   document.getElementById('photo-results').innerHTML = '';
@@ -3885,29 +4083,12 @@ async function handlePhotoUpload(event) {
   }
 
   try {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5',
-          max_tokens: 1024,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-              { type: 'text', text: 'Identify all foods in this image and estimate their macros. Respond ONLY with a valid JSON array: [{"name":"Food Name","qty":100,"unit":"g","p":20,"kcal":200,"fat":5,"carbs":10,"fiber":2}]. Be specific with quantities. If uncertain, make your best estimate.' }
-            ]
-          }]
-        })
-      });
-      if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
-      const data = await resp.json();
-      const text = data.content[0].text;
+      const text = await callOpenAI([{
+        role:'user', content:[
+          { type:'input_image', image_url:'data:image/jpeg;base64,' + base64, detail:'high' },
+          { type:'input_text', text:'Identify every visible food and estimate the edible portion. Reply ONLY with valid JSON: [{"name":"Food Name","qty":100,"unit":"g","p":20,"kcal":200,"fat":5,"carbs":10,"fiber":2}]. Use grams or millilitres when possible. Do not invent packaged brands that are not visible.' }
+        ]
+      }], 'You are a careful food-photo analyst. Portion estimates may be uncertain; keep macro arithmetic internally consistent.', 1200);
       // Parse JSON from response
       const match = text.match(/\[[\s\S]*\]/);
       if (!match) throw new Error('No JSON in response');
@@ -4101,9 +4282,9 @@ function getSessionTemplates() {
 
 function shortSessionLabel(name) {
   const fixed = {
-    'Lower Body':'Lower', 'Lat & Back':'Back', 'Shoulder & Arm':'Arms',
-    'Handstand Drill':'Handstand', 'Core':'Core', 'Running':'Run',
-    'Walking':'Walk', 'Rest Day':'Rest', 'Other':'Other',
+    'Lower Body':'Lower', 'Upper':'Upper', 'Shoulder & Arm':'Arms',
+    'Handstand Drill':'Handstand', 'Calisthenics':'Calisthenics', 'Core':'Core', 'Running':'Run',
+    'Walking':'Walking', 'Hiking':'Hiking', 'Resting':'Resting', 'Other':'Other',
   };
   return fixed[name] || String(name).split(' ')[0];
 }
@@ -4153,7 +4334,7 @@ function makePlannedExercise(name) {
   const hold = !run && isHoldExercise(name);
   const exercise = { id:uid(), name, completed:false, run, hold };
   if (last) {
-    ['sets','reps','weight','distance','runTime'].forEach(field => exercise[field] = String(last[field] || ''));
+    ['sets','reps','weight','distance','runTime','pace'].forEach(field => exercise[field] = String(last[field] || ''));
     exercise.lastDate = last.key;
     exercise.suggested = true;
   }
@@ -4186,6 +4367,7 @@ function initGymTab() {
   renderExerciseList();
   renderFreqExercises();
   renderGymHistory();
+  updateGymInputMode();
 }
 
 function onSessionChange() {
@@ -4204,11 +4386,23 @@ function selectOrganicSession(session) {
   if (template) loadTemplatePlan(template);
   const sel = document.getElementById('session-select');
   if (sel) sel.value = canonicalSessionType(session);
+  const exerciseName = document.getElementById('gym-ex-name');
+  if (exerciseName) {
+    if (canonicalSessionType(session) === 'Running' && !exerciseName.value.trim()) exerciseName.value = 'Running';
+    else if (canonicalSessionType(session) !== 'Running' && exerciseName.value.trim() === 'Running') exerciseName.value = '';
+  }
   saveState();
+  updateGymInputMode();
   renderOrganicSessionSegments();
   renderSessionSuggestions();
   renderExerciseList();
   renderFreqExercises();
+}
+
+function selectCustomSession() {
+  const name = prompt('Custom workout name');
+  if (!name || !name.trim()) return;
+  selectOrganicSession(name.trim());
 }
 
 function renderOrganicSessionSegments() {
@@ -4218,7 +4412,7 @@ function renderOrganicSessionSegments() {
   const activeSession = canonicalSessionType(state.gym.session || '');
   container.innerHTML = templates.map(template => `
     <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
-  `).join('');
+  `).join('') + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
 }
 
 function renderSessionSuggestions() {
@@ -4262,6 +4456,7 @@ function prefillGymInputs(name) {
   const values = {
     'gym-sets':last?.sets || '', 'gym-reps':last?.reps || '', 'gym-weight':last?.weight || '',
     'gym-distance':last?.distance || '', 'gym-run-time':last?.runTime || '',
+    'gym-pace':last?.pace || calcPacePerKm(last?.distance, last?.runTime) || '',
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.getElementById(id);
@@ -4274,9 +4469,10 @@ function prefillGymInputs(name) {
 }
 
 function resetGymEntryForm() {
-  ['gym-ex-name','gym-sets','gym-reps','gym-weight','gym-distance','gym-run-time'].forEach(id => {
+  ['gym-ex-name','gym-sets','gym-reps','gym-weight','gym-distance','gym-run-time','gym-pace'].forEach(id => {
     const input = document.getElementById(id);
     input.value = '';
+    if (id === 'gym-pace') delete input.dataset.manual;
     input.classList.remove('suggested-value');
   });
   document.getElementById('gym-last-hint').textContent = '';
@@ -4294,6 +4490,8 @@ function addExercise() {
   if (run) {
     exercise.distance = document.getElementById('gym-distance').value.trim();
     exercise.runTime  = document.getElementById('gym-run-time').value.trim();
+    exercise.pace = document.getElementById('gym-pace').value.trim()
+      || calcPacePerKm(exercise.distance, exercise.runTime);
     exercise.run = true;
   } else {
     exercise.sets   = document.getElementById('gym-sets').value.trim();
@@ -4333,6 +4531,7 @@ function afterGymEdit(dayKey) {
   }
   renderGymHistory();
   renderLogTab();
+  renderHeader();
 }
 
 function deleteExercise(id, dayKey) {
@@ -4360,7 +4559,7 @@ function markExerciseEditing(id, input) {
 function updateExerciseField(id, field, value, dayKey) {
   const day = gymDayState(dayKey);
   const exercise = day.gym.exercises.find(item => item.id === id);
-  if (!exercise || !['sets','reps','weight','distance','runTime','feeling'].includes(field)) return;
+  if (!exercise || !['sets','reps','weight','distance','runTime','pace','feeling'].includes(field)) return;
   if (field === 'feeling') {
     const n = parseFloat(value);
     exercise.feeling = isFinite(n) && n > 0 && n <= 10 ? n : null;
@@ -4395,8 +4594,8 @@ function exerciseRowHTML(e, dayKey) {
 
   let fields;
   if (run) {
-    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Time', 'runTime')}${rpe}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      ${field(e.distance, 'Km', 'distance')}${field(e.runTime, 'Duration', 'runTime')}${field(e.pace || calcPacePerKm(e.distance, e.runTime), 'Pace /km', 'pace')}${rpe}</div>`;
   } else if (hold) {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}${rpe}</div>`;
@@ -4497,6 +4696,7 @@ function showGymDayDetail(key) {
     .join('');
 
   const completed = (gym.exercises || []).filter(e => e.completed).length;
+  const runningDay = canonicalSessionType(gym.session) === 'Running';
 
   inner.innerHTML = `
     ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(formatKey(key))} — changes save straight to that day.</div>`}
@@ -4511,9 +4711,9 @@ function showGymDayDetail(key) {
     <div class="gym-input-wrap" style="margin-bottom:18px;">
       <input type="text" class="gym-text-input" id="gym-detail-name" placeholder="Exercise name…" autocomplete="off">
       <div class="gym-input-row" style="margin-top:8px;">
-        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="Sets" inputmode="numeric">
-        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="Reps" inputmode="text">
-        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="lbs" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Km' : 'Sets'}" inputmode="decimal">
+        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${runningDay ? 'Duration' : 'Reps'}" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${runningDay ? 'Pace /km' : 'lbs'}" inputmode="text">
         <button class="green-btn" onclick="addExerciseToDay('${key}')"></button>
       </div>
     </div>
@@ -4532,6 +4732,13 @@ function showGymDayDetail(key) {
 
   document.getElementById('gym-day-list').classList.add('slide-left');
   document.getElementById('gym-day-detail').classList.add('slide-in');
+}
+
+function openGymDate() {
+  const value = document.getElementById('gym-history-date').value;
+  if (!value) { showToast('Choose a date first'); return; }
+  if (value > new Date().toISOString().slice(0, 10)) { showToast('Future dates cannot be logged'); return; }
+  showGymDayDetail('alog_' + value.replace(/-/g, '_'));
 }
 
 function setGymDaySession(key, session) {
@@ -4558,7 +4765,7 @@ function addExerciseToDay(key) {
   const sets   = document.getElementById('gym-detail-sets').value.trim();
   const reps   = document.getElementById('gym-detail-reps').value.trim();
   const weight = document.getElementById('gym-detail-weight').value.trim();
-  if (run) { exercise.distance = sets; exercise.runTime = reps; }
+  if (run) { exercise.distance = sets; exercise.runTime = reps; exercise.pace = weight || calcPacePerKm(sets, reps); }
   else { exercise.sets = sets; exercise.reps = reps; exercise.weight = hold ? '' : weight; }
 
   day.gym.exercises.push(exercise);
@@ -4596,8 +4803,9 @@ function updateGymInputMode() {
   const weightEl   = document.getElementById('gym-weight');
   const distEl     = document.getElementById('gym-distance');
   const timeEl     = document.getElementById('gym-run-time');
+  const paceEl     = document.getElementById('gym-pace');
   if (!repsEl) return;
-  const run  = isRunExercise(name);
+  const run  = isRunExercise(name) || (!name.trim() && canonicalSessionType(state.gym.session) === 'Running');
   const hold = !run && isHoldExercise(name);
   // run mode: distance + time only
   setsEl.style.display   = run ? 'none' : '';
@@ -4605,8 +4813,17 @@ function updateGymInputMode() {
   weightEl.style.display = (run || hold) ? 'none' : '';
   distEl.style.display   = run ? '' : 'none';
   timeEl.style.display   = run ? '' : 'none';
+  paceEl.style.display   = run ? '' : 'none';
   if (hold) { setsEl.placeholder = 'Rounds'; repsEl.placeholder = 'Secs'; }
   else      { setsEl.placeholder = 'Sets';   repsEl.placeholder = 'Reps'; }
+}
+
+function updateRunPacePreview() {
+  const distance = document.getElementById('gym-distance')?.value.trim();
+  const duration = document.getElementById('gym-run-time')?.value.trim();
+  const pace = document.getElementById('gym-pace');
+  if (!pace || pace.dataset.manual === '1') return;
+  pace.value = calcPacePerKm(distance, duration);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4616,7 +4833,7 @@ let gymAiHistory = [];
 let gymAiStreaming = false;
 
 function openGymAI() {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { pendingApiKeyAction = { type: 'ai', context: 'gym-modal' }; openApiKeyModal(); return; }
   gymAiHistory = [];
   const msgs = document.getElementById('gym-ai-messages');
@@ -4649,7 +4866,7 @@ async function sendGymAI() {
   const input = document.getElementById('gym-ai-input');
   const text = input.value.trim();
   if (!text) return;
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModal(); return; }
   input.value = '';
   gymAiHistory.push({ role:'user', content:text });
@@ -4673,25 +4890,10 @@ If the user is just chatting (not logging), answer normally without JSON.
 Keep replies concise. All weights are in lbs.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({ model:'claude-haiku-4-5', max_tokens:600, stream:true, system:sys, messages:gymAiHistory })
-    });
-    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error?.message || 'API error ' + resp.status); }
-    bubble.classList.remove('thinking'); bubble.innerHTML='';
-    let full='';
-    const reader=resp.body.getReader(); const dec=new TextDecoder(); let buf='';
-    while(true){
-      const {done,value}=await reader.read(); if(done) break;
-      buf+=dec.decode(value,{stream:true});
-      const lines=buf.split('\n'); buf=lines.pop();
-      for(const line of lines){
-        if(!line.startsWith('data: ')) continue;
-        const d=line.slice(6); if(d==='[DONE]') break;
-        try{const ev=JSON.parse(d);if(ev.type==='content_block_delta'&&ev.delta?.type==='text_delta'){full+=ev.delta.text;bubble.textContent=full;document.getElementById('gym-ai-messages').scrollTop=9999;}}catch{}
-      }
-    }
+    const full = await callOpenAI(
+      gymAiHistory.map(message => ({ role:message.role, content:message.content })),
+      sys, 800);
+    bubble.classList.remove('thinking'); bubble.textContent=full;
     gymAiHistory.push({role:'assistant',content:full});
 
     // Parse JSON exercises from response
@@ -4733,13 +4935,28 @@ Keep replies concise. All weights are in lbs.`;
 // Rough burn per session type, used only when Garmin has nothing for the day.
 // Keyed on the canonical types so it survives however the session was written.
 const SESSION_BURN = {
-  'Lower Body': 380, 'Lat & Back': 300, 'Shoulder & Arm': 260,
-  'Handstand Drill': 220, 'Core': 180, 'Running': 600,
-  'Walking': 250, 'Rest Day': 0, 'Other': 300,
+  'Lower Body': 400, 'Upper': 320, 'Shoulder & Arm': 260,
+  'Handstand Drill': 240, 'Calisthenics': 320, 'Core': 220, 'Running': 700,
+  'Walking': 250, 'Hiking': 500, 'Resting': 0, 'Other': 300,
 };
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
 const BMR_ESTIMATE = 1306;
+
+function activeBurnForDay(day) {
+  const manual = day.garminKcal || 0;
+  const synced = day.garminAutoKcal || 0;
+  if (manual > 0) return manual;
+  if (synced > 0) return synced;
+  const completed = (day.gym?.exercises || []).filter(exercise => exercise.completed !== false);
+  if (!completed.length) return 0;
+  const session = canonicalSessionType(day.gym?.session || '');
+  return SESSION_BURN[session] ?? 300;
+}
+
+function dailyCalorieGoal(day = state) {
+  return BMR_ESTIMATE + activeBurnForDay(day);
+}
 
 function renderLogTab() {
   const m = sumMacros(state.food);
@@ -4762,7 +4979,7 @@ function renderLogTab() {
     : garminAuto > 0 ? `⌚ Garmin auto${state.garminSyncedAt ? ' · ' + escHtml(state.garminSyncedAt) : ''}`
     : hasCompletedTraining && state.gym.session ? escHtml(state.gym.session)
     : hasCompletedTraining ? 'completed exercises' : null;
-  const totalBurn = BMR_ESTIMATE + sessionBurn;
+  const totalBurn = dailyCalorieGoal(state);
   const eaten = Math.round(m.kcal);
   const netKcal = eaten - totalBurn;
   const netLabel = netKcal > 0 ? `+${netKcal}` : String(netKcal);
@@ -4794,14 +5011,19 @@ function renderLogTab() {
     <div class="macro-stat-card">
       <div class="macro-stat-val" style="color:var(--blue)">${Math.round(m.carbs)}<span class="macro-unit">g</span></div>
       <div class="macro-stat-lbl">Carbs</div>
+    </div>
+    <div class="macro-stat-card">
+      <div class="macro-stat-val" style="color:var(--purple)">${Math.round(m.fiber)}<span class="macro-unit">g</span></div>
+      <div class="macro-stat-lbl">Fiber</div>
     </div>`;
 
   // ── Goal bars ──
   const goalsHtml = [
     { label:'Protein', val:m.p, goal:GOALS.protein, cls:'prot', unit:'g' },
-    { label:'Calories', val:m.kcal, goal:GOALS.kcal, cls:'kcal', unit:' kcal' },
+    { label:'Calories', val:m.kcal, goal:dailyCalorieGoal(state), cls:'kcal', unit:' kcal' },
     { label:'Fat', val:m.fat, goal:GOALS.fat, cls:'fat', unit:'g' },
     { label:'Carbs', val:m.carbs, goal:GOALS.carbs, cls:'carbs', unit:'g' },
+    { label:'Fiber', val:m.fiber, goal:GOALS.fiber, cls:'fiber', unit:'g' },
   ].map(g => {
     const pct = Math.min(100, Math.round((g.val/g.goal)*100));
     return `<div class="goal-bar-wrap">
@@ -4855,6 +5077,46 @@ function renderLogTab() {
     </div>`;
   }
   document.getElementById('history-rows').innerHTML = histHtml || '<div class="empty-state">No history yet</div>';
+  renderLifeCoachSummary();
+}
+
+function renderLifeCoachSummary() {
+  const box = document.getElementById('life-coach-summary');
+  if (!box) return;
+  box.textContent = state.checkin?.lifeCoachSummary
+    || 'Review today’s data and generate a concise coaching summary.';
+}
+
+async function generateLifeCoachSummary() {
+  if (!getOpenAIKey()) {
+    pendingApiKeyAction = { type:'life-summary' };
+    openApiKeyModal();
+    return;
+  }
+  const button = document.getElementById('life-coach-btn');
+  const box = document.getElementById('life-coach-summary');
+  button.disabled = true;
+  button.textContent = 'Thinking…';
+  box.textContent = 'Reviewing today…';
+  try {
+    const macros = sumMacros(state.food || []);
+    const checkin = state.checkin || { scores:{}, tasks:{} };
+    const completedTasks = CHECKIN_TASKS
+      .filter(task => checkin.tasks?.[task.key])
+      .map(task => task.custom ? (checkin.customLabel || 'Custom') : task.label);
+    const prompt = `Date: ${garminDateKey()}\nStatus scores: ${JSON.stringify(checkin.scores || {})}\nChecklist completed: ${completedTasks.join(', ') || 'none'}\nNutrition: ${Math.round(macros.kcal)} kcal, ${Math.round(macros.p)}g protein, ${Math.round(macros.fiber)}g fiber.\nWorkout: ${state.gym?.session || 'none'}; ${(state.gym?.exercises || []).filter(e => e.completed !== false).map(e => e.name).join(', ') || 'no completed exercises'}.\nWater: ${state.waterMl || 0} ml.`;
+    const summary = await callOpenAI([{ role:'user', content:prompt }],
+      'You are a supportive, practical life coach. Write one short paragraph plus up to three concrete next actions. Balance study, work, fitness, nutrition and recovery. Do not shame, diagnose or exaggerate. Use the same language as the user’s data where practical.', 550);
+    state.checkin = checkin;
+    state.checkin.lifeCoachSummary = summary;
+    saveState();
+    box.textContent = summary;
+  } catch (err) {
+    box.textContent = 'Could not generate summary: ' + err.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Refresh';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4946,7 +5208,7 @@ async function restoreFromGist() {
     });
     if (!gistResp.ok) throw new Error('Could not fetch backup file');
     const gistData = await gistResp.json();
-    const raw = gistData.files['athletelog-backup.json']?.content;
+    const raw = await gistFileText(gistData.files['athletelog-backup.json'], token);
     if (!raw) throw new Error('Backup file is empty');
 
     const parsed = JSON.parse(raw);
@@ -4970,21 +5232,51 @@ async function restoreFromGist() {
   }
 }
 
+function dateToDayKey(date) { return 'alog_' + String(date).replace(/-/g, '_'); }
+function dayKeyToIso(key) { return key.slice(5).replace(/_/g, '-'); }
+
+function setExportRange(days) {
+  const allDays = Object.keys(localStorage).filter(isDayKey).sort();
+  const to = new Date();
+  const from = new Date();
+  if (days > 0) from.setDate(to.getDate() - days + 1);
+  document.getElementById('export-to').value = to.toISOString().slice(0, 10);
+  document.getElementById('export-from').value = days > 0
+    ? from.toISOString().slice(0, 10)
+    : (allDays[0] ? dayKeyToIso(allDays[0]) : to.toISOString().slice(0, 10));
+}
+
 function exportData() {
-  const json = JSON.stringify(collectBackupData(), null, 2);
+  setExportRange(7);
+  document.getElementById('export-modal').classList.add('open');
+}
+
+function closeExportModal() { document.getElementById('export-modal').classList.remove('open'); }
+
+function confirmExportData() {
+  const from = document.getElementById('export-from').value;
+  const to = document.getElementById('export-to').value;
+  if (!from || !to || from > to) { showToast('Choose a valid date range'); return; }
+  const all = collectBackupData();
+  const selected = {};
+  for (const [key, value] of Object.entries(all)) {
+    if (!isDayKey(key) || (dayKeyToIso(key) >= from && dayKeyToIso(key) <= to)) selected[key] = value;
+  }
+  const json = JSON.stringify(selected, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const dateStr = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `athletelog-backup-${dateStr}.json`;
+  a.download = `athletelog-${from}-to-${to}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   // Record last backup date
   localStorage.setItem('alog_last_backup', dateStr);
-  showToast('✓ Data exported! Save the file to your files app or email it.', 4000);
+  closeExportModal();
+  showToast(`✓ Exported ${from} → ${to}`, 4000);
 }
 
 // Check if weekly backup is due (auto-sync if token available, else remind)
@@ -4998,9 +5290,25 @@ function checkBackupReminder() {
       // Auto-sync silently
       setTimeout(() => syncToGist(true), 5000);
     } else {
-      setTimeout(() => showToast('Weekly backup due. Tap Sync in Summary', 5000), 3000);
+      setTimeout(() => showToast('Weekly backup due. Tap Cloud Backup in Summary', 5000), 3000);
     }
   }
+}
+
+async function setupNativeReminders() {
+  if (!isNativeApp() || localStorage.getItem('alog_native_reminders') === '1') return;
+  const notifications = window.Capacitor?.Plugins?.LocalNotifications;
+  if (!notifications) return;
+  try {
+    const permission = await notifications.requestPermissions();
+    if (permission.display !== 'granted') return;
+    const weekday = new Date().getDay() + 1; // Capacitor: Sunday=1 … Saturday=7
+    await notifications.schedule({ notifications:[
+      { id:701, title:'AthleteLog', body:'记录今天的训练、饮食和 Feeling。', schedule:{ on:{ hour:21, minute:0 } } },
+      { id:707, title:'AthleteLog backup', body:'导出并保存最近 7 天的 AthleteLog 备份。', schedule:{ on:{ weekday, hour:9, minute:0 } } }
+    ] });
+    localStorage.setItem('alog_native_reminders', '1');
+  } catch (err) { console.warn('Could not schedule native reminders:', err); }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5014,6 +5322,15 @@ function openGistModal() {
 }
 function closeGistModal() {
   document.getElementById('gist-modal').classList.remove('open');
+}
+
+async function gistFileText(file, token) {
+  if (!file) throw new Error('Gist file is missing');
+  if (!file.truncated && typeof file.content === 'string') return file.content;
+  if (!file.raw_url) throw new Error('Gist file has no downloadable content');
+  const resp = await fetch(file.raw_url, { headers:{ Authorization:'Bearer ' + token } });
+  if (!resp.ok) throw new Error(`Could not download full Gist file (${resp.status})`);
+  return resp.text();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5052,7 +5369,6 @@ async function ensureHealthPermissions() {
   try {
     const { available } = await health.isHealthAvailable();
     if (!available) return false;
-    if (localStorage.getItem('health_permissions_asked')) return true;
     await health.requestHealthPermissions({ permissions: HEALTH_PERMISSIONS });
     localStorage.setItem('health_permissions_asked', '1');
     return true;
@@ -5152,12 +5468,18 @@ function garminDateKey(date = new Date()) {
 // Native reads Apple Health; the PWA reads the Gist relay. Same contract.
 async function healthOrRelaySync(silent = true) {
   if (isNativeApp()) return healthSync(silent);
-  if (silent && !garminShouldLook()) return false;
-  return garminAutoSync(silent);
+  if (!silent) {
+    const status = document.getElementById('garmin-status');
+    if (status) {
+      status.style.color = 'var(--muted)';
+      status.textContent = 'Automatic sync is available in the iOS app through Apple Health. Enter Garmin Active Calories manually in the browser.';
+    }
+  }
+  return false;
 }
 
 function shouldCheckHealth() {
-  return isNativeApp() || garminShouldLook();
+  return isNativeApp();
 }
 
 function garminRelayState() {
@@ -5208,7 +5530,7 @@ async function garminAutoSync(silent = true) {
   const token = localStorage.getItem('github_gist_token');
   const status = document.getElementById('garmin-status');
   if (!token) {
-    if (!silent && status) { status.style.color = 'var(--red)'; status.textContent = 'Connect Gist backup first (Summary → Sync)'; }
+    if (!silent && status) { status.style.color = 'var(--red)'; status.textContent = 'Connect Gist backup first (Summary → Cloud Backup)'; }
     return false;
   }
   // A silent pass never re-asks once we know there is no relay.
@@ -5221,7 +5543,8 @@ async function garminAutoSync(silent = true) {
       headers: { Authorization: 'Bearer ' + token },
     });
     if (!resp.ok) throw new Error('Could not read the relay file');
-    const raw = (await resp.json()).files?.[GARMIN_GIST_FILE]?.content;
+    const relayFile = (await resp.json()).files?.[GARMIN_GIST_FILE];
+    const raw = await gistFileText(relayFile, token);
     if (!raw) throw new Error('Relay file is empty');
     const days = JSON.parse(raw);
 
@@ -5281,29 +5604,15 @@ function renderGarminAutoRow() {
       : 'Reads active calories and steps straight from your phone';
     return;
   }
-  const state_ = garminRelayState();
-  if (state_ === 'no-token') {
-    title.textContent = 'Auto-sync off';
-    sub.textContent = 'Connect Gist backup first (Summary → Sync)';
-    return;
-  }
-  if (state_ === 'no-relay' || state_ === 'unknown') {
-    title.textContent = 'Manual entry';
-    sub.textContent = 'No relay set up — see “How auto-sync works” below';
-    return;
-  }
-  const auto = state.garminAutoKcal || 0;
-  const last = localStorage.getItem('garmin_last_sync');
-  title.textContent = auto ? `Today: ${auto} kcal` : 'Auto-sync on';
-  sub.textContent = last
-    ? `Last checked ${new Date(last).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}`
-    : 'Not checked yet — tap Sync';
+  title.textContent = 'Manual Garmin entry';
+  sub.textContent = 'Automatic sync uses Apple Health in the iOS app';
 }
 
 function updateGarminBtn() {
   const btn = document.getElementById('garmin-btn');
   if (!btn) return;
   const active = (state.garminKcal || 0) > 0 || (state.garminAutoKcal || 0) > 0;
+  btn.textContent = isNativeApp() ? 'Health' : 'Garmin';
   btn.style.color = active ? 'var(--sp-green)' : '';
 }
 
@@ -5377,7 +5686,7 @@ async function syncToGist(silent = false) {
   if (!token) { openGistModal(); return; }
 
   const syncBtn = document.getElementById('sync-btn');
-  if (syncBtn) { syncBtn.textContent = '⟳ Syncing…'; syncBtn.disabled = true; }
+  if (syncBtn) { syncBtn.textContent = 'Backing up…'; syncBtn.disabled = true; }
 
   try {
     const allData = getAllLogData();
@@ -5406,22 +5715,25 @@ async function syncToGist(silent = false) {
     }
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err.message || 'HTTP ' + resp.status);
+      const failure = new Error(err.message || 'HTTP ' + resp.status);
+      failure.status = resp.status;
+      throw failure;
     }
 
     const result = await resp.json();
     localStorage.setItem('github_gist_id', result.id);
     localStorage.setItem('alog_last_backup', dateStr);
-    if (!silent) showToast(`Synced to GitHub Gist. ${Object.keys(allData).length} days backed up`, 4000);
+    if (!silent) showToast(`Cloud backup complete. ${Object.keys(allData).length} records saved to GitHub Gist`, 4000);
   } catch(err) {
-    if (!silent) showToast('Sync failed: ' + err.message, 4000);
+    if (!silent) showToast('Cloud backup failed: ' + err.message, 4000);
     else console.warn('Auto-sync failed:', err.message);
-    if (err.message.includes('401') || err.message.includes('403')) {
+    if (err.status === 401 || err.status === 403 || /bad credentials|requires authentication/i.test(err.message)) {
       localStorage.removeItem('github_gist_token');
+      localStorage.removeItem('github_gist_id');
       if (!silent) openGistModal();
     }
   } finally {
-    if (syncBtn) { syncBtn.textContent = '☁️ Sync'; syncBtn.disabled = false; }
+    if (syncBtn) { syncBtn.textContent = 'Cloud Backup'; syncBtn.disabled = false; }
   }
 }
 
@@ -5432,7 +5744,7 @@ function buildText() {
   text += `Period: ${state.period?'Yes':'No'} | Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml\n\n`;
   text += `NUTRITION\n`;
   text += `Protein: ${Math.round(m.p)}g / ${GOALS.protein}g\n`;
-  text += `Calories: ${Math.round(m.kcal)} / ${GOALS.kcal} kcal\n`;
+  text += `Calories: ${Math.round(m.kcal)} / ${dailyCalorieGoal(state)} kcal\n`;
   text += `Fat: ${Math.round(m.fat)}g | Carbs: ${Math.round(m.carbs)}g | Fiber: ${Math.round(m.fiber)}g\n\n`;
   if (state.food.length) {
     text += `FOOD LOG\n`;
@@ -5474,8 +5786,30 @@ document.getElementById('period-btn').onclick = () => {
 // ═══════════════════════════════════════════════════════════════
 let pendingApiKeyAction = null;
 
+const OPENAI_MODEL = 'gpt-5.4-mini';
+function getOpenAIKey() { return localStorage.getItem('openai_api_key') || ''; }
+function openAIOutputText(payload) {
+  if (payload.output_text) return payload.output_text;
+  return (payload.output || []).flatMap(item => item.content || [])
+    .filter(item => item.type === 'output_text').map(item => item.text || '').join('');
+}
+async function callOpenAI(input, instructions, maxOutputTokens = 900) {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) throw new Error('OpenAI API key is not set');
+  const resp = await fetch('https://api.openai.com/v1/responses', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + apiKey },
+    body:JSON.stringify({ model:OPENAI_MODEL, input, instructions, max_output_tokens:maxOutputTokens, store:false })
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(data.error?.message || `OpenAI API error ${resp.status}`);
+  const text = openAIOutputText(data);
+  if (!text) throw new Error('OpenAI returned no text');
+  return text;
+}
+
 function openAI(context) {
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) {
     pendingApiKeyAction = { type: 'ai', context };
     openApiKeyModal();
@@ -5507,7 +5841,7 @@ function buildSystemPrompt() {
   const plan = loadPlan();
   const entry = todayPlanEntry();
   const planContext = plan ? `\n\nThe user follows this eating protocol. Treat it as the source of truth and never contradict it:\n---\n${plan.markdown}\n---\n${entry ? `Today is a ${entry.template} day (${TEMPLATE_NAMES[entry.template] || ''})${entry.activity ? `, planned activity: ${entry.activity}` : ''}${entry.focus ? `, nutrient focus: ${entry.focus}` : ''}.` : 'Today is not in the protocol schedule.'}` : '';
-  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
+  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.fiber}g fiber, ${dailyCalorieGoal(state)} kcal based on RMR plus today's training.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
 }
 
 function appendAIBubble(role, text) {
@@ -5532,7 +5866,7 @@ async function sendAIMessage() {
   const input = document.getElementById('ai-input');
   const text = input.value.trim();
   if (!text) return;
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModal(); return; }
 
   input.value = '';
@@ -5548,54 +5882,11 @@ async function sendAIMessage() {
   aiStreaming = true;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 1024,
-        stream: true,
-        system: buildSystemPrompt(),
-        messages: aiHistory
-      })
-    });
-
-    if (!resp.ok) {
-      const errData = await resp.json().catch(()=>({}));
-      throw new Error(errData.error?.message || 'API error ' + resp.status);
-    }
-
+    const fullText = await callOpenAI(
+      aiHistory.map(message => ({ role:message.role, content:message.content })),
+      buildSystemPrompt(), 1100);
     assistantBubble.classList.remove('thinking');
-    assistantBubble.innerHTML = '';
-    let fullText = '';
-
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buf = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6);
-        if (data === '[DONE]') break;
-        try {
-          const ev = JSON.parse(data);
-          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
-            fullText += ev.delta.text;
-            assistantBubble.textContent = fullText;
-            document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-          }
-        } catch {}
-      }
-    }
+    assistantBubble.textContent = fullText;
     aiHistory.push({ role: 'assistant', content: fullText });
   } catch(err) {
     assistantBubble.classList.remove('thinking');
@@ -5628,13 +5919,15 @@ function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
   if (!key) { alert('Please enter a valid API key'); return; }
   const action = pendingApiKeyAction;
-  localStorage.setItem('claude_api_key', key);
+  localStorage.setItem('openai_api_key', key);
   closeApiKeyModal();
   if (action) {
     if (action.type === 'ai') openAI(action.context);
     else if (action.type === 'photo') document.getElementById('photo-input').click();
     else if (action.type === 'barcode') document.getElementById('barcode-input').click();
     else if (action.type === 'estimate') estimateFoodWithAI(action.query);
+    else if (action.type === 'food-voice') organizeSpokenFood(action.transcript);
+    else if (action.type === 'life-summary') generateLifeCoachSummary();
   }
 }
 
@@ -6056,6 +6349,7 @@ function formatExerciseLine(exercise) {
   if (exercise.run) {
     if (exercise.distance) bits.push(exercise.distance);
     if (exercise.runTime) bits.push(exercise.runTime);
+    if (exercise.pace) bits.push(exercise.pace);
   } else if (exercise.hold) {
     if (exercise.sets) bits.push(`${exercise.sets} sets`);
     if (exercise.reps) bits.push(`${exercise.reps}sec`);
@@ -6214,12 +6508,12 @@ function todayPlanEntry() {
   return entry ? { ...entry, plan } : null;
 }
 
-// The pill carries the letter when today is scheduled: "Plan · C".
+// AI Coach may use the synced plan as context, but the feature is always
+// presented as a coach rather than as a separate Plan destination.
 function renderPlanPill() {
   const pill = document.getElementById('plan-pill');
   if (!pill) return;
-  const entry = todayPlanEntry();
-  pill.textContent = entry ? `Plan · ${entry.template}` : 'Plan';
+  pill.textContent = 'AI Coach';
 }
 
 async function planAutoSync(silent = true) {
@@ -6392,7 +6686,7 @@ function renderPlanSheet() {
       <div class="plan-empty">
         <p>No plan synced yet.</p>
         <p>The plan is published from the vault by <code>tools/plan_sync.py</code>.
-        Connect Gist backup first (Summary → Sync), then run the LaunchAgent once.</p>
+        Connect Gist backup first (Summary → Cloud Backup), then run the LaunchAgent once.</p>
       </div>`;
     return;
   }
@@ -6559,7 +6853,7 @@ async function handleBarcodePhoto(event) {
   event.target.value = '';
   if (!file) return;
 
-  const apiKey = localStorage.getItem('claude_api_key');
+  const apiKey = getOpenAIKey();
   if (!apiKey) { openApiKeyModalForContext('barcode'); return; }
 
   showBarcodeSheet('Reading the barcode…');
@@ -6568,28 +6862,12 @@ async function handleBarcodePhoto(event) {
   if (!base64) { showBarcodeSheet('Could not read that image.', true); return; }
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 64,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-            { type: 'text', text: 'Read the barcode number printed on this package. Reply with the digits only, no spaces or punctuation. If no barcode is legible, reply exactly: NONE' },
-          ],
-        }],
-      }),
-    });
-    if (!resp.ok) throw new Error('API error ' + resp.status);
-    const text = (await resp.json()).content[0].text.trim();
+    const text = (await callOpenAI([{
+      role:'user', content:[
+        { type:'input_image', image_url:'data:image/jpeg;base64,' + base64, detail:'high' },
+        { type:'input_text', text:'Read the barcode number printed on this package. Reply with digits only. If none is legible, reply NONE.' }
+      ]
+    }], 'You read retail barcodes exactly and never guess missing digits.', 80)).trim();
     const digits = text.replace(/\D/g, '');
     if (!digits || digits.length < 8) {
       showBarcodeSheet('No barcode found in that photo. Try again closer, or add it by name.', true);
@@ -6743,12 +7021,13 @@ function migrateWeightsToLbs() {
 
 function init() {
   migrateWeightsToLbs();
-  seedRecipesOnce();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
   renderDayList();
   checkBackupReminder();
+  checkPeriodReminder();
+  setupNativeReminders();
   updateGarminBtn();
   renderGymIoStatus();
   renderPlanPill();
