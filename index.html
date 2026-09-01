@@ -1141,6 +1141,8 @@ body {
 .checkin-task + .checkin-task { border-top:1px solid var(--glass-border); }
 .checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
 .checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
+.checkin-custom-input { flex:1; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:6px 2px; color:var(--text); font:inherit; outline:none; }
+.checkin-custom-input:focus { border-color:var(--sp-green); }
 /* The firework question is the entry, not a field label. */
 .checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
 .checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -2947,6 +2949,7 @@ const CHECKIN_TASKS = [
   { key:'food', label:'Food intake ≥ 7.5/10', target:'6/7 week' },
   { key:'protein', label:'Log protein intake > 120 g', target:'6/7 week' },
   { key:'slate', label:'Slate Voice Memo', target:'' },
+  { key:'custom', label:'Custom', target:'', custom:true },
 ];
 
 let checkinKey = null;   // which day is open; defaults to today
@@ -2990,6 +2993,13 @@ function setCheckinTask(taskKey, checked) {
   saveCheckin(key, checkin);
 }
 
+function setCheckinCustomLabel(value) {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  checkin.customLabel = value;
+  saveCheckin(key, checkin);
+}
+
 function openCheckinDay(key) {
   checkinKey = key;
   renderCheckin();
@@ -3014,7 +3024,13 @@ function renderCheckin() {
              oninput="setCheckinScore('${s.key}', this.value)">
       <span class="checkin-score-max">/10</span>
     </div>`).join('');
-  const taskRows = CHECKIN_TASKS.map(task => `
+  const taskRows = CHECKIN_TASKS.map(task => task.custom ? `
+    <div class="checkin-task">
+      <input type="checkbox" aria-label="Complete custom item" ${checkin.tasks?.custom ? 'checked' : ''}
+             onchange="setCheckinTask('custom', this.checked)">
+      <input class="checkin-custom-input" value="${escHtml(checkin.customLabel || '')}" placeholder="Custom item…"
+             aria-label="Custom checklist item" oninput="setCheckinCustomLabel(this.value)">
+    </div>` : `
     <label class="checkin-task">
       <input type="checkbox" ${checkin.tasks?.[task.key] ? 'checked' : ''}
              onchange="setCheckinTask('${task.key}', this.checked)">
@@ -3063,7 +3079,8 @@ function checkinAsText(key) {
   }
   lines.push('', ' Checklist');
   for (const task of CHECKIN_TASKS) {
-    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${task.label}${task.target ? ` · ${task.target}` : ''}`);
+    const label = task.custom ? (checkin.customLabel || 'Custom') : task.label;
+    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${label}${task.target ? ` · ${task.target}` : ''}`);
   }
   return lines.join('\n');
 }
