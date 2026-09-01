@@ -1050,6 +1050,10 @@ body { background-image:none; }
 .voice-icon-btn.recording { background:#ffebef; border-color:#ff2d55; animation:pulseVoice 1.1s ease-in-out infinite; }
 .voice-icon-btn.recording svg { fill:#ff2d55; }
 @keyframes pulseVoice { 50% { transform:scale(.92); opacity:.7; } }
+.water-add-icon { position:relative; width:42px; height:42px; flex:0 0 42px; display:grid; place-items:center; border:0; border-radius:50%; background:#eaf4ff; color:#007aff; cursor:pointer; }
+.water-add-icon svg { width:22px; height:22px; fill:#007aff; }
+.water-add-icon span { position:absolute; right:5px; bottom:2px; width:16px; height:16px; display:grid; place-items:center; border-radius:50%; background:#007aff; color:#fff; font-size:13px; font-weight:800; line-height:1; }
+.water-add-icon:active { transform:scale(.94); }
 .add-btn, .green-btn, .ai-send-btn { background:#007aff; color:#fff; font-family:var(--font); font-weight:700; }
 .add-btn:active, .green-btn:active, .ai-send-btn:active { background:#0062cc; }
 .action-pill, .outline-btn, .back-btn, .freq-pill { border-color:#d1d1d6; color:#007aff; background:#fff; }
@@ -1338,7 +1342,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
                 <div class="organic-macro-label">Protein</div>
               </div>
               <div class="organic-macro-total">
-                <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / 2400 kcal</span></div>
+                <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / <span id="header-kcal-goal">1306</span> kcal</span></div>
                 <div class="organic-macro-label">Calories</div>
               </div>
               <div class="organic-macro-total">
@@ -1378,7 +1382,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <div style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px;">Water</div>
             <div id="water-display" style="font-size:14px;font-weight:700;">0 / 2500 ml</div>
           </div>
-          <button class="action-pill" onclick="addWater(500)" style="flex:0 0 auto;padding:9px 16px;">+500 ml</button>
+          <button class="water-add-icon" onclick="addWater(500)" title="Add 500 ml" aria-label="Add 500 millilitres of water">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5S5.5 9.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 9.5 12 2.5 12 2.5Zm0 16.5a4 4 0 0 1-4-4c0-2.5 2.3-5.8 4-7.9 1.7 2.1 4 5.4 4 7.9a4 4 0 0 1-4 4Z"/></svg>
+            <span>+</span>
+          </button>
           <button class="icon-btn water-reset" onclick="resetWater()" style="font-size:13px;color:var(--dim);" title="Reset water">↺</button>
         </div>
 
@@ -1690,7 +1697,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div style="font-size:13px;font-weight:700;color:var(--text);" id="garmin-auto-title">Auto-sync off</div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="garmin-auto-sub">Connect a Gist relay to pull daily active calories</div>
       </div>
-      <button class="outline-btn" onclick="healthOrRelaySync(false)" style="flex-shrink:0;">⟳ Sync</button>
+      <button class="outline-btn" onclick="healthOrRelaySync(false)" style="flex-shrink:0;" id="health-sync-btn">⟳ Sync</button>
     </div>
 
     <label class="modal-label">Active calories today (kcal)</label>
@@ -1703,11 +1710,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <details style="margin-bottom:12px;" id="garmin-relay-help">
       <summary style="font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;">How auto-sync works</summary>
       <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;">
-        Garmin has no public API a browser can call, so a relay writes
-        <strong>athletelog-garmin.json</strong> into your GitHub Gist and this app reads it.
-        Set up either relay once — the Mac <code>garmin_sync.py</code> LaunchAgent, or an
-        iOS Shortcuts automation that posts Active Energy from Apple Health.
-        Uses the same token as Gist backup.
+        Garmin has no public API that this browser app can call. Reliable automatic sync uses
+        the AthleteLog iOS app: allow Garmin Connect to write workouts and Active Energy to
+        Apple Health, then allow AthleteLog to read Active Energy and Steps. In the browser,
+        enter Active Calories manually below.
       </p>
     </details>
 
@@ -1865,7 +1871,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS & DATA
 // ═══════════════════════════════════════════════════════════════
-const GOALS = { protein: 140, kcal: 2400, fat: 70, carbs: 220, fiber: 30 };
+const GOALS = { protein: 140, fat: 70, carbs: 220, fiber: 30 };
 const WATER_GOAL_ML = 2500;
 
 // The seven values of Training.Session Type in the Health Airtable base
@@ -2765,6 +2771,8 @@ function renderHeader() {
   document.getElementById('header-macros').textContent = `${Math.round(m.p)}g protein · ${Math.round(m.kcal)} kcal`;
   document.getElementById('header-protein-total').textContent = Math.round(m.p);
   document.getElementById('header-kcal-total').textContent = Math.round(m.kcal);
+  const kcalGoal = document.getElementById('header-kcal-goal');
+  if (kcalGoal) kcalGoal.textContent = dailyCalorieGoal(state);
   const fiberTotal = document.getElementById('header-fiber-total');
   if (fiberTotal) fiberTotal.textContent = Math.round(m.fiber);
   const hour = d.getHours();
@@ -4327,6 +4335,7 @@ function initGymTab() {
   renderExerciseList();
   renderFreqExercises();
   renderGymHistory();
+  updateGymInputMode();
 }
 
 function onSessionChange() {
@@ -4345,7 +4354,13 @@ function selectOrganicSession(session) {
   if (template) loadTemplatePlan(template);
   const sel = document.getElementById('session-select');
   if (sel) sel.value = canonicalSessionType(session);
+  const exerciseName = document.getElementById('gym-ex-name');
+  if (exerciseName) {
+    if (canonicalSessionType(session) === 'Running' && !exerciseName.value.trim()) exerciseName.value = 'Running';
+    else if (canonicalSessionType(session) !== 'Running' && exerciseName.value.trim() === 'Running') exerciseName.value = '';
+  }
   saveState();
+  updateGymInputMode();
   renderOrganicSessionSegments();
   renderSessionSuggestions();
   renderExerciseList();
@@ -4484,6 +4499,7 @@ function afterGymEdit(dayKey) {
   }
   renderGymHistory();
   renderLogTab();
+  renderHeader();
 }
 
 function deleteExercise(id, dayKey) {
@@ -4757,7 +4773,7 @@ function updateGymInputMode() {
   const timeEl     = document.getElementById('gym-run-time');
   const paceEl     = document.getElementById('gym-pace');
   if (!repsEl) return;
-  const run  = isRunExercise(name);
+  const run  = isRunExercise(name) || (!name.trim() && canonicalSessionType(state.gym.session) === 'Running');
   const hold = !run && isHoldExercise(name);
   // run mode: distance + time only
   setsEl.style.display   = run ? 'none' : '';
@@ -4895,6 +4911,21 @@ const SESSION_BURN = {
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
 const BMR_ESTIMATE = 1306;
 
+function activeBurnForDay(day) {
+  const manual = day.garminKcal || 0;
+  const synced = day.garminAutoKcal || 0;
+  if (manual > 0) return manual;
+  if (synced > 0) return synced;
+  const completed = (day.gym?.exercises || []).filter(exercise => exercise.completed !== false);
+  if (!completed.length) return 0;
+  const session = canonicalSessionType(day.gym?.session || '');
+  return SESSION_BURN[session] ?? 300;
+}
+
+function dailyCalorieGoal(day = state) {
+  return BMR_ESTIMATE + activeBurnForDay(day);
+}
+
 function renderLogTab() {
   const m = sumMacros(state.food);
   const d = new Date();
@@ -4916,7 +4947,7 @@ function renderLogTab() {
     : garminAuto > 0 ? `⌚ Garmin auto${state.garminSyncedAt ? ' · ' + escHtml(state.garminSyncedAt) : ''}`
     : hasCompletedTraining && state.gym.session ? escHtml(state.gym.session)
     : hasCompletedTraining ? 'completed exercises' : null;
-  const totalBurn = BMR_ESTIMATE + sessionBurn;
+  const totalBurn = dailyCalorieGoal(state);
   const eaten = Math.round(m.kcal);
   const netKcal = eaten - totalBurn;
   const netLabel = netKcal > 0 ? `+${netKcal}` : String(netKcal);
@@ -4957,7 +4988,7 @@ function renderLogTab() {
   // ── Goal bars ──
   const goalsHtml = [
     { label:'Protein', val:m.p, goal:GOALS.protein, cls:'prot', unit:'g' },
-    { label:'Calories', val:m.kcal, goal:GOALS.kcal, cls:'kcal', unit:' kcal' },
+    { label:'Calories', val:m.kcal, goal:dailyCalorieGoal(state), cls:'kcal', unit:' kcal' },
     { label:'Fat', val:m.fat, goal:GOALS.fat, cls:'fat', unit:'g' },
     { label:'Carbs', val:m.carbs, goal:GOALS.carbs, cls:'carbs', unit:'g' },
     { label:'Fiber', val:m.fiber, goal:GOALS.fiber, cls:'fiber', unit:'g' },
@@ -5306,7 +5337,6 @@ async function ensureHealthPermissions() {
   try {
     const { available } = await health.isHealthAvailable();
     if (!available) return false;
-    if (localStorage.getItem('health_permissions_asked')) return true;
     await health.requestHealthPermissions({ permissions: HEALTH_PERMISSIONS });
     localStorage.setItem('health_permissions_asked', '1');
     return true;
@@ -5406,12 +5436,18 @@ function garminDateKey(date = new Date()) {
 // Native reads Apple Health; the PWA reads the Gist relay. Same contract.
 async function healthOrRelaySync(silent = true) {
   if (isNativeApp()) return healthSync(silent);
-  if (silent && !garminShouldLook()) return false;
-  return garminAutoSync(silent);
+  if (!silent) {
+    const status = document.getElementById('garmin-status');
+    if (status) {
+      status.style.color = 'var(--muted)';
+      status.textContent = 'Automatic sync is available in the iOS app through Apple Health. Enter Garmin Active Calories manually in the browser.';
+    }
+  }
+  return false;
 }
 
 function shouldCheckHealth() {
-  return isNativeApp() || garminShouldLook();
+  return isNativeApp();
 }
 
 function garminRelayState() {
@@ -5536,29 +5572,15 @@ function renderGarminAutoRow() {
       : 'Reads active calories and steps straight from your phone';
     return;
   }
-  const state_ = garminRelayState();
-  if (state_ === 'no-token') {
-    title.textContent = 'Auto-sync off';
-    sub.textContent = 'Connect Gist backup first (Summary → Sync)';
-    return;
-  }
-  if (state_ === 'no-relay' || state_ === 'unknown') {
-    title.textContent = 'Manual entry';
-    sub.textContent = 'No relay set up — see “How auto-sync works” below';
-    return;
-  }
-  const auto = state.garminAutoKcal || 0;
-  const last = localStorage.getItem('garmin_last_sync');
-  title.textContent = auto ? `Today: ${auto} kcal` : 'Auto-sync on';
-  sub.textContent = last
-    ? `Last checked ${new Date(last).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}`
-    : 'Not checked yet — tap Sync';
+  title.textContent = 'Manual Garmin entry';
+  sub.textContent = 'Automatic sync uses Apple Health in the iOS app';
 }
 
 function updateGarminBtn() {
   const btn = document.getElementById('garmin-btn');
   if (!btn) return;
   const active = (state.garminKcal || 0) > 0 || (state.garminAutoKcal || 0) > 0;
+  btn.textContent = isNativeApp() ? 'Health' : 'Garmin';
   btn.style.color = active ? 'var(--sp-green)' : '';
 }
 
@@ -5690,7 +5712,7 @@ function buildText() {
   text += `Period: ${state.period?'Yes':'No'} | Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml\n\n`;
   text += `NUTRITION\n`;
   text += `Protein: ${Math.round(m.p)}g / ${GOALS.protein}g\n`;
-  text += `Calories: ${Math.round(m.kcal)} / ${GOALS.kcal} kcal\n`;
+  text += `Calories: ${Math.round(m.kcal)} / ${dailyCalorieGoal(state)} kcal\n`;
   text += `Fat: ${Math.round(m.fat)}g | Carbs: ${Math.round(m.carbs)}g | Fiber: ${Math.round(m.fiber)}g\n\n`;
   if (state.food.length) {
     text += `FOOD LOG\n`;
@@ -5787,7 +5809,7 @@ function buildSystemPrompt() {
   const plan = loadPlan();
   const entry = todayPlanEntry();
   const planContext = plan ? `\n\nThe user follows this eating protocol. Treat it as the source of truth and never contradict it:\n---\n${plan.markdown}\n---\n${entry ? `Today is a ${entry.template} day (${TEMPLATE_NAMES[entry.template] || ''})${entry.activity ? `, planned activity: ${entry.activity}` : ''}${entry.focus ? `, nutrient focus: ${entry.focus}` : ''}.` : 'Today is not in the protocol schedule.'}` : '';
-  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.kcal} kcal.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
+  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.fiber}g fiber, ${dailyCalorieGoal(state)} kcal based on RMR plus today's training.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
 }
 
 function appendAIBubble(role, text) {
