@@ -845,7 +845,14 @@ body {
 .nav-glyph { font-family:var(--display); font-size:14px; line-height:1; }
 
 /* Organic controls and content */
-.home-add-row { gap:8px; margin-bottom:12px; }
+.home-add-row {
+  width:100%; min-width:0; display:grid;
+  grid-template-columns:44px 44px minmax(0,1fr) auto;
+  gap:8px; margin-bottom:12px;
+}
+.home-add-row > * { min-width:0; }
+.home-add-row .food-text-input { width:100%; min-width:0; padding-left:12px; padding-right:12px; }
+.home-add-row .add-btn { min-width:58px; height:44px; padding:0 14px; white-space:nowrap; }
 .food-text-input, .gym-text-input, .gym-num-input, .modal-input, .ai-text-input, .session-select {
   min-height:44px; color:var(--text); background:var(--surface);
   border:1px solid var(--glass-border); border-radius:999px; box-shadow:none;
@@ -971,13 +978,29 @@ body {
 
 @media (max-width: 420px) {
   .panel-inner, .day-list-inner { padding-left:16px; padding-right:16px; }
+  .organic-header-row { flex-direction:column; align-items:stretch; gap:12px; }
+  .organic-header-actions { width:100%; max-width:none; justify-content:flex-start; }
+  #period-btn { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .organic-macro-hero { gap:14px; padding:18px 16px; }
   #protein-ring-wrap, #protein-ring-wrap svg { width:108px; height:108px; }
-  .organic-header-actions { max-width:136px; }
   .today-action-row .action-pill { padding-inline:6px; font-size:11px; }
+  #tabs { padding-left:4px; padding-right:4px; }
+  .tab-btn { gap:3px; padding-left:2px; padding-right:2px; font-size:10px; }
+  .nav-glyph { font-size:12px; }
   .gym-input-row { grid-template-columns:repeat(3,minmax(0,1fr)) 44px; }
   .organic-segment { font-size:11px; padding-left:11px; padding-right:11px; }
   .summary-tools { width:100%; justify-content:flex-start; }
+}
+
+@media (max-width: 350px) {
+  .panel-inner, .day-list-inner { padding-left:12px; padding-right:12px; }
+  .home-add-row { grid-template-columns:40px 40px minmax(0,1fr) 52px; gap:6px; }
+  .home-add-row .quick-add-wrapper, .home-add-row .quick-add-select,
+  .home-add-row .voice-icon-btn { width:40px !important; min-width:40px !important; }
+  .home-add-row .add-btn { min-width:52px; padding:0 10px; }
+  #protein-ring-wrap, #protein-ring-wrap svg { width:92px; height:92px; }
+  .organic-macro-hero { gap:10px; padding:16px 12px; }
+  .organic-macro-value { font-size:18px; }
 }
 .search-group-label {
   margin: 12px 0 2px; color: var(--muted);
@@ -7055,7 +7078,10 @@ init();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     const serviceWorkerUrl = new URL('./sw.js', document.baseURI);
-    if (serviceWorkerUrl.origin === location.origin) navigator.serviceWorker.register(serviceWorkerUrl.href);
+    if (serviceWorkerUrl.origin === location.origin) {
+      navigator.serviceWorker.register(serviceWorkerUrl.href, { updateViaCache:'none' })
+        .then(registration => registration.update());
+    }
   });
 }
 
@@ -7066,7 +7092,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v25').catch(() => null);
+    const cache = await caches.open('athletelog-v26').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
