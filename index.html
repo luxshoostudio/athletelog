@@ -804,6 +804,11 @@ body {
 }
 #period-btn { color:#ff2d55; background:#ffebef; cursor:pointer; }
 #period-btn.is-on { color:#fff; background:#ff2d55; }
+.backfill-btn {
+  min-height:34px; padding:8px 12px; border:0; border-radius:999px;
+  background:#eaf4ff; color:#007aff; font-family:var(--font);
+  font-size:11px; font-weight:700; white-space:nowrap; cursor:pointer;
+}
 .organic-macro-hero {
   display:flex; align-items:center; gap:20px; padding:22px 20px; margin-bottom:18px;
   border-radius:32px; background:var(--surface); box-shadow:var(--glass-shadow);
@@ -1340,6 +1345,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <div class="organic-header-actions">
               <span id="last-period-label">Last period · —</span>
               <button id="period-btn" aria-pressed="false">Turn on</button>
+              <button class="backfill-btn" onclick="openBackfillModal()">↩ Backfill</button>
             </div>
           </div>
           <div class="organic-macro-hero">
@@ -1572,6 +1578,26 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Today</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
+
+<!-- BACKFILL MODAL -->
+<div class="modal-overlay" id="backfill-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Backfill a past day</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:14px;">
+      Choose the date you forgot, then choose what you want to add. Changes save to that date automatically.
+    </p>
+    <label class="modal-label" for="backfill-date">Date</label>
+    <input type="date" class="modal-input" id="backfill-date">
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px;">
+      <button class="outline-btn" onclick="startBackfill('food')">Food</button>
+      <button class="outline-btn" onclick="startBackfill('gym')">Workout</button>
+      <button class="outline-btn" onclick="startBackfill('feelings')">Today check-in</button>
+    </div>
+    <div class="modal-btn-row" style="margin-top:14px;">
+      <button class="outline-btn" onclick="closeBackfillModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <!-- QTY MODAL -->
 <div class="modal-overlay" id="qty-modal">
@@ -2625,6 +2651,38 @@ function keyToDate(key) {
 function formatKey(key) {
   const d = keyToDate(key);
   return d.toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short'});
+}
+
+function localDateIso(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function openBackfillModal() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const input = document.getElementById('backfill-date');
+  input.max = localDateIso(yesterday);
+  input.value = localDateIso(yesterday);
+  document.getElementById('backfill-modal').classList.add('open');
+}
+
+function closeBackfillModal() {
+  document.getElementById('backfill-modal').classList.remove('open');
+}
+
+function startBackfill(section) {
+  const value = document.getElementById('backfill-date').value;
+  const today = localDateIso();
+  if (!value) { showToast('Choose a date first'); return; }
+  if (value >= today) { showToast('Backfill is for a past date'); return; }
+  const key = dateToDayKey(value);
+  closeBackfillModal();
+
+  const tab = document.querySelector(`.tab-btn[data-tab="${section}"]`);
+  if (tab) tab.click();
+  if (section === 'food') showDayDetail(key);
+  else if (section === 'gym') showGymDayDetail(key);
+  else if (section === 'feelings') openCheckinDay(key);
 }
 
 function nowTime() {
@@ -7280,7 +7338,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v28').catch(() => null);
+    const cache = await caches.open('athletelog-v29').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
