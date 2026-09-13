@@ -1224,8 +1224,15 @@ body { background-image:none; }
 .checkin-task + .checkin-task { border-top:1px solid var(--glass-border); }
 .checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
 .checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
-.checkin-custom-input { flex:1; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:6px 2px; color:var(--text); font:inherit; outline:none; }
+.checkin-custom-row { cursor:default; }
+.checkin-custom-input { flex:1; width:100%; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:7px 2px; color:var(--text); font:inherit; text-indent:0; outline:none; }
 .checkin-custom-input:focus { border-color:var(--sp-green); }
+.checkin-custom-action {
+  width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center;
+  border:0; border-radius:50%; background:#eaf4ff; color:#007aff;
+  font-size:18px; font-weight:500; line-height:1; cursor:pointer;
+}
+.checkin-custom-action.remove { background:#f2f2f7; color:#8e8e93; font-size:16px; }
 /* The firework question is the entry, not a field label. */
 .checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
 .checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
@@ -3158,7 +3165,6 @@ const CHECKIN_TASKS = [
   { key:'food', label:'Food intake ≥ 7.5/10', target:'6/7 week' },
   { key:'protein', label:'Log protein intake > 120 g', target:'6/7 week' },
   { key:'slate', label:'Slate Voice Memo', target:'' },
-  { key:'custom', label:'Custom', target:'', custom:true },
 ];
 
 let checkinKey = null;   // which day is open; defaults to today
@@ -3171,7 +3177,17 @@ function loadCheckin(key) {
   const day = loadState(key);
   const checkin = day.checkin || { scores:{}, tasks:{} };
   if (!checkin.tasks) checkin.tasks = {};
+  normalizeCheckinCustomItems(checkin);
   return checkin;
+}
+
+function normalizeCheckinCustomItems(checkin) {
+  if (!Array.isArray(checkin.customItems)) {
+    checkin.customItems = (checkin.customLabel || checkin.tasks?.custom)
+      ? [{ label:checkin.customLabel || 'Custom item', done:Boolean(checkin.tasks?.custom) }]
+      : [];
+  }
+  return checkin.customItems;
 }
 
 function saveCheckin(key, checkin) {
@@ -3202,11 +3218,35 @@ function setCheckinTask(taskKey, checked) {
   saveCheckin(key, checkin);
 }
 
-function setCheckinCustomLabel(value) {
+function setCheckinCustomItem(index, field, value) {
   const key = checkinDayKey();
   const checkin = loadCheckin(key);
-  checkin.customLabel = value;
+  while (checkin.customItems.length <= index) checkin.customItems.push({ label:'', done:false });
+  if (field === 'done') checkin.customItems[index].done = Boolean(value);
+  else checkin.customItems[index].label = String(value);
   saveCheckin(key, checkin);
+}
+
+function addCheckinCustomItem() {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  if (!checkin.customItems.length || checkin.customItems[checkin.customItems.length - 1].label.trim()) {
+    checkin.customItems.push({ label:'', done:false });
+    saveCheckin(key, checkin);
+    renderCheckin();
+  }
+  requestAnimationFrame(() => {
+    const inputs = document.querySelectorAll('.checkin-custom-input');
+    inputs[inputs.length - 1]?.focus();
+  });
+}
+
+function removeCheckinCustomItem(index) {
+  const key = checkinDayKey();
+  const checkin = loadCheckin(key);
+  checkin.customItems.splice(index, 1);
+  saveCheckin(key, checkin);
+  renderCheckin();
 }
 
 function openCheckinDay(key) {
@@ -3233,25 +3273,31 @@ function renderCheckin() {
              oninput="setCheckinScore('${s.key}', this.value)">
       <span class="checkin-score-max">/10</span>
     </div>`).join('');
-  const taskRows = CHECKIN_TASKS.map(task => task.custom ? `
-    <div class="checkin-task">
-      <input type="checkbox" aria-label="Complete custom item" ${checkin.tasks?.custom ? 'checked' : ''}
-             onchange="setCheckinTask('custom', this.checked)">
-      <input class="checkin-custom-input" value="${escHtml(checkin.customLabel || '')}" placeholder="Custom item…"
-             aria-label="Custom checklist item" oninput="setCheckinCustomLabel(this.value)">
-    </div>` : `
+  const taskRows = CHECKIN_TASKS.map(task => `
     <label class="checkin-task">
       <input type="checkbox" ${checkin.tasks?.[task.key] ? 'checked' : ''}
              onchange="setCheckinTask('${task.key}', this.checked)">
       <span class="checkin-task-label">${escHtml(task.label)}${task.target ? ` · ${escHtml(task.target)}` : ''}</span>
     </label>`).join('');
+  const customItems = checkin.customItems.length ? checkin.customItems : [{ label:'', done:false }];
+  const customRows = customItems.map((item, index) => `
+    <div class="checkin-task checkin-custom-row">
+      <input type="checkbox" aria-label="Complete custom item" ${item.done ? 'checked' : ''}
+             onchange="setCheckinCustomItem(${index}, 'done', this.checked)">
+      <input class="checkin-custom-input" value="${escHtml(item.label || '')}" placeholder="Add your own item…"
+             aria-label="Custom checklist item" oninput="setCheckinCustomItem(${index}, 'label', this.value)"
+             onblur="this.scrollLeft=0">
+      ${checkin.customItems[index] ? `<button class="checkin-custom-action remove" aria-label="Delete custom item" onclick="removeCheckinCustomItem(${index})">×</button>` : ''}
+      ${index === customItems.length - 1 ? `<button class="checkin-custom-action" aria-label="Add another custom item" onclick="addCheckinCustomItem()">＋</button>` : ''}
+    </div>`).join('');
 
   const past = Object.keys(localStorage)
     .filter(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k) && k !== todayKey())
     .sort().reverse()
-    .map(k => ({ key: k, checkin: loadState(k).checkin }))
+    .map(k => ({ key: k, checkin: loadCheckin(k) }))
     .filter(d => d.checkin && (Object.values(d.checkin.scores || {}).some(v => v != null)
-                               || Object.values(d.checkin.tasks || {}).some(Boolean)))
+                               || Object.values(d.checkin.tasks || {}).some(Boolean)
+                               || d.checkin.customItems.some(item => item.label.trim() || item.done)))
     .slice(0, 14);
 
   document.getElementById('checkin-body').innerHTML = `
@@ -3261,15 +3307,18 @@ function renderCheckin() {
     <div class="checkin-scores">${scoreRows}</div>
 
     <div class="section-label">Checklist</div>
-    <div class="checkin-tasks">${taskRows}</div>
+    <div class="checkin-tasks">${taskRows}${customRows}</div>
 
     ${past.length ? `<div class="section-label">History</div>${past.map(d => {
       const scores = CHECKIN_SCORES.map(s => d.checkin.scores?.[s.key]).filter(v => v != null);
-      const done = CHECKIN_TASKS.filter(task => d.checkin.tasks?.[task.key]).length;
+      const namedCustom = d.checkin.customItems.filter(item => item.label.trim());
+      const done = CHECKIN_TASKS.filter(task => d.checkin.tasks?.[task.key]).length
+        + namedCustom.filter(item => item.done).length;
+      const total = CHECKIN_TASKS.length + namedCustom.length;
       return `<div class="past-day-card" onclick="openCheckinDay('${d.key}')">
         <div style="min-width:0;">
           <div class="past-day-date">${escHtml(isoDate(d.key))}</div>
-          <div class="past-day-name">${done}/${CHECKIN_TASKS.length} checked</div>
+          <div class="past-day-name">${done}/${total} checked</div>
         </div>
         <div class="past-day-stats">${scores.length ? scores.join(' · ') : ''}</div>
         <span class="chevron-right">›</span>
@@ -3288,8 +3337,10 @@ function checkinAsText(key) {
   }
   lines.push('', ' Checklist');
   for (const task of CHECKIN_TASKS) {
-    const label = task.custom ? (checkin.customLabel || 'Custom') : task.label;
-    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${label}${task.target ? ` · ${task.target}` : ''}`);
+    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${task.label}${task.target ? ` · ${task.target}` : ''}`);
+  }
+  for (const item of checkin.customItems.filter(item => item.label.trim())) {
+    lines.push(`\t- [${item.done ? 'x' : ' '}] ${item.label.trim()}`);
   }
   return lines.join('\n');
 }
@@ -5296,7 +5347,8 @@ async function generateLifeCoachSummary() {
     const checkin = state.checkin || { scores:{}, tasks:{} };
     const completedTasks = CHECKIN_TASKS
       .filter(task => checkin.tasks?.[task.key])
-      .map(task => task.custom ? (checkin.customLabel || 'Custom') : task.label);
+      .map(task => task.label)
+      .concat(normalizeCheckinCustomItems(checkin).filter(item => item.done && item.label.trim()).map(item => item.label.trim()));
     const prompt = `Date: ${garminDateKey()}\nStatus scores: ${JSON.stringify(checkin.scores || {})}\nChecklist completed: ${completedTasks.join(', ') || 'none'}\nNutrition: ${Math.round(macros.kcal)} kcal, ${Math.round(macros.p)}g protein, ${Math.round(macros.fiber)}g fiber.\nWorkout: ${state.gym?.session || 'none'}; ${(state.gym?.exercises || []).filter(e => e.completed !== false).map(e => e.name).join(', ') || 'no completed exercises'}.\nWater: ${state.waterMl || 0} ml.`;
     const summary = await callOpenAI([{ role:'user', content:prompt }],
       'You are a supportive, practical life coach. Write one short paragraph plus up to three concrete next actions. Balance study, work, fitness, nutrition and recovery. Do not shame, diagnose or exaggerate. Use the same language as the user’s data where practical.', 550);
@@ -7338,7 +7390,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v29').catch(() => null);
+    const cache = await caches.open('athletelog-v30').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
