@@ -1225,7 +1225,7 @@ body { background-image:none; }
 .checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
 .checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
 .checkin-custom-row { cursor:default; }
-.checkin-custom-input { flex:1; width:100%; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:7px 2px; color:var(--text); font:inherit; text-indent:0; outline:none; }
+.checkin-task .checkin-custom-input { flex:1 1 0; width:0; height:auto; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:7px 2px; color:var(--text); font:inherit; text-indent:0; outline:none; }
 .checkin-custom-input:focus { border-color:var(--sp-green); }
 .checkin-custom-action {
   width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center;
@@ -7390,7 +7390,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v30').catch(() => null);
+    const cache = await caches.open('athletelog-v31').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
