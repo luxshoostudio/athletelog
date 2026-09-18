@@ -2498,38 +2498,60 @@ const FOOD_ALIASES = {
   'banana loaf':'banana bread', 'egg custard tart':'egg tart',
 };
 
-// The seed above is where the list starts, not where it stays. What actually
-// gets eaten wins: anything logged often, or logged lately, moves to the top
-// and pushes a seed item off the end. Recency is weighted so a food that
-// enters the rotation this week appears before one eaten twice in April.
-function quickFoods(limit = 18) {
-  const now = Date.now();
-  const scores = new Map();   // lowercase name → { name, score }
-
-  for (const key of Object.keys(localStorage)) {
-    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
-    let day;
-    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
-    if (!day || !Array.isArray(day.food)) continue;
-
-    const ageDays = Math.max(0, (now - keyToDate(key).getTime()) / 86400000);
-    // Halves every three weeks: still counts a month later, barely counts a
-    // season later.
+// One shared ranking powers starred and frequent foods. Every saved entry is
+// eligible, including barcode scans, AI/voice results and manual input.
+function rankFoodUsage(records, now = Date.now()) {
+  const scores = new Map();
+  for (const record of records) {
+    const dayTime = keyToDate(record.key).getTime();
+    const ageDays = Math.max(0, (now - dayTime) / 86400000);
     const recency = Math.pow(0.5, ageDays / 21);
-
-    for (const entry of day.food) {
+    for (const entry of record.food || []) {
       const name = String(entry.name || '').trim();
       if (!name) continue;
-      const id = name.toLowerCase();
-      const current = scores.get(id) || { name, score: 0 };
+      const id = name.toLocaleLowerCase();
+      const current = scores.get(id) || { name, count: 0, score: 0, lastKey: '', entry: null };
+      current.count += 1;
       current.score += 1 + recency * 2;
-      // Keep the most recent spelling, since that is how she last typed it.
-      if (key >= (current.lastKey || '')) { current.name = name; current.lastKey = key; }
+      if (record.key >= current.lastKey) {
+        current.name = name;
+        current.lastKey = record.key;
+        current.entry = entry;
+      }
       scores.set(id, current);
     }
   }
+  return [...scores.values()].sort((a, b) =>
+    b.score - a.score || b.lastKey.localeCompare(a.lastKey) || b.count - a.count
+  );
+}
 
-  const learned = [...scores.values()].sort((a, b) => b.score - a.score).map(f => f.name);
+function foodUsage() {
+  const records = [];
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    try {
+      const day = JSON.parse(localStorage.getItem(key));
+      if (day && Array.isArray(day.food)) records.push({ key, food:day.food });
+    } catch {}
+  }
+  return rankFoodUsage(records);
+}
+
+function loggedFoodItem(name) {
+  const match = foodUsage().find(food => food.name.toLocaleLowerCase() === String(name).toLocaleLowerCase());
+  if (!match?.entry) return null;
+  const entry = match.entry;
+  return {
+    name:match.name, p:+entry.p || 0, kcal:+entry.kcal || 0,
+    fat:+entry.fat || 0, carbs:+entry.carbs || 0, fiber:+entry.fiber || 0,
+    unit:'serving', qty:1, source:entry.source || 'food history'
+  };
+}
+
+// Seeds only fill empty slots until enough personal history exists.
+function quickFoods(limit = 18) {
+  const learned = foodUsage().map(food => food.name);
   const out = [];
   const seen = new Set();
   for (const name of [...learned, ...QUICK_SEED]) {
@@ -2792,19 +2814,7 @@ function makeEntry(name, macros, time) {
 // FREQUENT FOODS & EXERCISES
 // ═══════════════════════════════════════════════════════════════
 function getFreqFoods() {
-  const counts = new Map();
-  for (const key of Object.keys(localStorage)) {
-    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
-    try {
-      const s = JSON.parse(localStorage.getItem(key));
-      if (s && Array.isArray(s.food)) {
-        for (const f of s.food) {
-          if (f.name) counts.set(f.name, (counts.get(f.name)||0) + 1);
-        }
-      }
-    } catch {}
-  }
-  return [...counts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,20).map(([name,count])=>({name,count}));
+  return foodUsage().slice(0,20).map(({name,count}) => ({name,count}));
 }
 
 function getFreqExercises() {
@@ -3127,7 +3137,7 @@ function renderFreqAccordionPills() {
 }
 
 function freqFoodTap(name) {
-  const item = parseFood(name);
+  const item = loggedFoodItem(name) || parseFood(name);
   if (item) {
     openQtyModalWithItem(item, name);
   } else {
@@ -3585,6 +3595,8 @@ function recipeAsFoodItem(recipe) {
 // ═══════════════════════════════════════════════════════════════
 function quickAddFood(chip) {
   if (!chip) return;
+  const logged = loggedFoodItem(chip);
+  if (logged) { openQtyModalWithItem(logged, logged.name); return; }
   document.getElementById('food-text').value = chip;
   handleAddFood();
 }
@@ -3957,6 +3969,14 @@ function confirmTimeEdit() {
 // ═══════════════════════════════════════════════════════════════
 function homeQuickAdd(chip) {
   if (!chip) return;
+  const logged = loggedFoodItem(chip);
+  if (logged) {
+    addingFromHome = true;
+    currentDetailKey = todayKey();
+    detailState = state;
+    openQtyModalWithItem(logged, logged.name);
+    return;
+  }
   document.getElementById('home-food-text').value = chip;
   handleHomeAddFood();
 }
@@ -7390,7 +7410,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v31').catch(() => null);
+    const cache = await caches.open('athletelog-v32').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
