@@ -2511,7 +2511,7 @@ function rankFoodUsage(records, now = Date.now()) {
   );
 }
 
-function foodUsage() {
+function foodHistoryRecords() {
   const records = [];
   for (const key of Object.keys(localStorage)) {
     if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
@@ -2520,7 +2520,11 @@ function foodUsage() {
       if (day && Array.isArray(day.food)) records.push({ key, food:day.food });
     } catch {}
   }
-  return rankFoodUsage(records);
+  return records;
+}
+
+function foodUsage() {
+  return rankFoodUsage(foodHistoryRecords());
 }
 
 function loggedFoodItem(name) {
@@ -2547,6 +2551,49 @@ function quickFoods(limit = 18) {
     if (out.length >= limit) break;
   }
   return out;
+}
+
+const USUAL_BREAKFAST_VALUE = '__usual_breakfast__';
+
+// Learn the bundle from the most recent three weeks of morning logs. A food
+// must appear on at least 35% of those mornings (and at least three times),
+// so one-off snacks never become part of the default breakfast.
+function usualBreakfast() {
+  const recent = foodHistoryRecords().sort((a, b) => b.key.localeCompare(a.key)).slice(0, 21);
+  const mornings = recent.map(record => ({
+    key:record.key,
+    food:(record.food || []).filter(entry => {
+      const minutes = Number.isFinite(+entry.ts)
+        ? +entry.ts
+        : String(entry.time || '').split(':').reduce((total, part, index) => total + (+part || 0) * (index ? 1 : 60), 0);
+      return minutes > 0 && minutes < 12 * 60;
+    })
+  })).filter(record => record.food.length);
+  const threshold = Math.max(3, Math.ceil(mornings.length * 0.35));
+  const items = new Map();
+
+  for (const morning of mornings) {
+    const seen = new Set();
+    for (const entry of morning.food) {
+      const id = String(entry.name || '').trim().toLocaleLowerCase();
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      const current = items.get(id) || { count:0, key:'', entry:null };
+      current.count += 1;
+      if (morning.key >= current.key) { current.key = morning.key; current.entry = entry; }
+      items.set(id, current);
+    }
+  }
+
+  return [...items.values()]
+    .filter(item => item.count >= threshold && item.entry)
+    .sort((a, b) => b.count - a.count || b.key.localeCompare(a.key))
+    .slice(0, 6)
+    .map(item => ({
+      name:item.entry.name, p:+item.entry.p || 0, kcal:+item.entry.kcal || 0,
+      fat:+item.entry.fat || 0, carbs:+item.entry.carbs || 0, fiber:+item.entry.fiber || 0,
+      count:item.count
+    }));
 }
 
 // ── Name matching ──────────────────────────────────────────────
@@ -2930,6 +2977,13 @@ function renderDayList() {
   const homeQS = document.getElementById('home-quick-select');
   if (homeQS) {
     homeQS.innerHTML = '<option value="">⭐</option>';
+    const breakfast = usualBreakfast();
+    if (breakfast.length >= 2) {
+      const opt = document.createElement('option');
+      opt.value = USUAL_BREAKFAST_VALUE;
+      opt.textContent = `Usual Breakfast · ${breakfast.length} items`;
+      homeQS.appendChild(opt);
+    }
     for (const chip of quickFoods()) {
       const opt = document.createElement('option');
       opt.value = chip; opt.textContent = chip;
@@ -3031,6 +3085,10 @@ function renderDetailContent() {
   html += `<div class="quick-add-wrapper">
     <select class="quick-add-select" id="detail-quick-chips" onchange="quickAddFood(this.value); this.selectedIndex=0;">
       <option value="">QUICK ADD</option>`;
+  const breakfast = usualBreakfast();
+  if (breakfast.length >= 2) {
+    html += `<option value="${USUAL_BREAKFAST_VALUE}">Usual Breakfast · ${breakfast.length} items</option>`;
+  }
   for (const chip of quickFoods()) {
     html += `<option value="${chip.replace(/"/g,'&quot;')}">${chip}</option>`;
   }
@@ -3579,6 +3637,7 @@ function recipeAsFoodItem(recipe) {
 // ═══════════════════════════════════════════════════════════════
 function quickAddFood(chip) {
   if (!chip) return;
+  if (chip === USUAL_BREAKFAST_VALUE) { addUsualBreakfast(false); return; }
   const logged = loggedFoodItem(chip);
   if (logged) { openQtyModalWithItem(logged, logged.name); return; }
   document.getElementById('food-text').value = chip;
@@ -3953,6 +4012,7 @@ function confirmTimeEdit() {
 // ═══════════════════════════════════════════════════════════════
 function homeQuickAdd(chip) {
   if (!chip) return;
+  if (chip === USUAL_BREAKFAST_VALUE) { addUsualBreakfast(true); return; }
   const logged = loggedFoodItem(chip);
   if (logged) {
     addingFromHome = true;
@@ -3963,6 +4023,32 @@ function homeQuickAdd(chip) {
   }
   document.getElementById('home-food-text').value = chip;
   handleHomeAddFood();
+}
+
+function addUsualBreakfast(fromHome) {
+  const breakfast = usualBreakfast();
+  if (breakfast.length < 2) { showToast('Not enough repeated breakfast history yet'); return; }
+  const time = nowTime();
+  const entries = breakfast.map(item => ({
+    ...makeEntry(item.name, item, time),
+    source:'Usual Breakfast'
+  }));
+
+  if (!fromHome && currentDetailKey && currentDetailKey !== todayKey()) {
+    detailState.food = detailState.food || [];
+    detailState.food.push(...entries);
+    saveDetailState();
+    renderDetailContent();
+  } else {
+    state.food.push(...entries);
+    saveState();
+    if (currentDetailKey === todayKey()) detailState = state;
+    if (currentDetailKey) renderDetailContent();
+    else renderDayList();
+  }
+  renderHeader();
+  renderLogTab();
+  showToast(`✓ Added Usual Breakfast · ${breakfast.length} items`, 4000);
 }
 
 function addFoodEntryFromHome(entry) {
@@ -7393,7 +7479,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v33').catch(() => null);
+    const cache = await caches.open('athletelog-v34').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
