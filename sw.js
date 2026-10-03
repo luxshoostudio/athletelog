@@ -1,5 +1,5 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v37';
+const CACHE = 'athletelog-v38';
 const ASSETS = [
   './',
   './index.html',

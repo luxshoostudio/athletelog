@@ -2724,6 +2724,7 @@ let pendingFoodItem = null; // food item staged for qty modal
 let pendingSearchResults = [];
 let pendingLocalResults = [];
 let editingTimeId = null;
+let editingTimeKey = null;
 let freqAccordionOpen = false;
 let addingFromHome = false;
 let aiContext = 'food'; // 'food' or 'gym'
@@ -3071,7 +3072,8 @@ function renderHomeTodayFood() {
   }
   container.innerHTML = foods.map(f => `
     <div class="home-food-item">
-      <div style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:36px">${f.time||''}</div>
+      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit time for ${escHtml(f.name)}"
+        style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:44px;border:0;background:transparent;padding:8px 0;text-align:left;">${f.time||'--:--'}</button>
       <div class="home-food-item-name">${escHtml(f.name)}</div>
       <div class="home-food-item-meta">${f.p}g P · ${f.kcal} kcal</div>
       <button class="home-food-item-del" onclick="homeDeleteFood('${f.id}')">✕</button>
@@ -4021,7 +4023,11 @@ function deleteFoodEntry(id) {
 
 function editTime(id) {
   editingTimeId = id;
-  const entry = (detailState||state).food.find(f => f.id === id);
+  editingTimeKey = currentDetailKey || todayKey();
+  const source = editingTimeKey === todayKey()
+    ? state
+    : (currentDetailKey === editingTimeKey && detailState ? detailState : loadState(editingTimeKey));
+  const entry = source.food.find(f => f.id === id);
   if (!entry) return;
   document.getElementById('time-edit-input').value = entry.time || nowTime();
   document.getElementById('time-edit-modal').classList.add('open');
@@ -4030,19 +4036,29 @@ function editTime(id) {
 function closeTimeModal() {
   document.getElementById('time-edit-modal').classList.remove('open');
   editingTimeId = null;
+  editingTimeKey = null;
 }
 
 function confirmTimeEdit() {
   const newTime = document.getElementById('time-edit-input').value;
   const [h,m] = newTime.split(':').map(Number);
-  const src = currentDetailKey === todayKey() ? state : (detailState || state);
+  const key = editingTimeKey || currentDetailKey || todayKey();
+  const isToday = key === todayKey();
+  const src = isToday ? state : (currentDetailKey === key && detailState ? detailState : loadState(key));
   const entry = src.food.find(f => f.id === editingTimeId);
   if (entry) {
     entry.time = newTime;
     entry.ts = h*60+m;
-    if (currentDetailKey === todayKey()) { state = src; saveState(); }
-    else saveDetailState();
-    renderDetailContent();
+    if (isToday) { state = src; saveState(); }
+    else localStorage.setItem(key, JSON.stringify(src));
+    if (currentDetailKey) {
+      if (!isToday) detailState = src;
+      renderDetailContent();
+    } else {
+      renderDayList();
+    }
+    renderHeader();
+    renderLogTab();
   }
   closeTimeModal();
 }
@@ -4069,18 +4085,23 @@ function addUsualBreakfast(fromHome) {
   const breakfast = usualBreakfast();
   if (breakfast.length < 2) { showToast('Not enough repeated breakfast history yet'); return; }
   const time = nowTime();
-  const entries = breakfast.map(item => ({
-    ...makeEntry(item.name, item, time),
-    source:'Usual Breakfast'
-  }));
+  const totals = sumMacros(breakfast);
+  const entry = {
+    ...makeEntry('Usual Breakfast', totals, time),
+    source:'Usual Breakfast',
+    components: breakfast.map(item => ({
+      name:item.name, p:item.p, kcal:item.kcal, fat:item.fat,
+      carbs:item.carbs, fiber:item.fiber
+    }))
+  };
 
   if (!fromHome && currentDetailKey && currentDetailKey !== todayKey()) {
     detailState.food = detailState.food || [];
-    detailState.food.push(...entries);
+    detailState.food.push(entry);
     saveDetailState();
     renderDetailContent();
   } else {
-    state.food.push(...entries);
+    state.food.push(entry);
     saveState();
     if (currentDetailKey === todayKey()) detailState = state;
     if (currentDetailKey) renderDetailContent();
@@ -7555,10 +7576,63 @@ function migrateTimedExercisesToMinutes() {
   localStorage.setItem('alog_timed_exercises_migrated_v1', '1');
 }
 
+function migrateUsualBreakfastBundles() {
+  if (localStorage.getItem('alog_breakfast_bundles_migrated_v1') === '1') return;
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    let day;
+    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    const foods = day?.food || [];
+    const groups = new Map();
+    foods.forEach((entry, index) => {
+      if (entry.source !== 'Usual Breakfast' || entry.components) return;
+      const groupKey = entry.time || String(entry.ts || '');
+      if (!groups.has(groupKey)) groups.set(groupKey, []);
+      groups.get(groupKey).push({entry, index});
+    });
+    const replacements = new Map();
+    const removed = new Set();
+    for (const group of groups.values()) {
+      if (group.length < 2) continue;
+      const items = group.map(item => item.entry);
+      const first = items[0];
+      replacements.set(group[0].index, {
+        ...makeEntry('Usual Breakfast', sumMacros(items), first.time || nowTime()),
+        source:'Usual Breakfast',
+        components:items.map(item => ({
+          name:item.name, p:item.p, kcal:item.kcal, fat:item.fat,
+          carbs:item.carbs, fiber:item.fiber
+        }))
+      });
+      group.slice(1).forEach(item => removed.add(item.index));
+    }
+    if (!replacements.size) continue;
+    day.food = foods.flatMap((entry, index) => {
+      if (removed.has(index)) return [];
+      return [replacements.get(index) || entry];
+    });
+    localStorage.setItem(key, JSON.stringify(day));
+  }
+  localStorage.setItem('alog_breakfast_bundles_migrated_v1', '1');
+}
+
+function migrateKnownPeriodSeptember2026() {
+  if (localStorage.getItem('alog_period_2026_09_24_migrated_v1') === '1') return;
+  for (let dayNumber = 24; dayNumber <= 27; dayNumber++) {
+    const key = `alog_2026_09_${String(dayNumber).padStart(2, '0')}`;
+    const day = loadState(key);
+    day.period = true;
+    localStorage.setItem(key, JSON.stringify(day));
+  }
+  localStorage.setItem('alog_period_2026_09_24_migrated_v1', '1');
+}
+
 function init() {
   migrateWeightsToLbs();
   migrateRunUnitsToMiles();
   migrateTimedExercisesToMinutes();
+  migrateUsualBreakfastBundles();
+  migrateKnownPeriodSeptember2026();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
@@ -7607,7 +7681,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v37').catch(() => null);
+    const cache = await caches.open('athletelog-v38').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
