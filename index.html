@@ -1474,9 +1474,9 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <input type="text" class="gym-num-input" id="gym-sets" placeholder="Sets" inputmode="numeric" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-reps" placeholder="Reps" inputmode="text" onfocus="markPrefillEdited(this)">
             <input type="text" class="gym-num-input" id="gym-weight" placeholder="lbs" inputmode="text" onfocus="markPrefillEdited(this)">
-            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Kilometres" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
+            <input type="text" class="gym-num-input" id="gym-distance" placeholder="Miles" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
             <input type="text" class="gym-num-input" id="gym-run-time" placeholder="Duration" style="display:none" onfocus="markPrefillEdited(this)" oninput="updateRunPacePreview()">
-            <input type="text" class="gym-num-input" id="gym-pace" placeholder="Pace /km" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="this.dataset.manual='1'">
+            <input type="text" class="gym-num-input" id="gym-pace" placeholder="Pace /mile" style="display:none" inputmode="decimal" onfocus="markPrefillEdited(this)" oninput="this.dataset.manual='1'">
             <button class="green-btn" aria-label="Add exercise" onclick="addExercise()">+ Add</button>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -1991,17 +1991,37 @@ function isRunExercise(name) {
   return RUN_EXERCISES_LIST.some(r => n.includes(r));
 }
 
-function calcPacePerKm(km, timeStr) {
-  if (!km || !timeStr) return '';
+function calcPacePerMile(miles, timeStr) {
+  if (!miles || !timeStr) return '';
   const parts = String(timeStr).split(':').map(Number);
   let mins = 0;
   if (parts.length === 3) mins = parts[0] * 60 + parts[1] + parts[2] / 60;
-  else if (parts.length === 2) mins = parts[0] * 60 + parts[1];
-  else mins = parts[0];
-  if (!mins || !parseFloat(km)) return '';
-  const pace = mins / parseFloat(km);
+  else if (parts.length === 2) mins = parts[0] + parts[1] / 60;
+  else mins = parseFloat(timeStr);
+  if (!mins || !parseFloat(miles)) return '';
+  const pace = mins / parseFloat(miles);
   const m = Math.floor(pace), s = Math.round((pace - m) * 60);
-  return `${m}:${String(s).padStart(2,'0')}/km`;
+  return `${m}:${String(s).padStart(2,'0')}/mile`;
+}
+
+function milesFromKm(km) {
+  return String(+(parseFloat(km) * 0.621371).toFixed(2));
+}
+
+function normalizeMiles(distance) {
+  const value = String(distance || '').trim();
+  if (!value) return '';
+  if (/km\b/i.test(value)) return milesFromKm(value);
+  const miles = parseFloat(value);
+  return isFinite(miles) ? String(miles) : '';
+}
+
+function pacePerMileFromKm(pace) {
+  const match = String(pace || '').match(/(\d+):(\d{1,2})\s*\/\s*km/i);
+  if (!match) return String(pace || '');
+  const seconds = (+match[1] * 60 + +match[2]) * 1.609344;
+  const mins = Math.floor(seconds / 60);
+  return `${mins}:${String(Math.round(seconds % 60)).padStart(2,'0')}/mile`;
 }
 
 // Hold-type exercises (track seconds + rounds, not sets × reps)
@@ -4798,7 +4818,7 @@ function prefillGymInputs(name) {
   const values = {
     'gym-sets':last?.sets || '', 'gym-reps':last?.reps || '', 'gym-weight':last?.weight || '',
     'gym-distance':last?.distance || '', 'gym-run-time':last?.runTime || '',
-    'gym-pace':last?.pace || calcPacePerKm(last?.distance, last?.runTime) || '',
+    'gym-pace':last?.pace || calcPacePerMile(last?.distance, last?.runTime) || '',
   };
   for (const [id, value] of Object.entries(values)) {
     const input = document.getElementById(id);
@@ -4830,10 +4850,10 @@ function addExercise() {
   const hold = !run && isHoldExercise(name);
   const exercise = { id: uid(), name, feeling: currentFeeling || null, completed:false };
   if (run) {
-    exercise.distance = document.getElementById('gym-distance').value.trim();
+    exercise.distance = normalizeMiles(document.getElementById('gym-distance').value);
     exercise.runTime  = document.getElementById('gym-run-time').value.trim();
     exercise.pace = document.getElementById('gym-pace').value.trim()
-      || calcPacePerKm(exercise.distance, exercise.runTime);
+      || calcPacePerMile(exercise.distance, exercise.runTime);
     exercise.run = true;
   } else {
     exercise.sets   = document.getElementById('gym-sets').value.trim();
@@ -4937,7 +4957,7 @@ function exerciseRowHTML(e, dayKey) {
   let fields;
   if (run) {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-      ${field(e.distance, 'Km', 'distance')}${field(e.runTime, 'Duration', 'runTime')}${field(e.pace || calcPacePerKm(e.distance, e.runTime), 'Pace /km', 'pace')}${rpe}</div>`;
+      ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Duration', 'runTime')}${field(e.pace || calcPacePerMile(e.distance, e.runTime), 'Pace /mile', 'pace')}${rpe}</div>`;
   } else if (hold) {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
       ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}${rpe}</div>`;
@@ -5053,9 +5073,9 @@ function showGymDayDetail(key) {
     <div class="gym-input-wrap" style="margin-bottom:18px;">
       <input type="text" class="gym-text-input" id="gym-detail-name" placeholder="Exercise name…" autocomplete="off">
       <div class="gym-input-row" style="margin-top:8px;">
-        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Km' : 'Sets'}" inputmode="decimal">
+        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Miles' : 'Sets'}" inputmode="decimal">
         <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${runningDay ? 'Duration' : 'Reps'}" inputmode="text">
-        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${runningDay ? 'Pace /km' : 'lbs'}" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${runningDay ? 'Pace /mile' : 'lbs'}" inputmode="text">
         <button class="green-btn" onclick="addExerciseToDay('${key}')"></button>
       </div>
     </div>
@@ -5107,7 +5127,11 @@ function addExerciseToDay(key) {
   const sets   = document.getElementById('gym-detail-sets').value.trim();
   const reps   = document.getElementById('gym-detail-reps').value.trim();
   const weight = document.getElementById('gym-detail-weight').value.trim();
-  if (run) { exercise.distance = sets; exercise.runTime = reps; exercise.pace = weight || calcPacePerKm(sets, reps); }
+  if (run) {
+    exercise.distance = normalizeMiles(sets);
+    exercise.runTime = reps;
+    exercise.pace = weight || calcPacePerMile(exercise.distance, reps);
+  }
   else { exercise.sets = sets; exercise.reps = reps; exercise.weight = hold ? '' : weight; }
 
   day.gym.exercises.push(exercise);
@@ -5165,7 +5189,7 @@ function updateRunPacePreview() {
   const duration = document.getElementById('gym-run-time')?.value.trim();
   const pace = document.getElementById('gym-pace');
   if (!pace || pace.dataset.manual === '1') return;
-  pace.value = calcPacePerKm(distance, duration);
+  pace.value = calcPacePerMile(distance, duration);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -6449,7 +6473,7 @@ function readExerciseMeasurements(body, exercise) {
     // A run is a distance and a time. Putting its minutes into `reps` as
     // seconds made every imported run render as a hold, and left pace
     // uncomputable because pace reads runTime.
-    if (distMatch) exercise.distance = distMatch[1] + (/^k/i.test(distMatch[2]) ? 'km' : 'mi');
+    if (distMatch) exercise.distance = normalizeMiles(distMatch[1] + distMatch[2]);
     exercise.run = true;
     exercise.hold = false;
     const minutes = minMatch ? +minMatch[1] : (secMatch ? Math.round(+secMatch[1] / 60) : null);
@@ -6670,7 +6694,7 @@ function parseTrainingCsv(text) {
     };
     if (exercise.weight) exercise.unit = 'lbs';  // CSV column is Load (lbs)
     if (iRpe >= 0 && row[iRpe]) exercise.feeling = +row[iRpe];
-    if (iDist >= 0 && row[iDist]) { exercise.distance = row[iDist]; exercise.run = true; }
+    if (iDist >= 0 && row[iDist]) { exercise.distance = normalizeMiles(row[iDist]); exercise.run = true; }
     if (!exercise.run && iDur >= 0 && row[iDur] && !exercise.reps) {
       exercise.reps = String(Math.round(+row[iDur]));
       exercise.hold = true;
@@ -6693,7 +6717,7 @@ function formatExerciseLine(exercise) {
   if (exercise.raw && !exercise.edited) return ` - ${box} ${exercise.raw}`;
   const bits = [];
   if (exercise.run) {
-    if (exercise.distance) bits.push(exercise.distance);
+    if (exercise.distance) bits.push(`${exercise.distance}mi`);
     if (exercise.runTime) bits.push(exercise.runTime);
     if (exercise.pace) bits.push(exercise.pace);
   } else if (exercise.hold) {
@@ -7437,8 +7461,39 @@ function migrateWeightsToLbs() {
   localStorage.setItem('alog_units_migrated', '1');
 }
 
+function migrateRunUnitsToMiles() {
+  if (localStorage.getItem('alog_run_units_migrated_v1') === '1') return;
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    let day, changed = false;
+    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    for (const exercise of day?.gym?.exercises || []) {
+      if (!(exercise.run || isRunExercise(exercise.name)) || !exercise.distance) continue;
+      const distance = String(exercise.distance).trim();
+      const pace = String(exercise.pace || '').trim();
+      const explicitlyMiles = /(?:mi|miles?)\b/i.test(distance) || /\/(?:mi|mile)\b/i.test(pace);
+      const legacyKm = /km\b/i.test(distance) || /\/km\b/i.test(pace) || !explicitlyMiles;
+      if (legacyKm) {
+        exercise.distance = milesFromKm(distance);
+        if (/\/km\b/i.test(pace)) exercise.pace = pacePerMileFromKm(pace);
+        else if (exercise.runTime) exercise.pace = calcPacePerMile(exercise.distance, exercise.runTime);
+        changed = true;
+      } else {
+        const numericMiles = normalizeMiles(distance);
+        if (numericMiles && distance !== numericMiles) {
+          exercise.distance = numericMiles;
+          changed = true;
+        }
+      }
+    }
+    if (changed) localStorage.setItem(key, JSON.stringify(day));
+  }
+  localStorage.setItem('alog_run_units_migrated_v1', '1');
+}
+
 function init() {
   migrateWeightsToLbs();
+  migrateRunUnitsToMiles();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
@@ -7487,7 +7542,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v35').catch(() => null);
+    const cache = await caches.open('athletelog-v36').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
