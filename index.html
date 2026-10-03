@@ -2024,16 +2024,28 @@ function pacePerMileFromKm(pace) {
   return `${mins}:${String(Math.round(seconds % 60)).padStart(2,'0')}/mile`;
 }
 
-// Hold-type exercises (track seconds + rounds, not sets × reps)
+// Static/time-based exercises are logged by total duration in minutes.
 const HOLD_EXERCISES_LIST = [
+  'stretching','balancing','mobility',
   'handstand hold','handstand walk','against-bench handstand hold',
   'l-sit','l-sit hold','plank','wall sit','ab hold','hollow hold',
-  'dead hang','passive hang','wrist curl','bridge hold',
+  'dead hang','passive hang','bridge hold',
 ];
 function isHoldExercise(name) {
   const n = (name||'').toLowerCase();
   if (!n) return false;
   return HOLD_EXERCISES_LIST.some(h => n.includes(h) || h.includes(n));
+}
+
+function legacyDurationMinutes(exercise) {
+  if (exercise.durationMin !== undefined && exercise.durationMin !== '') return String(exercise.durationMin);
+  const reps = String(exercise.reps || '').split(',').map(Number).filter(Number.isFinite);
+  if (!reps.length) return '';
+  const rounds = Math.max(1, parseFloat(exercise.sets) || 1);
+  const totalSeconds = reps.length > 1
+    ? reps.reduce((sum, seconds) => sum + seconds, 0)
+    : reps[0] * rounds;
+  return String(+(totalSeconds / 60).toFixed(2));
 }
 
 // Sourced from 2 Areas/Fitness/Food Log/April Food Log.md, in the order she
@@ -4814,9 +4826,12 @@ function markPrefillEdited(input) {
 function prefillGymInputs(name) {
   updateGymInputMode();
   const last = getLastExerciseRecord(name);
+  const timed = isHoldExercise(name);
   activeGymPrefill = last ? { name:normalizeExerciseName(name), key:last.key } : null;
   const values = {
-    'gym-sets':last?.sets || '', 'gym-reps':last?.reps || '', 'gym-weight':last?.weight || '',
+    'gym-sets':timed ? '' : (last?.sets || ''),
+    'gym-reps':timed ? (last?.durationMin ?? legacyDurationMinutes(last || {})) : (last?.reps || ''),
+    'gym-weight':last?.weight || '',
     'gym-distance':last?.distance || '', 'gym-run-time':last?.runTime || '',
     'gym-pace':last?.pace || calcPacePerMile(last?.distance, last?.runTime) || '',
   };
@@ -4826,7 +4841,7 @@ function prefillGymInputs(name) {
     input.classList.toggle('suggested-value', Boolean(last && value));
   }
   document.getElementById('gym-last-hint').textContent = last ? `Last ${shortLogDate(last.key)} · values prefilled` : 'No previous entry';
-  const firstVisible = ['gym-sets','gym-distance'].map(id => document.getElementById(id)).find(input => input.style.display !== 'none');
+  const firstVisible = ['gym-sets','gym-reps','gym-distance'].map(id => document.getElementById(id)).find(input => input.style.display !== 'none');
   if (firstVisible) firstVisible.focus();
 }
 
@@ -4855,11 +4870,14 @@ function addExercise() {
     exercise.pace = document.getElementById('gym-pace').value.trim()
       || calcPacePerMile(exercise.distance, exercise.runTime);
     exercise.run = true;
+  } else if (hold) {
+    exercise.durationMin = document.getElementById('gym-reps').value.trim();
+    exercise.hold = true;
   } else {
     exercise.sets   = document.getElementById('gym-sets').value.trim();
     exercise.reps   = document.getElementById('gym-reps').value.trim();
-    exercise.weight = hold ? '' : document.getElementById('gym-weight').value.trim();
-    exercise.hold   = hold;
+    exercise.weight = document.getElementById('gym-weight').value.trim();
+    exercise.hold   = false;
   }
   if (activeGymPrefill && activeGymPrefill.name === normalizeExerciseName(name)) {
     exercise.lastDate = activeGymPrefill.key;
@@ -4921,7 +4939,7 @@ function markExerciseEditing(id, input) {
 function updateExerciseField(id, field, value, dayKey) {
   const day = gymDayState(dayKey);
   const exercise = day.gym.exercises.find(item => item.id === id);
-  if (!exercise || !['sets','reps','weight','distance','runTime','pace','feeling'].includes(field)) return;
+  if (!exercise || !['sets','reps','weight','distance','runTime','pace','durationMin','feeling'].includes(field)) return;
   if (field === 'feeling') {
     const n = parseFloat(value);
     exercise.feeling = isFinite(n) && n > 0 && n <= 10 ? n : null;
@@ -4959,8 +4977,8 @@ function exerciseRowHTML(e, dayKey) {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
       ${field(e.distance, 'Miles', 'distance')}${field(e.runTime, 'Duration', 'runTime')}${field(e.pace || calcPacePerMile(e.distance, e.runTime), 'Pace /mile', 'pace')}${rpe}</div>`;
   } else if (hold) {
-    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-      ${field(e.sets, 'Rounds', 'sets')}${field(e.reps, 'Secs', 'reps')}${rpe}</div>`;
+    fields = `<div class="exercise-fields" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      ${field(e.durationMin ?? legacyDurationMinutes(e), 'Duration (min)', 'durationMin')}${rpe}</div>`;
   } else {
     fields = `<div class="exercise-fields" style="grid-template-columns:repeat(4,minmax(0,1fr))">
       ${field(e.sets, 'Sets', 'sets')}${field(e.reps, 'Reps', 'reps')}${field(e.weight, 'lbs', 'weight')}${rpe}</div>`;
@@ -5071,7 +5089,7 @@ function showGymDayDetail(key) {
 
     <div class="organic-segment-label">Add exercise</div>
     <div class="gym-input-wrap" style="margin-bottom:18px;">
-      <input type="text" class="gym-text-input" id="gym-detail-name" placeholder="Exercise name…" autocomplete="off">
+      <input type="text" class="gym-text-input" id="gym-detail-name" data-session="${escHtml(gym.session || '')}" placeholder="Exercise name…" autocomplete="off" oninput="updateGymDetailInputMode()">
       <div class="gym-input-row" style="margin-top:8px;">
         <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Miles' : 'Sets'}" inputmode="decimal">
         <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${runningDay ? 'Duration' : 'Reps'}" inputmode="text">
@@ -5091,6 +5109,8 @@ function showGymDayDetail(key) {
           : '<div class="empty-state">Nothing logged for this day</div>'}
       </div>
     </div>`;
+
+  updateGymDetailInputMode();
 
   document.getElementById('gym-day-list').classList.add('slide-left');
   document.getElementById('gym-day-detail').classList.add('slide-in');
@@ -5132,7 +5152,8 @@ function addExerciseToDay(key) {
     exercise.runTime = reps;
     exercise.pace = weight || calcPacePerMile(exercise.distance, reps);
   }
-  else { exercise.sets = sets; exercise.reps = reps; exercise.weight = hold ? '' : weight; }
+  else if (hold) { exercise.durationMin = reps; }
+  else { exercise.sets = sets; exercise.reps = reps; exercise.weight = weight; }
 
   day.gym.exercises.push(exercise);
   saveGymDay(dayKey, day);
@@ -5174,14 +5195,31 @@ function updateGymInputMode() {
   const run  = isRunExercise(name) || (!name.trim() && canonicalSessionType(state.gym.session) === 'Running');
   const hold = !run && isHoldExercise(name);
   // run mode: distance + time only
-  setsEl.style.display   = run ? 'none' : '';
+  setsEl.style.display   = (run || hold) ? 'none' : '';
   repsEl.style.display   = run ? 'none' : '';
   weightEl.style.display = (run || hold) ? 'none' : '';
   distEl.style.display   = run ? '' : 'none';
   timeEl.style.display   = run ? '' : 'none';
   paceEl.style.display   = run ? '' : 'none';
-  if (hold) { setsEl.placeholder = 'Rounds'; repsEl.placeholder = 'Secs'; }
+  if (hold) { repsEl.placeholder = 'Duration (min)'; }
   else      { setsEl.placeholder = 'Sets';   repsEl.placeholder = 'Reps'; }
+}
+
+function updateGymDetailInputMode() {
+  const nameEl = document.getElementById('gym-detail-name');
+  const setsEl = document.getElementById('gym-detail-sets');
+  const repsEl = document.getElementById('gym-detail-reps');
+  const weightEl = document.getElementById('gym-detail-weight');
+  if (!nameEl || !setsEl || !repsEl || !weightEl) return;
+  const name = nameEl.value || '';
+  const session = nameEl.dataset.session || '';
+  const run = isRunExercise(name) || (!name.trim() && canonicalSessionType(session) === 'Running');
+  const hold = !run && isHoldExercise(name);
+  setsEl.style.display = hold ? 'none' : '';
+  weightEl.style.display = hold ? 'none' : '';
+  setsEl.placeholder = run ? 'Miles' : 'Sets';
+  repsEl.placeholder = (run || hold) ? 'Duration (min)' : 'Reps';
+  weightEl.placeholder = run ? 'Pace /mile' : 'lbs';
 }
 
 function updateRunPacePreview() {
@@ -5415,9 +5453,9 @@ function renderLogTab() {
       }
       if (state.gym.exercises.length) {
         thtml += state.gym.exercises.map(e => {
-          const isHold = isHoldExercise(e.name);
+          const isHold = e.hold || isHoldExercise(e.name);
           const detail = isHold
-            ? [e.sets ? e.sets+' rounds' : '', e.reps ? e.reps+'s' : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ')
+            ? [e.durationMin ? e.durationMin+' min' : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ')
             : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ');
           return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.62);">
             <div style="font-size:13px;font-weight:600;color:var(--text2);">${e.completed === false ? '○' : '✓'} ${escHtml(e.name)}</div>
@@ -6481,9 +6519,9 @@ function readExerciseMeasurements(body, exercise) {
     delete exercise.sets;
     delete exercise.reps;
   } else if (secMatch) {
-    exercise.hold = true; if (!exercise.reps) exercise.reps = secMatch[1];
+    exercise.hold = true; exercise.durationMin = String(+(+secMatch[1] / 60).toFixed(2));
   } else if (minMatch && !repsMatch) {
-    exercise.hold = true; if (!exercise.reps) exercise.reps = String(+minMatch[1] * 60);
+    exercise.hold = true; exercise.durationMin = minMatch[1];
   }
   if (rpe != null) exercise.feeling = rpe;
   return Boolean(setsMatch || repsMatch || weightMatch || secMatch || minMatch || distMatch || roundMatch);
@@ -6696,7 +6734,7 @@ function parseTrainingCsv(text) {
     if (iRpe >= 0 && row[iRpe]) exercise.feeling = +row[iRpe];
     if (iDist >= 0 && row[iDist]) { exercise.distance = normalizeMiles(row[iDist]); exercise.run = true; }
     if (!exercise.run && iDur >= 0 && row[iDur] && !exercise.reps) {
-      exercise.reps = String(Math.round(+row[iDur]));
+      exercise.durationMin = String(+(+row[iDur] / 60).toFixed(2));
       exercise.hold = true;
     }
     if (!exercise.run && isRunExercise(name)) exercise.run = true;
@@ -6721,8 +6759,7 @@ function formatExerciseLine(exercise) {
     if (exercise.runTime) bits.push(exercise.runTime);
     if (exercise.pace) bits.push(exercise.pace);
   } else if (exercise.hold) {
-    if (exercise.sets) bits.push(`${exercise.sets} sets`);
-    if (exercise.reps) bits.push(`${exercise.reps}sec`);
+    if (exercise.durationMin) bits.push(`${exercise.durationMin}min`);
     if (exercise.weight) bits.push(exercise.weight === 'bw' ? 'bw' : `${exercise.weight}lbs`);
   } else {
     if (exercise.sets) bits.push(`${exercise.sets} sets`);
@@ -7491,9 +7528,37 @@ function migrateRunUnitsToMiles() {
   localStorage.setItem('alog_run_units_migrated_v1', '1');
 }
 
+function migrateTimedExercisesToMinutes() {
+  if (localStorage.getItem('alog_timed_exercises_migrated_v1') === '1') return;
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    let day, changed = false;
+    try { day = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+    for (const exercise of day?.gym?.exercises || []) {
+      if (/wrist curl/i.test(exercise.name || '')) {
+        if (exercise.hold) { exercise.hold = false; changed = true; }
+        continue;
+      }
+      if (exercise.run || !(exercise.hold || isHoldExercise(exercise.name))) continue;
+      exercise.hold = true;
+      if (exercise.durationMin === undefined || exercise.durationMin === '') {
+        const duration = legacyDurationMinutes(exercise);
+        if (duration) exercise.durationMin = duration;
+      }
+      delete exercise.sets;
+      delete exercise.reps;
+      delete exercise.weight;
+      changed = true;
+    }
+    if (changed) localStorage.setItem(key, JSON.stringify(day));
+  }
+  localStorage.setItem('alog_timed_exercises_migrated_v1', '1');
+}
+
 function init() {
   migrateWeightsToLbs();
   migrateRunUnitsToMiles();
+  migrateTimedExercisesToMinutes();
   state = loadState(todayKey());
   initVoice();
   renderHeader();
@@ -7542,7 +7607,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v36').catch(() => null);
+    const cache = await caches.open('athletelog-v37').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
