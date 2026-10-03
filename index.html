@@ -1520,19 +1520,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 
 
-  <!-- FEELINGS PANEL -->
-  <div id="feelings-panel" class="panel">
-    <div class="panel-inner">
-      <div class="checkin-head">
-        <div>
-          <div class="organic-kicker" id="checkin-kicker">Check-in</div>
-          <div id="checkin-date" class="checkin-date"></div>
-        </div>
-        <button class="outline-btn" onclick="copyCheckin()" style="flex-shrink:0;">Copy</button>
-      </div>
-      <div id="checkin-body"></div>
-    </div>
-  </div>
   <!-- SUMMARY PANEL -->
   <div id="log-panel" class="panel">
     <div class="panel-inner">
@@ -1582,7 +1569,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <nav id="tabs" aria-label="Main navigation">
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
-  <button class="tab-btn" data-tab="feelings"><span class="nav-glyph" aria-hidden="true">◇</span>Today</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
 
@@ -1598,7 +1584,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px;">
       <button class="outline-btn" onclick="startBackfill('food')">Food</button>
       <button class="outline-btn" onclick="startBackfill('gym')">Workout</button>
-      <button class="outline-btn" onclick="startBackfill('feelings')">Today check-in</button>
     </div>
     <div class="modal-btn-row" style="margin-top:14px;">
       <button class="outline-btn" onclick="closeBackfillModal()">Cancel</button>
@@ -2711,7 +2696,6 @@ function startBackfill(section) {
   if (tab) tab.click();
   if (section === 'food') showDayDetail(key);
   else if (section === 'gym') showGymDayDetail(key);
-  else if (section === 'feelings') openCheckinDay(key);
 }
 
 function nowTime() {
@@ -6217,7 +6201,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       healthOrRelaySync(true);
     }
     if (tab === 'food') { renderDayList(); renderPlanPill(); }
-    if (tab === 'feelings') renderCheckin();
   };
 });
 
@@ -7410,7 +7393,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v32').catch(() => null);
+    const cache = await caches.open('athletelog-v33').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
