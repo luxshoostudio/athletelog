@@ -2554,6 +2554,7 @@ function quickFoods(limit = 18) {
 }
 
 const USUAL_BREAKFAST_VALUE = '__usual_breakfast__';
+const PINNED_BREAKFAST_FOODS = new Set(['chia seeds']);
 
 // Learn the bundle from the most recent three weeks of morning logs. A food
 // must appear on at least 35% of those mornings (and at least three times),
@@ -2585,10 +2586,17 @@ function usualBreakfast() {
     }
   }
 
-  return [...items.values()]
-    .filter(item => item.count >= threshold && item.entry)
-    .sort((a, b) => b.count - a.count || b.key.localeCompare(a.key))
+  const ranked = [...items.entries()]
+    .filter(([, item]) => item.entry)
+    .sort(([, a], [, b]) => b.count - a.count || b.key.localeCompare(a.key));
+  const pinned = ranked.filter(([id]) => PINNED_BREAKFAST_FOODS.has(id));
+  const learned = ranked
+    .filter(([id, item]) => !PINNED_BREAKFAST_FOODS.has(id) && item.count >= threshold)
+    .slice(0, Math.max(0, 6 - pinned.length));
+
+  return [...learned, ...pinned]
     .slice(0, 6)
+    .map(([, item]) => item)
     .map(item => ({
       name:item.entry.name, p:+item.entry.p || 0, kcal:+item.entry.kcal || 0,
       fat:+item.entry.fat || 0, carbs:+item.entry.carbs || 0, fiber:+item.entry.fiber || 0,
@@ -7479,7 +7487,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v34').catch(() => null);
+    const cache = await caches.open('athletelog-v35').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
