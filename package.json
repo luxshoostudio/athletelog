@@ -4,29 +4,17 @@
   "private": true,
   "description": "Personal athlete training & nutrition tracker",
   "scripts": {
-    "build:workouts": "vite build",
-    "build": "npm run build:workouts && node scripts/build-www.mjs",
-    "test": "vitest run",
+    "build": "node scripts/build-www.mjs",
     "sync": "npm run build && cap sync ios",
     "open": "cap open ios"
   },
   "dependencies": {
-    "@capacitor/core": "^8.5.3",
+    "@capacitor/core": "^8.5.0",
     "@capacitor/local-notifications": "^8.3.1",
-    "capacitor-health": "^8.2.0",
-    "idb": "^8.0.4",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "zustand": "^5.0.15"
+    "capacitor-health": "^8.2.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.5.3",
-    "@capacitor/ios": "^8.5.3",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.7",
-    "fake-indexeddb": "^6.2.5",
-    "jsdom": "^29.1.1",
-    "vite": "^8.3.3",
-    "vitest": "^4.1.11"
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/ios": "^8.5.0"
   }
 }

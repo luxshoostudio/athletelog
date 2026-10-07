@@ -13,7 +13,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="stylesheet" href="vendor/workout-v2/workout-v2.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -1442,9 +1441,8 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 
   <!-- GYM PANEL (two-level nav) -->
   <div id="gym-panel" class="panel">
-    <div id="workout-v2-root"></div>
     <!-- PRIMARY: Today + History -->
-    <div id="gym-day-list" style="display:none">
+    <div id="gym-day-list">
       <div class="panel-inner">
         <div class="organic-segment-label">Session</div>
         <div class="organic-segments" id="organic-session-segments" aria-label="Session templates"></div>
@@ -1512,7 +1510,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     </div>
 
     <!-- SECONDARY: Day Detail (read-only) -->
-    <div id="gym-day-detail" style="display:none">
+    <div id="gym-day-detail">
       <div class="detail-header">
         <button class="back-btn" onclick="backToGymList()">← Back</button>
         <div class="detail-title" id="gym-detail-title">Session</div>
@@ -5578,9 +5576,6 @@ function _importData(data) {
   }
   // A restored file already carries her recipes; do not paste the seed on top.
   if (data.alog_recipes) localStorage.setItem('alog_recipes_seeded', '1');
-  // Older backups have only legacy gym rows. Let Workout 2.0 expand them on
-  // the next launch; a backup that already contains v2 sessions needs no remigration.
-  if (!data.alog_v2_sessions) localStorage.removeItem('alog_v2_migrated');
   return count;
 }
 
@@ -6089,7 +6084,7 @@ function saveGistToken() {
 // Day records plus anything else that is *data she created*. Settings,
 // tokens and caches are excluded: they are either secrets or re-derivable.
 // Export, Gist sync and restore all go through here so they cannot drift.
-const BACKUP_EXTRA_KEYS = ['alog_recipes', 'alog_v2_sessions', 'alog_v2_migration_backup'];
+const BACKUP_EXTRA_KEYS = ['alog_recipes'];
 
 function isDayKey(key) {
   return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
@@ -7664,38 +7659,6 @@ function init() {
 
 init();
 
-// React Workout 2.0 reads the existing app through this deliberately small
-// compatibility seam. It dual-writes legacy gym data, so Summary/export and
-// an older app build remain usable throughout the migration window.
-window.AthleteLogBridge = {
-  templates: () => getSessionTemplates(),
-  loadDay: isoDate => loadState(`alog_${String(isoDate).replaceAll('-', '_')}`),
-  notify: (message, duration) => showToast(message, duration),
-  startRestTimer: async seconds => {
-    const notifications = window.Capacitor?.Plugins?.LocalNotifications;
-    if (!isNativeApp() || !notifications) return;
-    try {
-      await notifications.cancel({ notifications:[{ id:790 }] });
-      await notifications.schedule({ notifications:[{
-        id:790, title:'Rest complete', body:'Ready for your next set.',
-        schedule:{ at:new Date(Date.now() + Math.max(1, seconds) * 1000) },
-      }] });
-    } catch (err) { console.warn('Could not schedule rest timer:', err); }
-  },
-  cancelRestTimer: async () => {
-    const notifications = window.Capacitor?.Plugins?.LocalNotifications;
-    if (!isNativeApp() || !notifications) return;
-    try { await notifications.cancel({ notifications:[{ id:790 }] }); }
-    catch (err) { console.warn('Could not cancel rest timer:', err); }
-  },
-};
-window.addEventListener('athletelog:workout-updated', event => {
-  if (event.detail?.date !== localDateIso()) return;
-  state = loadState(todayKey());
-  renderHeader();
-  renderLogTab();
-});
-
 // ═══════════════════════════════════════════════════════════════
 // PWA: Service Worker + PNG Icon Generator
 // ═══════════════════════════════════════════════════════════════
@@ -7718,7 +7681,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v39').catch(() => null);
+    const cache = await caches.open('athletelog-v38').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
@@ -7762,6 +7725,5 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
-<script type="module" src="vendor/workout-v2/workout-v2.js"></script>
 </body>
 </html>
