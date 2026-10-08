@@ -2054,7 +2054,7 @@ function legacyDurationMinutes(exercise) {
 const QUICK_SEED = [
   'Think! Protein Bar',      // ~30 entries in April
   'Protein Shake',           // OWYN, usually with milk
-  'Banana',                  // logged at 120–250 g
+  'Banana',                  // one medium banana
   'Whole Milk 400ml',
   'Cottage Cheese',
   'Greek Yogurt',
@@ -2560,6 +2560,11 @@ function foodUsage() {
 }
 
 function loggedFoodItem(name) {
+  // Quick add replays the last saved portion. A plain banana is one medium
+  // fruit from the table (105 kcal). Replaying the log kept a doubled
+  // portion — 210 kcal, two bananas — because each quick add became the
+  // next remembered serving. Day logs stay as they were written.
+  if (normFoodName(name) === 'banana') return null;
   const match = foodUsage().find(food => food.name.toLocaleLowerCase() === String(name).toLocaleLowerCase());
   if (!match?.entry) return null;
   const entry = match.entry;
@@ -7681,7 +7686,7 @@ if ('serviceWorker' in navigator) {
   const sizes = [192, 512];
   for (const size of sizes) {
     const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v38').catch(() => null);
+    const cache = await caches.open('athletelog-v39').catch(() => null);
     if (!cache) return;
     const hit = await cache.match(key);
     if (hit) continue; // already generated
