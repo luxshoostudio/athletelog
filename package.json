@@ -4,6 +4,7 @@
   "private": true,
   "description": "Personal athlete training & nutrition tracker",
   "scripts": {
+    "test": "node --test test/",
     "build": "node scripts/build-www.mjs",
     "sync": "npm run build && cap sync ios",
     "open": "cap open ios"

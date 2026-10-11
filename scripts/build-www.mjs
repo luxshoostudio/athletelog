@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(ROOT, 'www');
-const ASSETS = ['index.html', 'manifest.json', 'icon.svg', 'vendor'];
+const ASSETS = ['index.html', 'manifest.json', 'icon.svg', 'vendor', 'lib'];
 
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });

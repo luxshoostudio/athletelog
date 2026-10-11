@@ -1,10 +1,12 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v38';
+const CACHE = 'athletelog-v39';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
+  './lib/next-sync.mjs',
+  './lib/next-sync-boot.js',
   './vendor/barcode-detector.js',
   './vendor/zxing_reader.wasm',
   'https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
@@ -32,7 +34,10 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
   // Always network for Claude API / Open Food Facts / GitHub
-  if (url.hostname === 'api.anthropic.com' || url.hostname.includes('openfoodfacts') || url.hostname === 'api.github.com') {
+  // API calls stay on the network: Claude, food search, Gist backup, and the
+  // athletelog-next sync server (a tailnet host). The service worker must not
+  // answer those with a cached page.
+  if (url.hostname === 'api.anthropic.com' || url.hostname.includes('openfoodfacts') || url.hostname === 'api.github.com' || url.hostname.endsWith('.ts.net')) {
     return;
   }
 
