@@ -1529,6 +1529,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <div class="summary-tools">
             <button class="outline-btn" onclick="openGarminModal()" style="padding:7px 12px;font-size:10px;" id="garmin-btn">Garmin</button>
             <button class="outline-btn" onclick="syncToGist()" style="padding:7px 12px;font-size:10px;" id="sync-btn">Cloud Backup</button>
+            <button class="outline-btn" onclick="openNextSyncModal()" style="padding:7px 12px;font-size:10px;" id="next-sync-btn">Sync off</button>
             <button class="outline-btn" onclick="exportData()" style="padding:7px 12px;font-size:10px;">Save</button>
           </div>
         </div>
@@ -1669,6 +1670,32 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <div id="freq-modal-pills" class="freq-pills"></div>
     <div class="modal-btn-row" style="margin-top:12px;">
       <button class="outline-btn" onclick="closeFreqModal()" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERVER SYNC (athletelog-next). Off until turned on. Gist backup is separate. -->
+<div class="modal-overlay" id="next-sync-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Server sync</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:12px;">
+      Food and workouts can sync to your athletelog-next server so the coach can read them.
+      This page cannot use the server passkey (that key is tied to the server’s own address),
+      so sign-in is a pairing code from a browser that is already signed in there.
+    </p>
+    <label style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:700;margin-bottom:12px;">
+      <input type="checkbox" id="next-sync-enabled" style="width:18px;height:18px;accent-color:var(--sp-green);">
+      Sync this device
+    </label>
+    <label class="modal-label" for="next-sync-url">Server address</label>
+    <input type="url" class="modal-input" id="next-sync-url" inputmode="url" autocomplete="off" spellcheck="false">
+    <label class="modal-label" for="next-sync-code">Pairing code</label>
+    <input type="text" class="modal-input" id="next-sync-code" autocomplete="off" spellcheck="false" placeholder="From Settings → Account → Pair the mobile app">
+    <div id="next-sync-status" style="font-size:12px;color:var(--muted);margin-bottom:10px;min-height:18px;"></div>
+    <div class="modal-btn-row">
+      <button class="outline-btn" onclick="closeNextSyncModal()">Close</button>
+      <button class="outline-btn" onclick="signOutNextSync()">Sign out</button>
+      <button class="green-btn" onclick="saveNextSyncSettings()">Save</button>
     </div>
   </div>
 </div>
@@ -1892,6 +1919,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <input type="file" id="gym-import-input" accept=".md,.markdown,.csv,text/markdown,text/csv" multiple style="display:none" onchange="handleGymImport(event)">
 <input type="file" id="barcode-input" accept="image/*" capture="environment" style="display:none" onchange="handleBarcodePhoto(event)">
 
+<script type="module" src="./lib/next-sync-boot.js"></script>
 <script>
 'use strict';
 
@@ -2826,8 +2854,14 @@ function loadState(key) {
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
 
+function noteNextSync() {
+  if (window.AthleteLogNext) window.AthleteLogNext.noteLocalChange();
+  else window.__alogNextPending = true;
+}
+
 function saveState() {
   localStorage.setItem(todayKey(), JSON.stringify(state));
+  noteNextSync();
 }
 
 function saveDetailState() {
@@ -2837,6 +2871,7 @@ function saveDetailState() {
     saveState();
   } else {
     localStorage.setItem(currentDetailKey, JSON.stringify(detailState));
+    noteNextSync();
   }
 }
 
@@ -4050,7 +4085,7 @@ function confirmTimeEdit() {
     entry.time = newTime;
     entry.ts = h*60+m;
     if (isToday) { state = src; saveState(); }
-    else localStorage.setItem(key, JSON.stringify(src));
+    else { localStorage.setItem(key, JSON.stringify(src)); noteNextSync(); }
     if (currentDetailKey) {
       if (!isToday) detailState = src;
       renderDetailContent();
@@ -4920,7 +4955,7 @@ function gymDayState(dayKey) {
 
 function saveGymDay(dayKey, dayState) {
   if (!dayKey || dayKey === todayKey()) { state = dayState; saveState(); }
-  else localStorage.setItem(dayKey, JSON.stringify(dayState));
+  else { localStorage.setItem(dayKey, JSON.stringify(dayState)); noteNextSync(); }
 }
 
 function afterGymEdit(dayKey) {
@@ -5576,6 +5611,7 @@ function _importData(data) {
   }
   // A restored file already carries her recipes; do not paste the seed on top.
   if (data.alog_recipes) localStorage.setItem('alog_recipes_seeded', '1');
+  if (count) noteNextSync();
   return count;
 }
 
@@ -5740,6 +5776,71 @@ async function setupNativeReminders() {
 // ═══════════════════════════════════════════════════════════════
 // GITHUB GIST CLOUD SYNC
 // ═══════════════════════════════════════════════════════════════
+function applyNextSyncDays() {
+  state = loadState(todayKey());
+  if (currentDetailKey) detailState = loadState(currentDetailKey);
+  renderHeader();
+  if (typeof renderDayList === 'function') renderDayList();
+  if (typeof renderLogTab === 'function') renderLogTab();
+  if (typeof renderExerciseList === 'function') renderExerciseList();
+  if (currentDetailKey && typeof renderDetailContent === 'function') renderDetailContent();
+}
+
+function renderNextSyncStatus(info) {
+  const btn = document.getElementById('next-sync-btn');
+  const line = document.getElementById('next-sync-status');
+  const labels = { off:'Sync off', 'signed-out':'Sign in', syncing:'Syncing…', synced:'Synced', offline:'Offline', error:'Sync error' };
+  const label = labels[info && info.state] || 'Sync';
+  if (btn) btn.textContent = label;
+  if (line && document.getElementById('next-sync-modal').classList.contains('open')) line.textContent = (info && info.detail) || label;
+}
+
+function openNextSyncModal() {
+  const on = localStorage.getItem('alog_next_enabled') === '1';
+  document.getElementById('next-sync-enabled').checked = on;
+  document.getElementById('next-sync-url').value = localStorage.getItem('alog_next_url') || window.ATHLETELOG_NEXT_URL || 'https://livy-athletelog.tailab1d78.ts.net';
+  document.getElementById('next-sync-code').value = '';
+  const who = localStorage.getItem('alog_next_user');
+  const line = document.getElementById('next-sync-status');
+  line.style.color = 'var(--muted)';
+  line.textContent = who ? ('Signed in as ' + who + (on ? '' : '. Turn sync on to start.')) : 'Sync is off until you turn it on and pair this device.';
+  document.getElementById('next-sync-modal').classList.add('open');
+}
+
+function closeNextSyncModal() {
+  document.getElementById('next-sync-modal').classList.remove('open');
+}
+
+function saveNextSyncSettings() {
+  const line = document.getElementById('next-sync-status');
+  const on = document.getElementById('next-sync-enabled').checked;
+  const url = document.getElementById('next-sync-url').value.trim();
+  const code = document.getElementById('next-sync-code').value.trim();
+  const sync = window.AthleteLogNext;
+  if (!sync) { line.style.color = 'var(--red)'; line.textContent = 'Sync is still loading. Try again in a moment.'; return; }
+  try { sync.configure({ enabled: on, serverUrl: url }); }
+  catch (error) { line.style.color = 'var(--red)'; line.textContent = error.message; return; }
+  if (!code) { line.style.color = 'var(--sp-green)'; line.textContent = on ? 'Sync is on.' : 'Sync is off. Cloud Backup is unchanged.'; return; }
+  line.style.color = 'var(--muted)';
+  line.textContent = 'Checking the pairing code…';
+  sync.signIn(code).then(user => {
+    line.style.color = 'var(--sp-green)';
+    line.textContent = 'Signed in' + (user && user.name ? ' as ' + user.name : '') + '.';
+    document.getElementById('next-sync-code').value = '';
+  }).catch(error => {
+    line.style.color = 'var(--red)';
+    line.textContent = error.message || 'Could not sign in';
+  });
+}
+
+function signOutNextSync() {
+  if (window.AthleteLogNext) window.AthleteLogNext.signOut();
+  else localStorage.removeItem('alog_next_token');
+  const line = document.getElementById('next-sync-status');
+  line.style.color = 'var(--muted)';
+  line.textContent = 'Signed out on this device. The server account is unchanged.';
+}
+
 function openGistModal() {
   const existing = localStorage.getItem('github_gist_token');
   if (existing) document.getElementById('gist-token-input').value = existing;
@@ -6691,6 +6792,7 @@ function importGymSessions(sessions, { overwrite = false } = {}) {
     days++;
     exercises += session.exercises.length;
   }
+  if (days) noteNextSync();
   return { days, exercises, skipped };
 }
 
