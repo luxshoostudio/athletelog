@@ -1,10 +1,11 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v39';
+const CACHE = 'athletelog-v40';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon.svg',
+  './lib/week-plan.mjs',
   './lib/next-sync.mjs',
   './lib/next-sync-boot.js',
   './vendor/barcode-detector.js',
