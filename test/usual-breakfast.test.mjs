@@ -84,6 +84,99 @@ test('an existing install gets Usual Breakfast in favourites when it is missing'
   assert.equal(kept.favourites.length, 1)
 })
 
+function dayKey(now, daysBack) {
+  const date = new Date(now)
+  date.setDate(date.getDate() - daysBack)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `alog_${date.getFullYear()}_${month}_${day}`
+}
+
+function food(name, p, kcal, time = '12:00') {
+  return { name, p, kcal, fat: 1, carbs: 2, fiber: 0.5, time }
+}
+
+test('existing favourites are kept and Usual Breakfast is only added when missing', () => {
+  const now = new Date('2026-10-12T15:00:00')
+  const stored = [
+    { name: 'Tuna', p: 20, kcal: 100, fat: 1, carbs: 0, fiber: 0 },
+    { name: 'Rice', p: 4, kcal: 200, fat: 0, carbs: 45, fiber: 1 },
+  ]
+  const result = favouritesForInstall(stored, {
+    now,
+    days: { [dayKey(now, 1)]: { food: [food('Banana', 1, 90)] } },
+  })
+  assert.equal(result.rebuilt, false)
+  assert.equal(result.seeded, true)
+  assert.deepEqual(result.favourites.map(item => item.name), ['Usual Breakfast', 'Tuna', 'Rice'])
+  assert.equal(result.favourites[0].components.length, 7)
+  assert.equal(result.favourites[1].p, 20)
+  assert.equal(result.favourites[1].kcal, 100)
+
+  const already = favouritesForInstall([usualBreakfastFavourite(), ...stored], {
+    now,
+    days: { [dayKey(now, 1)]: { food: [food('Banana', 1, 90)] } },
+  })
+  assert.equal(already.seeded, false)
+  assert.equal(already.rebuilt, false)
+  assert.deepEqual(already.favourites.map(item => item.name), ['Usual Breakfast', 'Tuna', 'Rice'])
+})
+
+test('a missing or breakfast-only list is rebuilt from the last 30 days', () => {
+  const now = new Date('2026-10-12T15:00:00')
+  const recent = dayKey(now, 2)
+  const latest = dayKey(now, 0)
+  const tooOld = dayKey(now, 30)
+  const days = {
+    [tooOld]: { food: [food('Ancient bar', 9, 90, '09:00')] },
+    [recent]: {
+      food: [
+        food('Tuna', 10, 50, '12:00'),
+        food('Rice', 4, 200, '13:00'),
+        food('Tuna', 10, 50, '18:00'),
+        {
+          name: 'Usual Breakfast',
+          p: 30.2,
+          kcal: 470,
+          time: '08:00',
+          source: 'Usual Breakfast',
+          components: [{ name: 'Blueberries', p: 0.7, kcal: 57 }],
+        },
+      ],
+    },
+    [latest]: { food: [food('Tuna', 22, 110, '12:30')] },
+  }
+  const syncedFoods = [
+    { name: 'Tuna', protein: 22, calories: 110, date: latest.slice(5).replaceAll('_', '-'), time: '12:30' },
+    { name: 'Greek yogurt', protein: 15, calories: 90, fat: 0, carbs: 6, fiber: 0, d: latest.slice(5).replaceAll('_', '-'), time: '15:00' },
+  ]
+  const history = { now, days, syncedFoods }
+  const fromSeed = favouritesForInstall([{ name: 'Usual Breakfast', components: [] }], history)
+  assert.equal(fromSeed.rebuilt, true)
+  assert.equal(fromSeed.seeded, true)
+  assert.equal(fromSeed.favourites[0].name, 'Usual Breakfast')
+  assert.equal(fromSeed.favourites[0].components.length, 7)
+  assert.deepEqual(fromSeed.favourites.slice(1).map(item => item.name), ['Tuna', 'Greek yogurt', 'Rice'])
+  assert.equal(fromSeed.favourites[1].p, 22)
+  assert.equal(fromSeed.favourites[1].kcal, 110)
+  assert.equal(fromSeed.favourites.some(item => item.name === 'Ancient bar'), false)
+  assert.equal(fromSeed.favourites.filter(item => item.name === 'Usual Breakfast').length, 1)
+
+  const fromEmpty = favouritesForInstall(null, history)
+  assert.equal(fromEmpty.rebuilt, true)
+  assert.deepEqual(fromEmpty.favourites.map(item => item.name), fromSeed.favourites.map(item => item.name))
+
+  const many = {}
+  for (let index = 0; index < 18; index++) {
+    many[dayKey(now, 1)] = many[dayKey(now, 1)] || { food: [] }
+    many[dayKey(now, 1)].food.push(food(`Food ${String(index).padStart(2, '0')}`, index + 1, 100 + index, `12:${String(index).padStart(2, '0')}`))
+  }
+  const capped = favouritesForInstall([], { now, days: many })
+  assert.equal(capped.rebuilt, true)
+  assert.equal(capped.favourites.length, 17)
+  assert.equal(capped.favourites[0].name, 'Usual Breakfast')
+})
+
 test('an existing install with no recipe, or an empty one, gets the seven-item seed', () => {
   const priorDays = {
     alog_2026_10_11: { food: [{ name: 'Banana', p: 1, kcal: 90 }] },
