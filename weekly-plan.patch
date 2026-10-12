@@ -1,0 +1,432 @@
+diff --git a/mcp/README.md b/mcp/README.md
+index 9ee2e5b..8328055 100644
+--- a/mcp/README.md
++++ b/mcp/README.md
+@@ -76,6 +76,8 @@ Read tools, plus two Livy writes (see below):
+ | `get_routine` | What does the Push Day routine prescribe? (sets/reps/weight and rest per exercise) |
+ | `preview_session` | What will the app actually put on screen when I start this routine — after the progression policy and my history have overridden the plan? |
+ | `get_week_plan` | What's planned when: the next seven days with their routines and how each was decided (coach week, a pinned session, an override, the weekday plan), the current coach week when one is running, and the weekday table. |
++| `get_weekly_plan` | The weekday workout plan (routine per day) plus planned meals, with protein for each meal and the daily protein and fiber targets. |
++| `set_weekly_plan` | Change that plan. Workouts update the weekday routines; meals update `mealPlan`. The write is marked updated by Livy and does not remove other routines. |
+ | `list_workouts` | Recent sessions — newest first, with dates, sets done/planned, volume, duration, PRs. Pass `days` for the last N days (ending today, or ending at `to`). |
+ | `list_food_logs` | Food entries in a window (default the last 7 days): name, amount, unit, calories, protein, fat, carbs, fiber, date, time, source. Includes Livy inbox rows not copied into the log yet. |
+ | `get_workout` | Full set-by-set breakdown of one session, by `workout_id` or by date. On a day with two sessions the date alone returns both ids to pick from rather than guessing at one. |
+@@ -95,6 +97,16 @@ Each tool returns JSON the LLM can format as it likes; structured fields (sets,
+ are pre-formatted into human-readable labels in `src/labels.js` so the LLM doesn't need to
+ re-interpret them.
+ 
++## Weekly plan
++
++`get_weekly_plan` and `set_weekly_plan` are the coach's view of the week AthleteLog v1 edits.
++Workouts are ordinary weekday routines: id `al-plan-0` through `al-plan-6` (Sunday is 0, the
++same key as `week`), linked from `week` without removing a routine already on that day.
++`get_week_plan` therefore sees them too. Meals are a profile field the training log did not
++have, `mealPlan`: daily `protein` and `fiber` targets, and per weekday `breakfast`, `lunch`,
++`dinner`, and `snacks` with a name and a rough protein. A coach write sets `updatedBy` to
++`livy`. Send only the days that change.
++
+ ## Livy
+ 
+ Livy (or any other agent) uses this same stdio server. No extra process, and no GitHub Gist.
+diff --git a/mcp/package.json b/mcp/package.json
+index 19a5ee2..b0a888d 100644
+--- a/mcp/package.json
++++ b/mcp/package.json
+@@ -3,7 +3,7 @@
+   "version": "0.1.0",
+   "private": true,
+   "type": "module",
+-  "description": "MCP (Model Context Protocol) bridge for openGym — lets an external LLM read your routines, workouts, body-weight log, estimated 1RMs and muscle balance from your self-hosted data. Read-only, stdio transport; no extra container.",
++  "description": "MCP (Model Context Protocol) bridge for openGym — lets an external LLM read your routines, workouts, body-weight log, estimated 1RMs and muscle balance from your self-hosted data, and write the weekly meal and workout plan. Stdio transport; no extra container.",
+   "license": "AGPL-3.0-or-later",
+   "main": "src/index.js",
+   "bin": {
+diff --git a/mcp/src/state.js b/mcp/src/state.js
+index 56ad271..087276c 100644
+--- a/mcp/src/state.js
++++ b/mcp/src/state.js
+@@ -157,11 +157,32 @@ export function _seedStateForTests(state) {
+   if (_watcher) { _watcher.close(); _watcher = null }
+ }
+ 
++// Writes the profile the api server reads. A test seed (mtime sentinel) stays in memory.
++export function saveState(next) {
++  if (!next || typeof next !== 'object') {
++    const err = new Error('no profile to write')
++    err.code = 'EINVAL'
++    throw err
++  }
++  if (_loadedMtime === Number.MAX_SAFE_INTEGER) {
++    _state = next
++    return next
++  }
++  init()
++  _state = next
++  const file = stateFile(_uid)
++  const tmp = file + '.tmp-' + process.pid
++  fs.writeFileSync(tmp, JSON.stringify(next), { mode: 0o600 })
++  fs.renameSync(tmp, file)
++  try { _loadedMtime = fs.statSync(file).mtimeMs } catch { _state = undefined }
++  return next
++}
++
+ function defaultsShape() {
+   return {
+     unit: 'kg', restSec: 90, sound: true, lang: 'en',
+     theme: 'light', accent: 'forest', body: 'male', targetW: null,
+-    bodyweight: [], routines: [], week: {}, dayPlan: {},
++    bodyweight: [], routines: [], week: {}, dayPlan: {}, mealPlan: null,
+     exWeights: {}, workouts: [], customEx: [], gifSize: 'full',
+     reminder: { on: false, time: '08:00', tz: null }
+   }
+diff --git a/mcp/src/tools.js b/mcp/src/tools.js
+index 8a35091..c6d3b39 100644
+--- a/mcp/src/tools.js
++++ b/mcp/src/tools.js
+@@ -19,6 +19,7 @@ import { loadOfWorkouts, rankOf, levelsOf } from '../../frontend/src/lib/muscles
+ import { policyFor } from '../../frontend/src/lib/progression.js'
+ import { buildSessionEntries, startsFromLast } from '../../frontend/src/lib/session-start.js'
+ import { listFoodLogs, addFoodEntry, addWorkoutEntry } from './livy.js'
++import { getWeeklyPlan, setWeeklyPlan } from './weekly-plan.js'
+ 
+ /* ---------- helpers ---------- */
+ 
+@@ -668,6 +669,7 @@ export const previewSession = {
+ export const TOOLS = [
+   listRoutines, getRoutine, previewSession, getWeekPlan, listWorkouts, getWorkout, getBodyweight, estimate1rm, muscleBalance,
+   listFoodLogs, addFoodEntry, addWorkoutEntry,
++  getWeeklyPlan, setWeeklyPlan,
+ ]
+ 
+ function noState() {
+diff --git a/mcp/src/weekly-plan.js b/mcp/src/weekly-plan.js
+new file mode 100644
+index 0000000..e7abaee
+--- /dev/null
++++ b/mcp/src/weekly-plan.js
+@@ -0,0 +1,203 @@
++// Weekly plan for the coach. Workouts reuse the weekday routines (al-plan-<getDay()>,
++// Sunday is 0, the same key as S.week). Meals are mealPlan, which the training
++// profile did not have. A write is marked updatedBy "livy" and never removes a
++// routine or weekday slot it did not create.
++import { z } from 'zod'
++import { getState, saveState } from './state.js'
++
++const WEEKDAYS = [
++  { weekday: 1, name: 'Monday' },
++  { weekday: 2, name: 'Tuesday' },
++  { weekday: 3, name: 'Wednesday' },
++  { weekday: 4, name: 'Thursday' },
++  { weekday: 5, name: 'Friday' },
++  { weekday: 6, name: 'Saturday' },
++  { weekday: 0, name: 'Sunday' },
++]
++
++const NAMES = Object.fromEntries(WEEKDAYS.flatMap(day => [
++  [day.name.toLowerCase(), day.weekday],
++  [day.name.slice(0, 3).toLowerCase(), day.weekday],
++]))
++
++export function planRoutineId(weekday) {
++  return `al-plan-${Number(weekday)}`
++}
++
++function invalid(message) {
++  const err = new Error(message)
++  err.code = 'EINVAL'
++  return err
++}
++
++function noState() {
++  return {
++    error: 'no synced state yet — sign in at least once from a device so the openGym api can save a state file for this profile',
++  }
++}
++
++function weekdayOf(day) {
++  if (Number.isInteger(day?.weekday) && day.weekday >= 0 && day.weekday <= 6) return day.weekday
++  const named = String(day?.weekday_name || day?.weekday || '').trim().toLowerCase()
++  if (named in NAMES) return NAMES[named]
++  throw invalid('each day needs a weekday from 0 (Sunday) to 6 (Saturday), or a weekday name')
++}
++
++function mealOf(raw) {
++  if (!raw || typeof raw !== 'object') return null
++  return {
++    name: String(raw.name || '').trim(),
++    protein: Number(raw.protein) || 0,
++    ...(raw.optional ? { optional: true } : {}),
++  }
++}
++
++function view(state) {
++  const routines = Array.isArray(state?.routines) ? state.routines : []
++  const mealPlan = state?.mealPlan && typeof state.mealPlan === 'object' ? state.mealPlan : null
++  const byId = new Map(routines.filter(item => item?.athleteLogPlan).map(item => [item.id, item]))
++  const updatedBy = mealPlan?.updatedBy === 'livy' || [...byId.values()].some(item => item.planSource === 'livy') ? 'livy' : null
++  return {
++    protein_g: mealPlan && mealPlan.protein != null ? Number(mealPlan.protein) : null,
++    fiber_g: mealPlan && mealPlan.fiber != null ? Number(mealPlan.fiber) : null,
++    updated_by: updatedBy,
++    days: WEEKDAYS.map(day => {
++      const routine = byId.get(planRoutineId(day.weekday)) || null
++      const meals = mealPlan?.days?.[String(day.weekday)] || mealPlan?.days?.[day.weekday] || null
++      const snacks = Array.isArray(meals?.snacks) ? meals.snacks.map(mealOf).filter(Boolean) : []
++      return {
++        weekday: day.weekday,
++        weekday_name: day.name,
++        routine_id: routine?.id || planRoutineId(day.weekday),
++        workout: routine ? {
++          type: routine.planType || 'strength',
++          name: routine.name || '',
++          detail: routine.planDetail || routine.name || '',
++          minutes: Number(routine.planMinutes) || 0,
++        } : null,
++        meals: meals ? {
++          breakfast: mealOf(meals.breakfast),
++          lunch: mealOf(meals.lunch),
++          dinner: mealOf(meals.dinner),
++          snacks,
++        } : null,
++      }
++    }),
++  }
++}
++
++function linkWeek(week, weekday, id) {
++  const current = week[weekday]
++  const ids = [].concat(current || []).filter(item => item != null && item !== '').map(String)
++  if (ids.includes(id)) return
++  ids.push(id)
++  week[weekday] = ids.length === 1 ? id : ids
++}
++
++export function applyWeeklyPlan(state, input = {}, now = Date.now()) {
++  const next = JSON.parse(JSON.stringify(state && typeof state === 'object' ? state : {}))
++  if (!Array.isArray(next.routines)) next.routines = []
++  if (!next.week || typeof next.week !== 'object' || Array.isArray(next.week)) next.week = {}
++  const meal = next.mealPlan && typeof next.mealPlan === 'object' ? next.mealPlan : { protein: 125, fiber: 25, days: {} }
++  if (!meal.days || typeof meal.days !== 'object') meal.days = {}
++  const stamp = Math.max(Number(now) || 0, Number(meal._ts) || 0, Number(next._ts) || 0) + 1
++  if (input.protein_g != null) meal.protein = input.protein_g
++  if (input.fiber_g != null) meal.fiber = input.fiber_g
++  if (meal.protein == null) meal.protein = 125
++  if (meal.fiber == null) meal.fiber = 25
++  meal.updatedBy = 'livy'
++  meal._ts = stamp
++  for (const day of input.days || []) {
++    const weekday = weekdayOf(day)
++    const id = planRoutineId(weekday)
++    if (day.workout) {
++      const at = next.routines.findIndex(item => item?.id === id)
++      const prev = at >= 0 ? next.routines[at] : { id, ex: [] }
++      const type = day.workout.type || prev.planType || 'strength'
++      const name = day.workout.name != null ? String(day.workout.name).trim() : (prev.name || 'Workout')
++      const routine = {
++        ...prev,
++        id,
++        name: name || prev.name || 'Workout',
++        emoji: type === 'run' ? '🏃' : type === 'rest' ? '😴' : '💪',
++        ex: Array.isArray(prev.ex) ? prev.ex : [],
++        athleteLogPlan: true,
++        planType: type,
++        planDetail: day.workout.detail != null ? String(day.workout.detail).trim() : (prev.planDetail || name),
++        planMinutes: type === 'run' ? Number(day.workout.minutes ?? prev.planMinutes) || 0 : 0,
++        planSource: 'livy',
++        _ts: stamp,
++      }
++      if (at < 0) next.routines.push(routine)
++      else next.routines[at] = routine
++      linkWeek(next.week, weekday, id)
++    }
++    if (day.meals) {
++      const key = String(weekday)
++      const have = meal.days[key] && typeof meal.days[key] === 'object' ? meal.days[key] : {}
++      const meals = { ...have }
++      for (const slot of ['breakfast', 'lunch', 'dinner']) {
++        if (day.meals[slot]) meals[slot] = mealOf(day.meals[slot])
++      }
++      if (Array.isArray(day.meals.snacks)) meals.snacks = day.meals.snacks.map(mealOf)
++      else if (day.meals.snack) meals.snacks = [mealOf(day.meals.snack)]
++      meal.days[key] = meals
++    }
++  }
++  next.mealPlan = meal
++  next.edited = { ...(next.edited && typeof next.edited === 'object' ? next.edited : {}), mealPlan: stamp }
++  next._ts = stamp
++  return next
++}
++
++const mealSlot = z.object({
++  name: z.string().max(240).optional(),
++  protein: z.number().min(0).max(500).optional(),
++  optional: z.boolean().optional(),
++})
++
++const dayInput = z.object({
++  weekday: z.union([z.number().int().min(0).max(6), z.string().min(1).max(20)]).optional(),
++  weekday_name: z.string().min(1).max(20).optional(),
++  workout: z.object({
++    type: z.enum(['strength', 'run', 'rest']).optional(),
++    name: z.string().max(80).optional(),
++    detail: z.string().max(160).optional(),
++    minutes: z.number().min(0).max(600).optional(),
++  }).optional(),
++  meals: z.object({
++    breakfast: mealSlot.optional(),
++    lunch: mealSlot.optional(),
++    dinner: mealSlot.optional(),
++    snack: mealSlot.optional(),
++    snacks: z.array(mealSlot).max(6).optional(),
++  }).optional(),
++})
++
++export const getWeeklyPlan = {
++  name: 'get_weekly_plan',
++  description: 'Read the weekly training and meal plan. Workouts are the weekday routines whose ids are al-plan-<weekday> (Sunday is 0, the same key as the profile week). Meals are breakfast, lunch, dinner, and snacks, with a rough protein for each, plus the daily protein and fiber targets. updated_by is "livy" when the coach last wrote the plan.',
++  schema: {},
++  handler: () => {
++    const state = getState()
++    if (!state) return noState()
++    return view(state)
++  },
++}
++
++export const setWeeklyPlan = {
++  name: 'set_weekly_plan',
++  description: 'Write the weekly plan. Send only the days and targets that change. Workouts are stored as the weekday plan routines (other routines already on that day stay). Meals are stored on mealPlan. The write is marked updated by Livy. It does not delete workouts, food, or routines it was not given.',
++  schema: {
++    protein_g: z.number().min(0).max(500).optional().describe('Daily protein target in grams.'),
++    fiber_g: z.number().min(0).max(200).optional().describe('Daily fiber target in grams.'),
++    days: z.array(dayInput).max(7).optional().describe('Days to change. weekday is 0–6 (Sunday is 0) or a name such as Monday.'),
++  },
++  handler: (input = {}) => {
++    const state = getState()
++    if (!state) return noState()
++    const next = applyWeeklyPlan(state, input, Date.now())
++    saveState(next)
++    return { ok: true, updated_by: 'livy', ...view(next) }
++  },
++}
+diff --git a/mcp/test/weekly-plan-disk.test.js b/mcp/test/weekly-plan-disk.test.js
+new file mode 100644
+index 0000000..b318348
+--- /dev/null
++++ b/mcp/test/weekly-plan-disk.test.js
+@@ -0,0 +1,37 @@
++import { test, expect, afterAll, vi } from 'vitest'
++import fs from 'node:fs'
++import os from 'node:os'
++import path from 'node:path'
++
++const dirs = []
++afterAll(() => { dirs.forEach(dir => fs.rmSync(dir, { recursive: true, force: true })) })
++
++test('set_weekly_plan writes the profile file the api server reads', async () => {
++  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-plan-'))
++  dirs.push(dir)
++  fs.writeFileSync(path.join(dir, 'db.json'), JSON.stringify({
++    users: [{ id: 'lux', name: 'Lux', created: '2026-01-01' }], creds: [], subs: [], invites: [],
++  }))
++  fs.writeFileSync(path.join(dir, 'state-lux.json'), JSON.stringify({
++    routines: [{ id: 'push', name: 'Push', ex: [] }],
++    week: { 1: 'push' },
++    workouts: [{ id: 'logged' }],
++  }))
++  vi.resetModules()
++  vi.stubEnv('OPENGYM_DATA', dir)
++  vi.stubEnv('OPENGYM_UID', 'lux')
++  const { setWeeklyPlan } = await import('../src/weekly-plan.js')
++  const written = setWeeklyPlan.handler({
++    protein_g: 125,
++    fiber_g: 25,
++    days: [{ weekday_name: 'Sunday', workout: { type: 'rest', name: 'Rest', detail: 'Rest' } }],
++  })
++  expect(written.updated_by).toBe('livy')
++  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'state-lux.json'), 'utf8'))
++  expect(saved.mealPlan.protein).toBe(125)
++  expect(saved.mealPlan.updatedBy).toBe('livy')
++  expect(saved.routines.map(item => item.id)).toEqual(expect.arrayContaining(['push', 'al-plan-0']))
++  expect([].concat(saved.week[0] ?? saved.week['0'])).toEqual(expect.arrayContaining(['al-plan-0']))
++  expect(saved.workouts.map(item => item.id)).toEqual(['logged'])
++  vi.unstubAllEnvs()
++})
+diff --git a/mcp/test/weekly-plan.test.js b/mcp/test/weekly-plan.test.js
+new file mode 100644
+index 0000000..02a9ba4
+--- /dev/null
++++ b/mcp/test/weekly-plan.test.js
+@@ -0,0 +1,73 @@
++import { describe, test, expect, beforeEach } from 'vitest'
++import { _seedStateForTests, getState } from '../src/state.js'
++import { getWeeklyPlan, setWeeklyPlan, planRoutineId } from '../src/weekly-plan.js'
++
++const base = () => ({
++  unit: 'kg',
++  routines: [{ id: 'push', name: 'Push', ex: [{ id: 'bench' }] }],
++  week: { 1: 'push' },
++  workouts: [{ id: 'w1', d: '2026-10-10' }],
++  foodEntries: [{ id: 'f1', name: 'oats' }],
++})
++
++beforeEach(() => { _seedStateForTests(base()) })
++
++describe('weekly plan tools', () => {
++  test('an empty profile has no meals and does not invent workouts', () => {
++    const plan = getWeeklyPlan.handler()
++    expect(plan.protein_g).toBeNull()
++    expect(plan.days.find(day => day.weekday_name === 'Monday').workout).toBeNull()
++    expect(plan.updated_by).toBeNull()
++  })
++
++  test('a coach write sets Monday meals and marks the plan updated by Livy', () => {
++    const written = setWeeklyPlan.handler({
++      protein_g: 125,
++      fiber_g: 25,
++      days: [{
++        weekday_name: 'Monday',
++        workout: { type: 'strength', name: 'Upper strength', detail: 'Upper' },
++        meals: {
++          breakfast: { name: 'Greek yogurt (double) + blueberries + raspberries + overnight oats + chia', protein: 45 },
++          lunch: { name: 'Chicken + rice/quinoa + peas + a tea egg', protein: 50 },
++          snack: { name: 'Protein shake', protein: 30 },
++          dinner: { name: 'Optional', protein: 0, optional: true },
++        },
++      }, {
++        weekday: 'Tuesday',
++        workout: { type: 'run', name: 'Slow run', detail: 'Slow run 30 min', minutes: 30 },
++      }],
++    })
++    expect(written.ok).toBe(true)
++    expect(written.updated_by).toBe('livy')
++    const monday = written.days.find(day => day.weekday === 1)
++    expect(monday.workout.name).toBe('Upper strength')
++    expect(monday.meals.breakfast.protein).toBe(45)
++    expect(monday.meals.snacks[0].name).toBe('Protein shake')
++    expect(monday.meals.dinner.optional).toBe(true)
++    expect(monday.routine_id).toBe(planRoutineId(1))
++    const tuesday = getWeeklyPlan.handler().days.find(day => day.weekday_name === 'Tuesday')
++    expect(tuesday.workout.minutes).toBe(30)
++    expect(getWeeklyPlan.handler().protein_g).toBe(125)
++    expect(getWeeklyPlan.handler().fiber_g).toBe(25)
++  })
++
++  test('the stored profile keeps food, workouts, and the other Monday routine', () => {
++    setWeeklyPlan.handler({
++      days: [{ weekday: 1, workout: { type: 'strength', name: 'Upper strength', detail: 'Upper' } }],
++    })
++    const state = getState()
++    expect(state.routines.map(item => item.id)).toEqual(expect.arrayContaining(['push', planRoutineId(1)]))
++    expect([].concat(state.week[1])).toEqual(expect.arrayContaining(['push', planRoutineId(1)]))
++    expect(state.workouts.map(item => item.id)).toEqual(['w1'])
++    expect(state.foodEntries.map(item => item.id)).toEqual(['f1'])
++    expect(state.mealPlan.updatedBy).toBe('livy')
++    expect(state.routines.find(item => item.id === 'push').ex).toEqual([{ id: 'bench' }])
++  })
++
++  test('a weekday it cannot read is rejected and the profile stays as it was', () => {
++    expect(() => setWeeklyPlan.handler({ days: [{ weekday: 'Funday', workout: { name: 'Nope' } }] })).toThrow(/weekday/)
++    expect(getState().routines.map(item => item.id)).toEqual(['push'])
++    expect(getState().mealPlan).toBeUndefined()
++  })
++})
