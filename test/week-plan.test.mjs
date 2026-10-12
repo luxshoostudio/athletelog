@@ -236,8 +236,30 @@ test('an existing install uses the synced week for header goals when the goals k
     plan: { protein: 125, fiber: 25, editedAt: 0, days: { mon: { workout: { routineId: 'lux-upper' } } } },
   }), { protein: 125, fiber: 25 })
   assert.deepEqual(headerGoals({ stored: { protein: 125, fiber: 25 }, plan: null }), { protein: 125, fiber: 25 })
-  assert.deepEqual(headerGoals({ stored: null, plan: defaultPlan() }), { protein: 140, fiber: 30 })
+  const monday = new Date('2026-10-12T12:00:00')
+  const seeded = defaultPlan()
+  const card = todayCard(seeded, monday, [], {})
+  assert.deepEqual(headerGoals({ stored: null, plan: seeded, date: monday }), {
+    protein: card.proteinPlanned,
+    fiber: card.fiberTarget,
+  })
   assert.deepEqual(headerGoals({}), { protein: 140, fiber: 30 })
+})
+
+test('the header uses the plan card targets, not a stored 140/30 fallback', () => {
+  const monday = new Date('2026-10-12T12:00:00')
+  const plan = defaultPlan()
+  assert.equal(plan.editedAt, 0)
+  assert.equal(plan.days.mon.workout.routineId, undefined)
+  const card = todayCard(plan, monday, [{ p: 103 }], {})
+  assert.equal(card.proteinLogged, 103)
+  assert.equal(card.proteinPlanned, 125)
+  assert.equal(card.fiberTarget, 25)
+  const goals = headerGoals({ stored: { protein: 140, fiber: 30 }, plan, date: monday })
+  assert.equal(goals.protein, card.proteinPlanned)
+  assert.equal(goals.fiber, card.fiberTarget)
+  assert.deepEqual(goals, { protein: 125, fiber: 25 })
+  assert.deepEqual(headerGoals({ stored: { protein: 140, fiber: 30 }, plan: null }), { protein: 140, fiber: 30 })
 })
 
 test('an empty Monday preloads lux-upper from the Upper template and does not replace a logged session', () => {

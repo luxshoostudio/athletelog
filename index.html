@@ -1431,14 +1431,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
         </div>
 
-        <div class="card" id="today-plan-card">
-          <div class="card-header">
-            <span class="card-title">Today at a glance</span>
-            <span class="plan-livy-note" id="today-plan-note" hidden>Updated by Livy</span>
-          </div>
-          <div class="card-body" id="today-plan-body"></div>
-        </div>
-
         <!-- Today's food entries (inline) -->
         <div class="section-label">Today</div>
         <div id="home-today-food"></div>
@@ -2693,12 +2685,23 @@ function formatMacro(value) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function planCarriesNutritionGoals(plan) {
-  if (!plan || !(Number(plan.protein) > 0) || !(Number(plan.fiber) > 0)) return false;
-  if (plan.fromWeek === true || plan.holdMeals === true || plan.updatedBy) return true;
-  if (Number(plan.editedAt) > 0) return true;
-  const days = plan.days && typeof plan.days === 'object' ? Object.values(plan.days) : [];
-  return days.some(day => day?.workout?.routineId);
+// Same numbers as the plan card: today's meal protein, then the plan's fiber.
+// Computed here first so a cached week-plan module that still returns the
+// 140/30 fallback cannot cover a plan whose meals already total 125/25.
+function targetsFromPlan(plan, date = new Date()) {
+  if (!plan || typeof plan !== 'object') return null;
+  const keys = ['sun','mon','tue','wed','thu','fri','sat'];
+  const meals = plan.days?.[keys[date.getDay()]]?.meals || {};
+  const planned = ['breakfast','lunch','dinner','snack'].reduce((sum, slot) => sum + (Number(meals[slot]?.protein) || 0), 0);
+  const protein = planned > 0 ? planned : Number(plan.protein);
+  const fiber = Number(plan.fiber);
+  if (protein > 0 && fiber > 0) return { protein, fiber };
+  const api = window.AthleteLogPlan;
+  if (api?.headerGoals) {
+    const next = api.headerGoals({ plan, date });
+    if (Number(next?.protein) > 0 && Number(next?.fiber) > 0) return next;
+  }
+  return null;
 }
 
 function loadSyncedGoals() {
@@ -2706,14 +2709,11 @@ function loadSyncedGoals() {
   let plan = null;
   try { stored = JSON.parse(localStorage.getItem(SYNCED_GOALS_KEY) || 'null'); } catch {}
   try { plan = JSON.parse(localStorage.getItem('alog_week_plan') || 'null'); } catch {}
-  const api = window.AthleteLogPlan;
-  const next = api?.headerGoals
-    ? api.headerGoals({ stored, plan })
-    : (stored && Number(stored.protein) > 0 && Number(stored.fiber) > 0
-        ? { protein: Number(stored.protein), fiber: Number(stored.fiber) }
-        : planCarriesNutritionGoals(plan)
-          ? { protein: Number(plan.protein), fiber: Number(plan.fiber) }
-          : { protein: 140, fiber: 30 });
+  const fromPlan = targetsFromPlan(plan);
+  const next = fromPlan
+    || (stored && Number(stored.protein) > 0 && Number(stored.fiber) > 0
+      ? { protein: Number(stored.protein), fiber: Number(stored.fiber) }
+      : { protein: 140, fiber: 30 });
   GOALS.protein = next.protein;
   GOALS.fiber = next.fiber;
 }
@@ -2742,6 +2742,18 @@ function loadFavourites() {
   } catch { return []; }
 }
 
+function collectFoodHistory() {
+  const days = {};
+  for (const key of Object.keys(localStorage)) {
+    if (!/^alog_\d{4}_\d{2}_\d{2}$/.test(key)) continue;
+    try {
+      const day = JSON.parse(localStorage.getItem(key) || 'null');
+      if (day && Array.isArray(day.food)) days[key] = day;
+    } catch {}
+  }
+  return { days };
+}
+
 function fallbackUsualBreakfastFavourite() {
   const items = JSON.parse(JSON.stringify(USUAL_BREAKFAST_FALLBACK.items));
   const totals = sumMacros(items);
@@ -2759,19 +2771,77 @@ function favouriteNeedsBreakfast(list) {
 
 // Missing and empty copies get the seven-item favourite. One that already
 // has its items is left alone.
+function isBreakfastName(name) {
+  return String(name || '').trim().toLocaleLowerCase() === 'usual breakfast';
+}
+
 function ensureFavourites() {
   const stored = loadFavourites();
+  const history = collectFoodHistory();
   const api = window.AthleteLogBreakfast;
   if (api?.favouritesForInstall) {
-    const result = api.favouritesForInstall(stored);
-    if (result.seeded) localStorage.setItem(FAVOURITES_KEY, JSON.stringify(result.favourites));
-    return result.favourites;
+    const result = api.favouritesForInstall(stored, history);
+    const onlySeed = result.favourites.length > 0 && result.favourites.every(item => isBreakfastName(item.name));
+    const storedOwn = stored.some(item => item?.name && !isBreakfastName(item.name));
+    const historyHasFood = Object.values(history.days).some(day =>
+      (day.food || []).some(food => food?.name && !isBreakfastName(food.name))
+    );
+    if (!(onlySeed && historyHasFood && !storedOwn)) {
+      if (result.seeded) localStorage.setItem(FAVOURITES_KEY, JSON.stringify(result.favourites));
+      return result.favourites;
+    }
   }
-  if (!favouriteNeedsBreakfast(stored)) return stored;
-  const rest = stored.filter(item => String(item?.name || '').trim().toLocaleLowerCase() !== 'usual breakfast');
-  const favourites = [fallbackUsualBreakfastFavourite(), ...rest];
-  localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
-  return favourites;
+  const own = stored.filter(item => item?.name && !isBreakfastName(item.name));
+  if (own.length) {
+    if (!favouriteNeedsBreakfast(stored)) return stored;
+    const next = [fallbackUsualBreakfastFavourite(), ...own];
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(next));
+    return next;
+  }
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
+  const pad = value => String(value).padStart(2, '0');
+  const dayStamp = date => `alog_${date.getFullYear()}_${pad(date.getMonth() + 1)}_${pad(date.getDate())}`;
+  const first = dayStamp(start);
+  const last = dayStamp(today);
+  const ranked = [];
+  const seen = new Set();
+  for (const [key, day] of Object.entries(history.days)) {
+    if (key < first || key > last) continue;
+    for (const food of day.food || []) {
+      const name = String(food?.name || '').trim();
+      if (!name || isBreakfastName(name) || food.source === 'Usual Breakfast') continue;
+      if (Array.isArray(food.components) && food.components.length) continue;
+      const dedupe = `${key}|${name.toLocaleLowerCase()}|${food.time || ''}|${roundMacro(food.kcal)}`;
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      ranked.push({ key, name, food });
+    }
+  }
+  ranked.sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  const counts = new Map();
+  for (const row of ranked) {
+    const id = row.name.toLocaleLowerCase();
+    const current = counts.get(id) || { name: row.name, count: 0, key: '', food: row.food };
+    current.count += 1;
+    if (row.key >= current.key) {
+      current.key = row.key;
+      current.name = row.name;
+      current.food = row.food;
+    }
+    counts.set(id, current);
+  }
+  const rebuilt = [...counts.values()]
+    .sort((a, b) => b.count - a.count || b.key.localeCompare(a.key) || a.name.localeCompare(b.name))
+    .slice(0, 16)
+    .map(item => ({
+      name: item.name,
+      p: roundMacro(item.food.p), kcal: roundMacro(item.food.kcal), fat: roundMacro(item.food.fat),
+      carbs: roundMacro(item.food.carbs), fiber: roundMacro(item.food.fiber),
+    }));
+  const next = [fallbackUsualBreakfastFavourite(), ...rebuilt];
+  localStorage.setItem(FAVOURITES_KEY, JSON.stringify(next));
+  return next;
 }
 
 function favouriteByName(name) {
@@ -3281,6 +3351,7 @@ function sumMacros(food) {
 // HEADER RENDERING
 // ═══════════════════════════════════════════════════════════════
 function renderHeader() {
+  loadSyncedGoals();
   const m = sumMacros(state.food);
   const pct = Math.min(1, m.p / GOALS.protein);
   const circ = 2 * Math.PI * 52;
@@ -3429,12 +3500,6 @@ function appendStarFoods(add) {
     if (!name || seen.has(id)) continue;
     seen.add(id);
     add(name);
-  }
-  for (const chip of quickFoods()) {
-    const id = chip.toLocaleLowerCase();
-    if (seen.has(id)) continue;
-    seen.add(id);
-    add(chip);
   }
 }
 
