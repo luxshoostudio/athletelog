@@ -2798,11 +2798,23 @@ function ensureFavourites() {
     localStorage.setItem(FAVOURITES_KEY, JSON.stringify(next));
     return next;
   }
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29);
+  const pad = value => String(value).padStart(2, '0');
+  const dayStamp = date => `alog_${date.getFullYear()}_${pad(date.getMonth() + 1)}_${pad(date.getDate())}`;
+  const first = dayStamp(start);
+  const last = dayStamp(today);
   const ranked = [];
+  const seen = new Set();
   for (const [key, day] of Object.entries(history.days)) {
+    if (key < first || key > last) continue;
     for (const food of day.food || []) {
       const name = String(food?.name || '').trim();
-      if (!name || isBreakfastName(name)) continue;
+      if (!name || isBreakfastName(name) || food.source === 'Usual Breakfast') continue;
+      if (Array.isArray(food.components) && food.components.length) continue;
+      const dedupe = `${key}|${name.toLocaleLowerCase()}|${food.time || ''}|${roundMacro(food.kcal)}`;
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
       ranked.push({ key, name, food });
     }
   }
@@ -2810,14 +2822,17 @@ function ensureFavourites() {
   const counts = new Map();
   for (const row of ranked) {
     const id = row.name.toLocaleLowerCase();
-    const current = counts.get(id) || { name: row.name, count: 0, food: row.food };
+    const current = counts.get(id) || { name: row.name, count: 0, key: '', food: row.food };
     current.count += 1;
-    current.name = row.name;
-    current.food = row.food;
+    if (row.key >= current.key) {
+      current.key = row.key;
+      current.name = row.name;
+      current.food = row.food;
+    }
     counts.set(id, current);
   }
   const rebuilt = [...counts.values()]
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .sort((a, b) => b.count - a.count || b.key.localeCompare(a.key) || a.name.localeCompare(b.name))
     .slice(0, 16)
     .map(item => ({
       name: item.name,

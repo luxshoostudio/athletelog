@@ -20,6 +20,7 @@ test('the header goal labels are rendered from GOALS and the Food tab has no gla
   assert.match(html, /id="plan-days"/)
   assert.match(html, /Today's workout/)
   assert.doesNotMatch(html, /Today's [Pp]lan/)
+  assert.match(html, /getDate\(\) - 29/)
   assert.match(html, /function targetsFromPlan/)
   assert.match(html, /const fromPlan = targetsFromPlan\(plan\)/)
   assert.match(html, /function applySyncedGoals/)
