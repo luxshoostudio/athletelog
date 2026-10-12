@@ -2,6 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   defaultPlan, normalizePlan, todayCard, mergePlan, planFromServer, planRoutineId, WEEKDAYS,
+  nutritionGoalsFromProfile, goalsFromStored, todayWorkoutPlan, applyTodayWorkout,
+  GOAL_PROTEIN_FALLBACK, GOAL_FIBER_FALLBACK,
 } from '../lib/week-plan.mjs'
 import { reconcile } from '../lib/next-sync.mjs'
 
@@ -200,4 +202,95 @@ test('reconcile adopts a Tuesday routine instead of writing al-plan beside it', 
   assert.deepEqual(result.state.routines.map(item => item.id), ['keep'])
   assert.equal(result.state.mealPlan, undefined)
   assert.equal(result.state.week[2], 'keep')
+})
+
+test('header goals prefer mealPlan, then nutritionTargets, and ignore calories', () => {
+  assert.deepEqual(
+    nutritionGoalsFromProfile({
+      mealPlan: { protein: 130, fiber: 28 },
+      nutritionTargets: { calories: 1300, protein: 125, fiber: 25 },
+    }),
+    { protein: 130, fiber: 28 },
+  )
+  assert.deepEqual(
+    nutritionGoalsFromProfile({ nutritionTargets: { calories: 1300, protein: 125, fiber: 25 } }),
+    { protein: 125, fiber: 25 },
+  )
+  assert.deepEqual(
+    nutritionGoalsFromProfile({ nutritionTargets: { calories: 1300 } }),
+    { protein: GOAL_PROTEIN_FALLBACK, fiber: GOAL_FIBER_FALLBACK },
+  )
+  assert.deepEqual(nutritionGoalsFromProfile({}), { protein: 140, fiber: 30 })
+  assert.equal(Object.hasOwn(nutritionGoalsFromProfile({ nutritionTargets: { calories: 1300, protein: 125, fiber: 25 } }), 'calories'), false)
+  assert.deepEqual(goalsFromStored({ protein: 125, fiber: 25 }), { protein: 125, fiber: 25 })
+  assert.deepEqual(goalsFromStored(null), { protein: 140, fiber: 30 })
+  assert.deepEqual(goalsFromStored({ protein: 125 }, { protein: 140, fiber: 30 }), { protein: 125, fiber: 30 })
+})
+
+test('an empty Monday preloads lux-upper from the Upper template and does not replace a logged session', () => {
+  const plan = mergePlan(luxProfile(), defaultPlan(), 1000).plan
+  assert.equal(plan.days.mon.workout.routineId, 'lux-upper')
+  assert.equal(plan.days.mon.workout.exercises, undefined)
+  const templates = [
+    { name: 'Upper', exercises: ['Bent over row', 'Dips'] },
+    { name: 'Running', exercises: [] },
+    { name: 'Lower Body', exercises: ['Squat'] },
+  ]
+  const monday = new Date('2026-10-12T12:00:00')
+  const planned = todayWorkoutPlan({ plan, date: monday, templates, canonicalName: 'Upper' })
+  assert.equal(planned.routineId, 'lux-upper')
+  assert.equal(planned.session, 'Upper')
+  assert.equal(planned.source, 'template')
+  assert.deepEqual(planned.exerciseNames, ['Bent over row', 'Dips'])
+
+  const logged = applyTodayWorkout({ session: 'Lower Body', exercises: [{ name: 'Squat', completed: true }] }, planned)
+  assert.equal(logged.applied, false)
+  assert.equal(logged.session, 'Lower Body')
+  assert.equal(logged.exercises[0].name, 'Squat')
+
+  const fresh = applyTodayWorkout({ session: '', exercises: [] }, planned)
+  assert.equal(fresh.applied, true)
+  assert.equal(fresh.session, 'Upper')
+  assert.equal(fresh.exercises.every(item => item.completed === false), true)
+  assert.equal(todayCard(plan, monday, [], { session: fresh.session, exercises: fresh.exercises }).workout.done, false)
+  assert.equal(todayCard(plan, monday, [], { session: 'Upper', exercises: [] }).workout.done, false)
+
+  const tuesday = todayWorkoutPlan({
+    plan,
+    date: new Date('2026-10-13T12:00:00'),
+    templates,
+    canonicalName: 'Running',
+  })
+  assert.equal(tuesday.session, 'Running')
+  assert.deepEqual(tuesday.exerciseNames, ['Slow run'])
+
+  const sunday = todayWorkoutPlan({ plan, date: new Date('2026-10-11T12:00:00'), templates, canonicalName: 'Resting' })
+  assert.equal(sunday.rest, true)
+  assert.equal(applyTodayWorkout({ session: '', exercises: [] }, sunday).applied, false)
+})
+
+test('named routine exercises are the fallback when no session template matches', () => {
+  const server = luxProfile()
+  server.routines.find(item => item.id === 'lux-upper').ex = [{ name: 'Bench press' }]
+  const adopted = mergePlan(server, defaultPlan(), 1000)
+  assert.deepEqual(adopted.plan.days.mon.workout.exercises, ['Bench press'])
+  const planned = todayWorkoutPlan({
+    plan: adopted.plan,
+    date: new Date('2026-10-12T12:00:00'),
+    templates: [],
+    canonicalName: 'Upper',
+  })
+  assert.equal(planned.source, 'routine')
+  assert.deepEqual(planned.exerciseNames, ['Bench press'])
+  const custom = defaultPlan()
+  custom.days.thu.workout = { type: 'strength', name: 'Easy spin', detail: 'Easy spin', minutes: 0, routineId: 'spin', exercises: ['Bike'] }
+  const thursday = todayWorkoutPlan({
+    plan: custom,
+    date: new Date('2026-10-15T12:00:00'),
+    templates: [{ name: 'Other', exercises: [] }],
+    canonicalName: 'Other',
+  })
+  assert.equal(thursday.session, 'Easy spin')
+  assert.equal(thursday.source, 'routine')
+  assert.deepEqual(thursday.exerciseNames, ['Bike'])
 })

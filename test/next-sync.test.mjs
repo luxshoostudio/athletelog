@@ -171,7 +171,7 @@ describe('server url', () => {
 })
 
 describe('sync controller', () => {
-  function harness(fetchImpl) {
+  function harness(fetchImpl, onGoalsApplied = () => {}) {
     const saved = new Map()
     const days = structuredClone(day)
     const calls = []
@@ -197,6 +197,7 @@ describe('sync controller', () => {
       getDays: () => days,
       setDay: (key, value) => { days[key] = value },
       onDaysApplied: () => { applied += 1 },
+      onGoalsApplied,
       uid: (() => { let n = 0; return () => `id${++n}` })(),
     })
     return { ctl, saved, days, calls, timers, applied: () => applied }
@@ -261,6 +262,38 @@ describe('sync controller', () => {
     assert.equal(calls.some(call => call.options?.method === 'PUT'), true)
     assert.equal(ctl.status().state, 'synced')
     assert.equal(saved.get('alog_next_owed'), undefined)
+  })
+
+  it('stores protein and fiber from the server profile after a sync and leaves calories alone', async () => {
+    const seen = []
+    const { ctl, saved } = harness(async (url, options) => {
+      if (url.endsWith('/api/me')) return json({ user: { name: 'Lux' } })
+      if (url.endsWith('/api/data/rev')) return json({ rev: 4, wid: 'w' })
+      if (!options?.method || options.method === 'GET') {
+        return json({
+          state: {
+            foodEntries: [],
+            workouts: [],
+            routines: [],
+            nutritionTargets: { calories: 1300, protein: 125, fiber: 25 },
+          },
+          rev: 4,
+          wid: 'w',
+        })
+      }
+      const body = JSON.parse(options.body)
+      assert.equal(body.state.nutritionTargets.calories, 1300)
+      assert.equal(body.state.nutritionTargets.protein, 125)
+      return json({ rev: 5, wid: 'w2' })
+    }, goals => seen.push(goals))
+    saved.set('alog_next_enabled', '1')
+    saved.set('alog_next_token', 'tok')
+    await ctl.start()
+    assert.equal(seen.length, 1)
+    assert.deepEqual(seen[0], { protein: 125, fiber: 25 })
+    const stored = JSON.parse(saved.get('alog_synced_goals'))
+    assert.deepEqual(stored, { protein: 125, fiber: 25 })
+    assert.equal(stored.calories, undefined)
   })
 
   it('stays off until the toggle is on and does not call the server', async () => {
