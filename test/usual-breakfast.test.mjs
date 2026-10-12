@@ -7,6 +7,7 @@ import {
   isBreakfastBundle,
   learnUsualBreakfast,
   makeEntry,
+  recipeForInstall,
   seedUsualBreakfast,
   sumMacros,
 } from '../lib/usual-breakfast.mjs'
@@ -47,6 +48,32 @@ test('the saved breakfast is the fixed recipe and totals about 30 g / 470 kcal /
   assert.equal(totals.fat, 8.7)
   assert.equal(totals.carbs, 71)
   assert.equal(totals.fiber, 17.7)
+})
+
+test('an existing install with no recipe, or an empty one, gets the seven-item seed', () => {
+  const priorDays = {
+    alog_2026_10_11: { food: [{ name: 'Banana', p: 1, kcal: 90 }] },
+  }
+  assert.equal(Object.hasOwn(priorDays, 'alog_usual_breakfast'), false)
+  const missing = recipeForInstall(null)
+  assert.equal(missing.seeded, true)
+  assert.equal(missing.recipe.items.length, 7)
+  assert.equal(missing.recipe.items[0].name, 'Blueberries')
+
+  const empty = recipeForInstall({ name: 'Usual Breakfast', items: [] })
+  assert.equal(empty.seeded, true)
+  assert.equal(empty.recipe.items.length, 7)
+
+  const blank = recipeForInstall({})
+  assert.equal(blank.seeded, true)
+
+  const kept = recipeForInstall(seedUsualBreakfast())
+  assert.equal(kept.seeded, false)
+  assert.equal(kept.recipe.items.length, 7)
+
+  const clearedOnPurpose = recipeForInstall({ items: [], customized: true })
+  assert.equal(clearedOnPurpose.seeded, false)
+  assert.deepEqual(clearedOnPurpose.recipe.items, [])
 })
 
 test('add uses the saved recipe when it is present and learned mornings otherwise', () => {

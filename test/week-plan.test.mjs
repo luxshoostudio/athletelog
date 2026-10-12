@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   defaultPlan, normalizePlan, todayCard, mergePlan, planFromServer, planRoutineId, WEEKDAYS,
-  nutritionGoalsFromProfile, goalsFromStored, todayWorkoutPlan, applyTodayWorkout,
+  nutritionGoalsFromProfile, goalsFromStored, headerGoals, todayWorkoutPlan, applyTodayWorkout,
   GOAL_PROTEIN_FALLBACK, GOAL_FIBER_FALLBACK,
 } from '../lib/week-plan.mjs'
 import { reconcile } from '../lib/next-sync.mjs'
@@ -225,6 +225,19 @@ test('header goals prefer mealPlan, then nutritionTargets, and ignore calories',
   assert.deepEqual(goalsFromStored({ protein: 125, fiber: 25 }), { protein: 125, fiber: 25 })
   assert.deepEqual(goalsFromStored(null), { protein: 140, fiber: 30 })
   assert.deepEqual(goalsFromStored({ protein: 125 }, { protein: 140, fiber: 30 }), { protein: 125, fiber: 30 })
+})
+
+test('an existing install uses the synced week for header goals when the goals key is missing', () => {
+  const synced = mergePlan(luxProfile(), defaultPlan(), 1000).plan
+  assert.equal(synced.days.mon.workout.routineId, 'lux-upper')
+  assert.deepEqual(headerGoals({ stored: null, plan: synced }), { protein: 125, fiber: 25 })
+  assert.deepEqual(headerGoals({
+    stored: null,
+    plan: { protein: 125, fiber: 25, editedAt: 0, days: { mon: { workout: { routineId: 'lux-upper' } } } },
+  }), { protein: 125, fiber: 25 })
+  assert.deepEqual(headerGoals({ stored: { protein: 125, fiber: 25 }, plan: null }), { protein: 125, fiber: 25 })
+  assert.deepEqual(headerGoals({ stored: null, plan: defaultPlan() }), { protein: 140, fiber: 30 })
+  assert.deepEqual(headerGoals({}), { protein: 140, fiber: 30 })
 })
 
 test('an empty Monday preloads lux-upper from the Upper template and does not replace a logged session', () => {

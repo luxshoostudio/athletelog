@@ -468,6 +468,13 @@ body {
   transition: background .15s, color .15s;
 }
 .outline-btn:active { background: rgba(255,255,255,0.90); color: var(--text); }
+.usual-breakfast-row { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+.usual-breakfast-row .add-btn { flex: 1; min-height: 44px; }
+.usual-breakfast-edit {
+  background: none; border: 0; color: var(--muted); font-family: var(--font);
+  font-size: 13px; font-weight: 600; padding: 8px 2px; cursor: pointer; flex-shrink: 0;
+}
+.usual-breakfast-edit:active { color: var(--text); }
 
 /* FEELING BADGE */
 .feeling-badge {
@@ -1425,7 +1432,10 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food or describe a meal…" autocomplete="off" style="flex:1;">
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">Add</button>
         </div>
-        <button type="button" class="outline-btn" id="edit-usual-breakfast" onclick="openUsualBreakfastEditor()" style="width:100%;margin:0 0 12px;">Edit usual breakfast</button>
+        <div class="usual-breakfast-row">
+          <button type="button" class="add-btn" id="add-usual-breakfast" onclick="addUsualBreakfast(true)">Usual Breakfast</button>
+          <button type="button" class="usual-breakfast-edit" id="edit-usual-breakfast" onclick="openUsualBreakfastEditor()">Edit recipe</button>
+        </div>
 
         <!-- Action pills -->
         <div class="today-action-row">
@@ -2683,6 +2693,21 @@ function quickFoods(limit = 18) {
 }
 
 const USUAL_BREAKFAST_VALUE = '__usual_breakfast__';
+// Same seven items as lib/usual-breakfast.mjs. Kept here so an installed
+// phone can seed the recipe even when the service worker is still serving
+// an older boot script that never imported that module.
+const USUAL_BREAKFAST_FALLBACK = {
+  name: 'Usual Breakfast',
+  items: [
+    { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
+    { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
+    { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
+    { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
+    { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
+    { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
+    { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
+  ],
+};
 
 function roundMacro(value) {
   const api = window.AthleteLogBreakfast;
@@ -2699,16 +2724,27 @@ function formatMacro(value) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+function planCarriesNutritionGoals(plan) {
+  if (!plan || !(Number(plan.protein) > 0) || !(Number(plan.fiber) > 0)) return false;
+  if (plan.fromWeek === true || plan.holdMeals === true || plan.updatedBy) return true;
+  if (Number(plan.editedAt) > 0) return true;
+  const days = plan.days && typeof plan.days === 'object' ? Object.values(plan.days) : [];
+  return days.some(day => day?.workout?.routineId);
+}
+
 function loadSyncedGoals() {
-  let raw = null;
-  try { raw = JSON.parse(localStorage.getItem(SYNCED_GOALS_KEY) || 'null'); } catch {}
+  let stored = null;
+  let plan = null;
+  try { stored = JSON.parse(localStorage.getItem(SYNCED_GOALS_KEY) || 'null'); } catch {}
+  try { plan = JSON.parse(localStorage.getItem('alog_week_plan') || 'null'); } catch {}
   const api = window.AthleteLogPlan;
-  const next = api?.goalsFromStored
-    ? api.goalsFromStored(raw, GOALS)
-    : {
-        protein: Number(raw?.protein) > 0 ? Number(raw.protein) : GOALS.protein,
-        fiber: Number(raw?.fiber) > 0 ? Number(raw.fiber) : GOALS.fiber,
-      };
+  const next = api?.headerGoals
+    ? api.headerGoals({ stored, plan })
+    : (stored && Number(stored.protein) > 0 && Number(stored.fiber) > 0
+        ? { protein: Number(stored.protein), fiber: Number(stored.fiber) }
+        : planCarriesNutritionGoals(plan)
+          ? { protein: Number(plan.protein), fiber: Number(plan.fiber) }
+          : { protein: 140, fiber: 30 });
   GOALS.protein = next.protein;
   GOALS.fiber = next.fiber;
 }
@@ -2733,6 +2769,29 @@ function applySyncedGoals(goals) {
 function loadUsualBreakfastRaw() {
   try { return JSON.parse(localStorage.getItem(USUAL_BREAKFAST_KEY) || 'null'); }
   catch { return null; }
+}
+
+function usualBreakfastSeed() {
+  const api = window.AthleteLogBreakfast;
+  if (api?.seedUsualBreakfast) return api.seedUsualBreakfast();
+  return JSON.parse(JSON.stringify(USUAL_BREAKFAST_FALLBACK));
+}
+
+// Missing and empty recipes get the seven-item seed. A recipe saved from the
+// editor is marked customized and is not replaced, even when it has no rows.
+function ensureUsualBreakfast() {
+  const stored = loadUsualBreakfastRaw();
+  const api = window.AthleteLogBreakfast;
+  if (api?.recipeForInstall) {
+    const result = api.recipeForInstall(stored);
+    if (result.seeded) localStorage.setItem(USUAL_BREAKFAST_KEY, JSON.stringify(result.recipe));
+    return result.recipe;
+  }
+  const items = Array.isArray(stored?.items) ? stored.items.filter(item => String(item?.name || '').trim()) : [];
+  if (items.length || stored?.customized === true) return stored;
+  const recipe = usualBreakfastSeed();
+  localStorage.setItem(USUAL_BREAKFAST_KEY, JSON.stringify(recipe));
+  return recipe;
 }
 
 // Learn the bundle from the most recent three weeks of morning logs. Rows
@@ -4011,12 +4070,11 @@ function breakfastTotalsText(recipe) {
 }
 
 function openUsualBreakfastEditor() {
+  const saved = ensureUsualBreakfast();
   const api = window.AthleteLogBreakfast;
-  const saved = loadUsualBreakfastRaw();
-  const seed = api?.seedUsualBreakfast ? api.seedUsualBreakfast() : { name:'Usual Breakfast', items:[] };
   window._breakfastDraft = api?.normalizeUsualBreakfast
-    ? api.normalizeUsualBreakfast(saved?.items?.length ? saved : seed)
-    : JSON.parse(JSON.stringify(saved?.items?.length ? saved : seed));
+    ? api.normalizeUsualBreakfast(saved)
+    : JSON.parse(JSON.stringify(saved || usualBreakfastSeed()));
   renderUsualBreakfastEditor();
   document.getElementById('breakfast-modal').classList.add('open');
 }
@@ -4067,18 +4125,16 @@ function removeBreakfastItem(index) {
 }
 
 function resetUsualBreakfastDraft() {
-  const api = window.AthleteLogBreakfast;
-  window._breakfastDraft = api?.seedUsualBreakfast
-    ? api.seedUsualBreakfast()
-    : { name:'Usual Breakfast', items:[] };
+  window._breakfastDraft = usualBreakfastSeed();
   renderUsualBreakfastEditor();
 }
 
 function saveUsualBreakfastDraft() {
   const api = window.AthleteLogBreakfast;
+  const draft = { ...(window._breakfastDraft || {}), customized: true };
   const next = api?.normalizeUsualBreakfast
-    ? api.normalizeUsualBreakfast(window._breakfastDraft)
-    : window._breakfastDraft;
+    ? api.normalizeUsualBreakfast(draft)
+    : draft;
   localStorage.setItem(USUAL_BREAKFAST_KEY, JSON.stringify(next));
   closeUsualBreakfastEditor();
   renderDayList();
@@ -8147,6 +8203,7 @@ function migrateKnownPeriodSeptember2026() {
 
 function init() {
   loadSyncedGoals();
+  ensureUsualBreakfast();
   migrateWeightsToLbs();
   migrateRunUnitsToMiles();
   migrateTimedExercisesToMinutes();
@@ -8176,11 +8233,25 @@ function init() {
   }
 }
 
+function refreshFromLibs() {
+  loadSyncedGoals();
+  ensureUsualBreakfast();
+  renderHeader();
+  renderDayList();
+  renderTodayPlan();
+}
+
+// Do not wait for the module event. An installed phone can keep the previous
+// boot script in the service worker cache, and that copy never sets
+// AthleteLogBreakfast or dispatches athletelog-libs. Waiting left the date
+// as "Today", the goal labels blank, and the breakfast recipe unseeded.
 function startApp() {
-  if (!window.AthleteLogPlan || !window.AthleteLogBreakfast) return;
-  if (window.__alogAppStarted) return;
-  window.__alogAppStarted = true;
-  init();
+  if (!window.__alogAppStarted) {
+    window.__alogAppStarted = true;
+    init();
+    return;
+  }
+  refreshFromLibs();
 }
 window.addEventListener('athletelog-libs', startApp);
 startApp();
