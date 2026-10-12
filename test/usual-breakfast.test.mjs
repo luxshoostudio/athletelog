@@ -7,9 +7,11 @@ import {
   isBreakfastBundle,
   learnUsualBreakfast,
   makeEntry,
+  favouritesForInstall,
   recipeForInstall,
   seedUsualBreakfast,
   sumMacros,
+  usualBreakfastFavourite,
 } from '../lib/usual-breakfast.mjs'
 
 test('the saved breakfast is the fixed recipe and totals about 30 g / 470 kcal / 18 g fiber', () => {
@@ -48,6 +50,38 @@ test('the saved breakfast is the fixed recipe and totals about 30 g / 470 kcal /
   assert.equal(totals.fat, 8.7)
   assert.equal(totals.carbs, 71)
   assert.equal(totals.fiber, 17.7)
+})
+
+test('an existing install gets Usual Breakfast in favourites when it is missing', () => {
+  const favourite = usualBreakfastFavourite()
+  assert.equal(favourite.name, 'Usual Breakfast')
+  assert.deepEqual(favourite.components.map(item => item.name), [
+    'Blueberries', 'Raspberries', 'Strawberries', 'Kodiak Protein oats',
+    'Chia seeds', "Trader Joe's Greek yogurt", '2% milk',
+  ])
+  assert.equal(favourite.p, 30.2)
+  assert.equal(favourite.kcal, 470)
+  assert.equal(favourite.fat, 8.7)
+  assert.equal(favourite.carbs, 71)
+  assert.equal(favourite.fiber, 17.7)
+
+  const missing = favouritesForInstall(null)
+  assert.equal(missing.seeded, true)
+  assert.equal(missing.favourites[0].name, 'Usual Breakfast')
+  assert.equal(missing.favourites[0].components.length, 7)
+
+  const beside = favouritesForInstall([{ name: 'Protein Shake', p: 30, kcal: 160 }])
+  assert.equal(beside.seeded, true)
+  assert.deepEqual(beside.favourites.map(item => item.name), ['Usual Breakfast', 'Protein Shake'])
+
+  const empty = favouritesForInstall([{ name: 'Usual Breakfast', components: [] }])
+  assert.equal(empty.seeded, true)
+  assert.equal(empty.favourites.length, 1)
+  assert.equal(empty.favourites[0].components.length, 7)
+
+  const kept = favouritesForInstall([favourite])
+  assert.equal(kept.seeded, false)
+  assert.equal(kept.favourites.length, 1)
 })
 
 test('an existing install with no recipe, or an empty one, gets the seven-item seed', () => {
