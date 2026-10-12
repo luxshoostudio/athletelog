@@ -47,24 +47,76 @@ test('today\'s card compares planned protein with what was logged and matches th
   assert.equal(sunday.workout.done, true)
 })
 
-test('a Livy write replaces the local plan and keeps routines v1 does not own', () => {
-  const local = defaultPlan()
-  const server = {
-    routines: [{ id: 'push', name: 'Push', ex: [{ id: 'bench' }] }],
-    week: { 1: 'push' },
-    mealPlan: {
-      _ts: 5000,
-      updatedBy: 'livy',
-      protein: 130,
-      fiber: 30,
-      days: { 1: { breakfast: { name: 'Eggs', protein: 24 }, snacks: [{ name: 'Shake', protein: 30 }] } },
+function luxProfile() {
+  return {
+    foodEntries: [],
+    workouts: [],
+    routines: [
+      { id: 'lux-upper', name: 'Upper', ex: [{ id: 'bench' }] },
+      { id: 'lux-slow-run', name: 'Slow run', ex: [{ id: 'easy', min: 30, sets: 4 }] },
+      { id: 'lux-lower', name: 'Lower Body', ex: [{ id: 'squat' }] },
+      { id: 'lux-tempo-run', name: 'Tempo', ex: [] },
+      { id: 'lux-shoulder-arm', name: 'Shoulder & Arm', ex: [{ id: 'raise' }] },
+      { id: 'lux-long-run', name: 'Long run', ex: [{ id: 'long', sets: 1 }] },
+      { id: planRoutineId(1), name: 'Stray', ex: [], athleteLogPlan: true, planType: 'strength', planDetail: 'Ignore me' },
+    ],
+    week: {
+      1: ['lux-upper', planRoutineId(1)],
+      2: 'lux-slow-run',
+      3: 'lux-lower',
+      4: 'lux-tempo-run',
+      5: 'lux-shoulder-arm',
+      6: 'lux-long-run',
     },
-    routinesExtra: true,
+    nutritionTargets: { calories: 1300, protein: 125, fiber: 25 },
   }
-  server.routines.push({
-    id: planRoutineId(1), name: 'Upper strength', emoji: '💪', ex: [], athleteLogPlan: true,
-    planType: 'strength', planDetail: 'Upper, add a row', planMinutes: 0, planSource: 'livy', _ts: 5000,
-  })
+}
+
+test('the first sync adopts Lux\'s week and does not seed al-plan routines', () => {
+  const server = luxProfile()
+  const merged = mergePlan(server, defaultPlan(), 1000)
+  assert.equal(merged.needsPush, false)
+  assert.equal(merged.pulled, true)
+  assert.equal(merged.plan.editedAt, 0)
+  assert.equal(merged.plan.holdMeals, true)
+  assert.equal(merged.plan.protein, 125)
+  assert.equal(merged.plan.fiber, 25)
+  assert.equal(merged.plan.days.mon.workout.routineId, 'lux-upper')
+  assert.equal(merged.plan.days.mon.workout.name, 'Upper')
+  assert.equal(merged.plan.days.mon.workout.type, 'strength')
+  assert.equal(merged.plan.days.tue.workout.minutes, 30)
+  assert.equal(merged.plan.days.thu.workout.minutes, 30)
+  assert.equal(merged.plan.days.sat.workout.minutes, 60)
+  assert.equal(merged.plan.days.sun.workout.type, 'rest')
+  assert.equal(merged.plan.days.sun.workout.routineId, undefined)
+  assert.match(merged.plan.days.mon.meals.breakfast.name, /Greek yogurt/)
+  assert.equal(merged.state.mealPlan, undefined)
+  assert.deepEqual(merged.state.routines.map(item => item.id), server.routines.map(item => item.id))
+  assert.deepEqual(merged.state.week, server.week)
+  assert.equal(merged.state.nutritionTargets.calories, 1300)
+  const again = mergePlan(merged.state, merged.plan, 2000)
+  assert.equal(again.needsPush, false)
+  assert.equal(again.state.mealPlan, undefined)
+  assert.ok(!again.state.routines.some(item => item.id === planRoutineId(2)))
+})
+
+test('a newer Livy write on the existing routine replaces the local plan', () => {
+  const local = defaultPlan()
+  local.editedAt = 1000
+  const server = luxProfile()
+  const upper = server.routines.find(item => item.id === 'lux-upper')
+  upper.name = 'Upper strength'
+  upper.planType = 'strength'
+  upper.planDetail = 'Upper, add a row'
+  upper.planSource = 'livy'
+  upper._ts = 5000
+  server.mealPlan = {
+    _ts: 5000,
+    updatedBy: 'livy',
+    protein: 130,
+    fiber: 30,
+    days: { 1: { breakfast: { name: 'Eggs', protein: 24 }, snacks: [{ name: 'Shake', protein: 30 }] } },
+  }
   const merged = mergePlan(server, local, 1000)
   assert.equal(merged.needsPush, false)
   assert.equal(merged.pulled, true)
@@ -72,38 +124,40 @@ test('a Livy write replaces the local plan and keeps routines v1 does not own', 
   assert.equal(merged.plan.protein, 130)
   assert.equal(merged.plan.days.mon.meals.breakfast.name, 'Eggs')
   assert.equal(merged.plan.days.mon.workout.detail, 'Upper, add a row')
-  assert.equal(server.routines.some(item => item.id === 'push'), true)
+  assert.equal(merged.plan.days.mon.workout.routineId, 'lux-upper')
   assert.equal(todayCard(merged.plan, new Date('2026-10-12T12:00:00'), [], {}).updatedByLivy, true)
+  assert.deepEqual(merged.state.routines.map(item => item.id), server.routines.map(item => item.id))
 })
 
-test('a later local edit wins, and the weekday plan keeps the other routine', () => {
-  const local = defaultPlan()
+test('a later local edit updates lux-upper and does not add a duplicate routine', () => {
+  const adopted = mergePlan(luxProfile(), defaultPlan(), 1000)
+  const local = normalizePlan(adopted.plan)
   local.editedAt = 8000
+  local.holdMeals = false
   local.days.mon.workout.detail = 'Upper, pause rows'
-  const server = {
-    routines: [{ id: 'push', name: 'Push', ex: [] }],
-    week: { 1: ['push'] },
-    mealPlan: { _ts: 1000, protein: 125, fiber: 25, days: {} },
-  }
-  const merged = mergePlan(server, local, 8000)
+  local.protein = 130
+  const merged = mergePlan(adopted.state, local, 8000)
   assert.equal(merged.needsPush, true)
-  const routine = merged.state.routines.find(item => item.id === planRoutineId(1))
-  assert.equal(routine.planDetail, 'Upper, pause rows')
-  assert.equal(routine.athleteLogPlan, true)
-  assert.ok(merged.state.routines.some(item => item.id === 'push'))
+  const upper = merged.state.routines.find(item => item.id === 'lux-upper')
+  assert.equal(upper.planDetail, 'Upper, pause rows')
+  assert.equal(upper.athleteLogPlan, undefined)
+  assert.deepEqual(upper.ex, [{ id: 'bench' }])
+  assert.ok(!merged.state.routines.some(item => item.id === planRoutineId(2)))
+  assert.ok(!merged.state.routines.some(item => item.id === planRoutineId(0)))
   const monday = [].concat(merged.state.week[1])
-  assert.ok(monday.includes('push'))
-  assert.ok(monday.includes(planRoutineId(1)))
-  assert.equal(merged.state.mealPlan.protein, 125)
+  assert.deepEqual(monday, ['lux-upper', planRoutineId(1)])
+  assert.equal(merged.state.mealPlan.protein, 130)
   assert.equal(merged.state.mealPlan.days[1].breakfast.name.includes('Greek yogurt'), true)
+  assert.equal(merged.state.nutritionTargets.protein, 130)
+  assert.equal(merged.state.nutritionTargets.calories, 1300)
   const again = mergePlan(merged.state, merged.plan, 8000)
   assert.equal(again.needsPush, false)
 })
 
-test('reconcile pushes the plan without dropping a server routine', () => {
+test('an empty server week still gets the seeded plan, except a rest day with no routine', () => {
   const result = reconcile({
     localDays: {},
-    serverState: { foodEntries: [], workouts: [], routines: [{ id: 'keep', name: 'Keep', ex: [] }], week: { 2: 'keep' } },
+    serverState: { foodEntries: [], workouts: [], routines: [{ id: 'keep', name: 'Keep', ex: [] }], week: {} },
     memory: {},
     localPlan: defaultPlan(),
     now: 50,
@@ -111,6 +165,7 @@ test('reconcile pushes the plan without dropping a server routine', () => {
   assert.equal(result.needsPush, true)
   assert.ok(result.state.routines.some(item => item.id === 'keep'))
   assert.ok(result.state.routines.some(item => item.id === planRoutineId(2)))
+  assert.equal(result.state.routines.some(item => item.id === planRoutineId(0)), false)
   assert.equal(result.state.mealPlan.fiber, 25)
   assert.equal(WEEKDAYS.length, 7)
   const quiet = reconcile({
@@ -122,4 +177,27 @@ test('reconcile pushes the plan without dropping a server routine', () => {
   })
   assert.equal(quiet.needsPush, false)
   assert.equal(normalizePlan(planFromServer(quiet.state)).days.sat.workout.minutes, 60)
+})
+
+test('reconcile adopts a Tuesday routine instead of writing al-plan beside it', () => {
+  const result = reconcile({
+    localDays: {},
+    serverState: {
+      foodEntries: [],
+      workouts: [],
+      routines: [{ id: 'keep', name: 'Keep', ex: [{ id: 'row' }] }],
+      week: { 2: 'keep' },
+      nutritionTargets: { calories: 1300, protein: 125, fiber: 25 },
+    },
+    memory: {},
+    localPlan: defaultPlan(),
+    now: 50,
+  })
+  assert.equal(result.needsPush, false)
+  assert.equal(result.planPulled, true)
+  assert.equal(result.plan.days.tue.workout.routineId, 'keep')
+  assert.equal(result.plan.days.tue.workout.name, 'Keep')
+  assert.deepEqual(result.state.routines.map(item => item.id), ['keep'])
+  assert.equal(result.state.mealPlan, undefined)
+  assert.equal(result.state.week[2], 'keep')
 })

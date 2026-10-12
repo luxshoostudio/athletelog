@@ -2921,7 +2921,7 @@ function storeWeekPlan(plan, touch) {
   const api = window.AthleteLogPlan;
   if (!api) return;
   const next = api.normalizePlan(plan);
-  if (touch) { next.editedAt = Date.now(); next.updatedBy = null; }
+  if (touch) { next.editedAt = Date.now(); next.updatedBy = null; next.holdMeals = false; }
   localStorage.setItem(api.PLAN_STORAGE_KEY, JSON.stringify(next));
   if (touch) noteNextSync();
   renderTodayPlan();
