@@ -1,5 +1,5 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v41';
+const CACHE = 'athletelog-v42';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS = [
   './lib/week-plan.mjs',
   './lib/next-sync.mjs',
   './lib/next-sync-boot.js',
+  './lib/usual-breakfast.mjs',
   './vendor/barcode-detector.js',
   './vendor/zxing_reader.wasm',
   'https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'
@@ -48,6 +49,23 @@ self.addEventListener('fetch', e => {
         if (res.ok) caches.open(CACHE).then(cache => cache.put('./index.html', res.clone()));
         return res;
       }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // App modules are not content-hashed. An installed phone was cache-first
+  // on lib/next-sync-boot.js, so it kept the old boot file after index.html
+  // updated and never seeded breakfast or painted the header. Prefer the
+  // network for lib scripts, and fall back to the cache when offline.
+  if (url.origin === self.location.origin && /\/lib\/[^/]+\.m?js$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
     );
     return;
   }

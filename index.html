@@ -958,11 +958,6 @@ body {
 .exercise-field.suggested-value { color:var(--muted); }
 .exercise-field:focus { border-color:#7a8a5e; background:rgba(255,255,255,.7); color:var(--text); }
 .exercise-status { color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
-.breakfast-item { padding:12px 0; border-top:1px solid rgba(32,30,29,.08); }
-.breakfast-item .modal-input { margin-bottom:8px; }
-.breakfast-macros { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-.breakfast-macros .modal-input { margin-bottom:0; padding:8px 6px; text-align:center; font-variant-numeric:tabular-nums; }
-.breakfast-totals { margin:8px 0 12px; font-size:13px; font-weight:700; color:#8c491a; line-height:1.45; }
 .exercise-delete { width:28px; height:28px; padding:0; }
 .template-note { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; line-height:1.4; }
 .template-note-dot { width:7px; height:7px; border-radius:999px; background:#7a8a5e; flex:0 0 auto; }
@@ -1425,7 +1420,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <input type="text" class="food-text-input" id="home-food-text" placeholder="Add food or describe a meal…" autocomplete="off" style="flex:1;">
           <button class="add-btn" onclick="handleHomeAddFood()" style="flex-shrink:0">Add</button>
         </div>
-        <button type="button" class="outline-btn" id="edit-usual-breakfast" onclick="openUsualBreakfastEditor()" style="width:100%;margin:0 0 12px;">Edit usual breakfast</button>
 
         <!-- Action pills -->
         <div class="today-action-row">
@@ -1910,20 +1904,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <button class="barcode-cancel" onclick="closeBarcodeScanner()">Cancel</button>
 </div>
 
-<!-- USUAL BREAKFAST -->
-<div class="modal-overlay" id="breakfast-modal">
-  <div class="modal-sheet">
-    <div class="modal-title">Usual breakfast</div>
-    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin:-8px 0 14px;">This saved recipe is what Usual Breakfast adds. Clear every row and it falls back to recent mornings.</p>
-    <div id="breakfast-editor"></div>
-    <div class="modal-btn-row">
-      <button class="outline-btn" type="button" onclick="closeUsualBreakfastEditor()">Close</button>
-      <button class="outline-btn" type="button" onclick="resetUsualBreakfastDraft()">Reset</button>
-      <button class="green-btn" type="button" onclick="saveUsualBreakfastDraft()">Save</button>
-    </div>
-  </div>
-</div>
-
 <!-- RECIPES OVERLAY -->
 <div class="ai-overlay" id="recipe-overlay">
   <div class="ai-header">
@@ -1995,7 +1975,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 // ═══════════════════════════════════════════════════════════════
 const GOALS = { protein: 140, fat: 70, carbs: 220, fiber: 30 };
 const SYNCED_GOALS_KEY = 'alog_synced_goals';
-const USUAL_BREAKFAST_KEY = 'alog_usual_breakfast';
 const WATER_GOAL_ML = 2500;
 
 // The seven values of Training.Session Type in the Health Airtable base
@@ -2682,7 +2661,22 @@ function quickFoods(limit = 18) {
   return out;
 }
 
-const USUAL_BREAKFAST_VALUE = '__usual_breakfast__';
+const FAVOURITES_KEY = 'alog_favourites';
+// Same seven items as lib/usual-breakfast.mjs. Kept here so an installed
+// phone can seed the favourite even when the service worker is still serving
+// an older boot script that never imported that module.
+const USUAL_BREAKFAST_FALLBACK = {
+  name: 'Usual Breakfast',
+  items: [
+    { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
+    { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
+    { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
+    { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
+    { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
+    { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
+    { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
+  ],
+};
 
 function roundMacro(value) {
   const api = window.AthleteLogBreakfast;
@@ -2699,16 +2693,27 @@ function formatMacro(value) {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
+function planCarriesNutritionGoals(plan) {
+  if (!plan || !(Number(plan.protein) > 0) || !(Number(plan.fiber) > 0)) return false;
+  if (plan.fromWeek === true || plan.holdMeals === true || plan.updatedBy) return true;
+  if (Number(plan.editedAt) > 0) return true;
+  const days = plan.days && typeof plan.days === 'object' ? Object.values(plan.days) : [];
+  return days.some(day => day?.workout?.routineId);
+}
+
 function loadSyncedGoals() {
-  let raw = null;
-  try { raw = JSON.parse(localStorage.getItem(SYNCED_GOALS_KEY) || 'null'); } catch {}
+  let stored = null;
+  let plan = null;
+  try { stored = JSON.parse(localStorage.getItem(SYNCED_GOALS_KEY) || 'null'); } catch {}
+  try { plan = JSON.parse(localStorage.getItem('alog_week_plan') || 'null'); } catch {}
   const api = window.AthleteLogPlan;
-  const next = api?.goalsFromStored
-    ? api.goalsFromStored(raw, GOALS)
-    : {
-        protein: Number(raw?.protein) > 0 ? Number(raw.protein) : GOALS.protein,
-        fiber: Number(raw?.fiber) > 0 ? Number(raw.fiber) : GOALS.fiber,
-      };
+  const next = api?.headerGoals
+    ? api.headerGoals({ stored, plan })
+    : (stored && Number(stored.protein) > 0 && Number(stored.fiber) > 0
+        ? { protein: Number(stored.protein), fiber: Number(stored.fiber) }
+        : planCarriesNutritionGoals(plan)
+          ? { protein: Number(plan.protein), fiber: Number(plan.fiber) }
+          : { protein: 140, fiber: 30 });
   GOALS.protein = next.protein;
   GOALS.fiber = next.fiber;
 }
@@ -2730,26 +2735,48 @@ function applySyncedGoals(goals) {
   if (document.getElementById('log-panel')?.classList.contains('active') && typeof renderLogTab === 'function') renderLogTab();
 }
 
-function loadUsualBreakfastRaw() {
-  try { return JSON.parse(localStorage.getItem(USUAL_BREAKFAST_KEY) || 'null'); }
-  catch { return null; }
+function loadFavourites() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(FAVOURITES_KEY) || 'null');
+    return Array.isArray(stored) ? stored : [];
+  } catch { return []; }
 }
 
-// Learn the bundle from the most recent three weeks of morning logs. Rows
-// that are already a Usual Breakfast bundle are skipped so their total is
-// not learned as one more ingredient.
-function usualBreakfast() {
-  const api = window.AthleteLogBreakfast;
-  if (!api?.learnUsualBreakfast) return [];
-  return api.learnUsualBreakfast(foodHistoryRecords());
+function fallbackUsualBreakfastFavourite() {
+  const items = JSON.parse(JSON.stringify(USUAL_BREAKFAST_FALLBACK.items));
+  const totals = sumMacros(items);
+  return {
+    name: 'Usual Breakfast',
+    p: totals.p, kcal: totals.kcal, fat: totals.fat, carbs: totals.carbs, fiber: totals.fiber,
+    components: items,
+  };
 }
 
-function currentUsualBreakfastItems() {
-  const saved = loadUsualBreakfastRaw();
-  const learned = usualBreakfast();
+function favouriteNeedsBreakfast(list) {
+  const current = list.find(item => String(item?.name || '').trim().toLocaleLowerCase() === 'usual breakfast');
+  return !(current && Array.isArray(current.components) && current.components.length);
+}
+
+// Missing and empty copies get the seven-item favourite. One that already
+// has its items is left alone.
+function ensureFavourites() {
+  const stored = loadFavourites();
   const api = window.AthleteLogBreakfast;
-  if (api?.breakfastItems) return api.breakfastItems(saved, learned);
-  return Array.isArray(saved?.items) && saved.items.length ? saved.items : learned;
+  if (api?.favouritesForInstall) {
+    const result = api.favouritesForInstall(stored);
+    if (result.seeded) localStorage.setItem(FAVOURITES_KEY, JSON.stringify(result.favourites));
+    return result.favourites;
+  }
+  if (!favouriteNeedsBreakfast(stored)) return stored;
+  const rest = stored.filter(item => String(item?.name || '').trim().toLocaleLowerCase() !== 'usual breakfast');
+  const favourites = [fallbackUsualBreakfastFavourite(), ...rest];
+  localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+  return favourites;
+}
+
+function favouriteByName(name) {
+  const id = String(name || '').trim().toLocaleLowerCase();
+  return ensureFavourites().find(item => String(item?.name || '').trim().toLocaleLowerCase() === id && item.components?.length) || null;
 }
 
 // ── Name matching ──────────────────────────────────────────────
@@ -3356,18 +3383,12 @@ function renderDayList() {
   const homeQS = document.getElementById('home-quick-select');
   if (homeQS) {
     homeQS.innerHTML = '<option value="">⭐</option>';
-    const breakfast = currentUsualBreakfastItems();
-    if (breakfast.length >= 1) {
+    appendStarFoods(name => {
       const opt = document.createElement('option');
-      opt.value = USUAL_BREAKFAST_VALUE;
-      opt.textContent = `Usual Breakfast · ${breakfast.length} items`;
+      opt.value = name;
+      opt.textContent = name;
       homeQS.appendChild(opt);
-    }
-    for (const chip of quickFoods()) {
-      const opt = document.createElement('option');
-      opt.value = chip; opt.textContent = chip;
-      homeQS.appendChild(opt);
-    }
+    });
   }
 
   // Today's food entries inline
@@ -3397,6 +3418,23 @@ function renderDayList() {
       <div class="past-day-stats"><span>${Math.round(dm.p)}g</span> protein<br>${Math.round(dm.kcal)} kcal</div>
     `;
     container.appendChild(card);
+  }
+}
+
+function appendStarFoods(add) {
+  const seen = new Set();
+  for (const fav of ensureFavourites()) {
+    const name = String(fav?.name || '').trim();
+    const id = name.toLocaleLowerCase();
+    if (!name || seen.has(id)) continue;
+    seen.add(id);
+    add(name);
+  }
+  for (const chip of quickFoods()) {
+    const id = chip.toLocaleLowerCase();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    add(chip);
   }
 }
 
@@ -3465,13 +3503,9 @@ function renderDetailContent() {
   html += `<div class="quick-add-wrapper">
     <select class="quick-add-select" id="detail-quick-chips" onchange="quickAddFood(this.value); this.selectedIndex=0;">
       <option value="">QUICK ADD</option>`;
-  const breakfast = currentUsualBreakfastItems();
-  if (breakfast.length >= 1) {
-    html += `<option value="${USUAL_BREAKFAST_VALUE}">Usual Breakfast · ${breakfast.length} items</option>`;
-  }
-  for (const chip of quickFoods()) {
-    html += `<option value="${chip.replace(/"/g,'&quot;')}">${chip}</option>`;
-  }
+  appendStarFoods(name => {
+    html += `<option value="${name.replace(/"/g,'&quot;')}">${escHtml(name)}</option>`;
+  });
   html += `</select></div>`;
   if (!isToday) {
     html += `<div class="detail-backfill">Editing ${escHtml(formatKey(currentDetailKey))} — entries default to the time you type.</div>`;
@@ -4005,86 +4039,6 @@ function deleteRecipe() {
   renderRecipeList();
 }
 
-function breakfastTotalsText(recipe) {
-  const totals = sumMacros(recipe?.items || []);
-  return `${formatMacro(totals.p)} g protein · ${formatMacro(totals.kcal)} kcal · ${formatMacro(totals.fat)} g fat · ${formatMacro(totals.carbs)} g carbs · ${formatMacro(totals.fiber)} g fiber`;
-}
-
-function openUsualBreakfastEditor() {
-  const api = window.AthleteLogBreakfast;
-  const saved = loadUsualBreakfastRaw();
-  const seed = api?.seedUsualBreakfast ? api.seedUsualBreakfast() : { name:'Usual Breakfast', items:[] };
-  window._breakfastDraft = api?.normalizeUsualBreakfast
-    ? api.normalizeUsualBreakfast(saved?.items?.length ? saved : seed)
-    : JSON.parse(JSON.stringify(saved?.items?.length ? saved : seed));
-  renderUsualBreakfastEditor();
-  document.getElementById('breakfast-modal').classList.add('open');
-}
-
-function closeUsualBreakfastEditor() {
-  document.getElementById('breakfast-modal').classList.remove('open');
-}
-
-function renderUsualBreakfastEditor() {
-  const draft = window._breakfastDraft || { items:[] };
-  const rows = (draft.items || []).map((item, index) => `
-    <div class="breakfast-item">
-      <input class="modal-input" aria-label="Breakfast item ${index + 1} name" value="${escHtml(item.name || '')}" placeholder="Food"
-             oninput="updateBreakfastItem(${index}, 'name', this.value)">
-      <input class="modal-input" aria-label="Breakfast item ${index + 1} amount" value="${escHtml(item.amount || '')}" placeholder="Amount"
-             oninput="updateBreakfastItem(${index}, 'amount', this.value)">
-      <div class="breakfast-macros">
-        ${['p','kcal','fat','carbs','fiber'].map(field => {
-          const label = { p:'Protein', kcal:'kcal', fat:'Fat', carbs:'Carbs', fiber:'Fiber' }[field];
-          return `<input class="modal-input" inputmode="decimal" aria-label="Breakfast item ${index + 1} ${label}" placeholder="${label}" value="${escHtml(item[field] ?? '')}"
-             oninput="updateBreakfastItem(${index}, '${field}', this.value)">`;
-        }).join('')}
-        <button class="recipe-del" type="button" aria-label="Remove breakfast item ${index + 1}" onclick="removeBreakfastItem(${index})">✕</button>
-      </div>
-    </div>`).join('');
-  document.getElementById('breakfast-editor').innerHTML = `
-    ${rows || '<div class="empty-state">No items. Reset restores the saved recipe, or leave it empty to use recent mornings.</div>'}
-    <button class="action-pill" type="button" style="width:100%;margin:4px 0 12px;" onclick="addBreakfastItem()">+ Add item</button>
-    <div class="breakfast-totals" id="breakfast-totals">${breakfastTotalsText(draft)}</div>`;
-}
-
-function updateBreakfastItem(index, field, value) {
-  const item = window._breakfastDraft?.items?.[index];
-  if (!item) return;
-  item[field] = value;
-  const totals = document.getElementById('breakfast-totals');
-  if (totals) totals.textContent = breakfastTotalsText(window._breakfastDraft);
-}
-
-function addBreakfastItem() {
-  window._breakfastDraft.items.push({ name:'', amount:'', p:0, kcal:0, fat:0, carbs:0, fiber:0 });
-  renderUsualBreakfastEditor();
-}
-
-function removeBreakfastItem(index) {
-  window._breakfastDraft.items.splice(index, 1);
-  renderUsualBreakfastEditor();
-}
-
-function resetUsualBreakfastDraft() {
-  const api = window.AthleteLogBreakfast;
-  window._breakfastDraft = api?.seedUsualBreakfast
-    ? api.seedUsualBreakfast()
-    : { name:'Usual Breakfast', items:[] };
-  renderUsualBreakfastEditor();
-}
-
-function saveUsualBreakfastDraft() {
-  const api = window.AthleteLogBreakfast;
-  const next = api?.normalizeUsualBreakfast
-    ? api.normalizeUsualBreakfast(window._breakfastDraft)
-    : window._breakfastDraft;
-  localStorage.setItem(USUAL_BREAKFAST_KEY, JSON.stringify(next));
-  closeUsualBreakfastEditor();
-  renderDayList();
-  showToast('Usual breakfast saved');
-}
-
 // Saved recipes answer the food search like anything else, so logging one is
 // the same two taps as logging a banana.
 function recipeAsFoodItem(recipe) {
@@ -4097,7 +4051,8 @@ function recipeAsFoodItem(recipe) {
 // ═══════════════════════════════════════════════════════════════
 function quickAddFood(chip) {
   if (!chip) return;
-  if (chip === USUAL_BREAKFAST_VALUE) { addUsualBreakfast(false); return; }
+  const fav = favouriteByName(chip);
+  if (fav) { addFavouriteFood(fav, false); return; }
   const logged = loggedFoodItem(chip);
   if (logged) { openQtyModalWithItem(logged, logged.name); return; }
   document.getElementById('food-text').value = chip;
@@ -4486,7 +4441,8 @@ function confirmTimeEdit() {
 // ═══════════════════════════════════════════════════════════════
 function homeQuickAdd(chip) {
   if (!chip) return;
-  if (chip === USUAL_BREAKFAST_VALUE) { addUsualBreakfast(true); return; }
+  const fav = favouriteByName(chip);
+  if (fav) { addFavouriteFood(fav, true); return; }
   const logged = loggedFoodItem(chip);
   if (logged) {
     addingFromHome = true;
@@ -4499,13 +4455,13 @@ function homeQuickAdd(chip) {
   handleHomeAddFood();
 }
 
-function addUsualBreakfast(fromHome) {
-  const breakfast = currentUsualBreakfastItems();
+function addFavouriteFood(fav, fromHome) {
+  const breakfast = fav.components || [];
   if (!breakfast.length) { showToast('Usual breakfast is empty'); return; }
   const time = nowTime();
   const totals = sumMacros(breakfast);
   const entry = {
-    ...makeEntry('Usual Breakfast', totals, time),
+    ...makeEntry(fav.name, totals, time),
     source:'Usual Breakfast',
     components: breakfast.map(item => ({
       name:item.name, p:roundMacro(item.p), kcal:roundMacro(item.kcal), fat:roundMacro(item.fat),
@@ -4528,7 +4484,7 @@ function addUsualBreakfast(fromHome) {
   }
   renderHeader();
   renderLogTab();
-  showToast(`✓ Added Usual Breakfast · ${formatMacro(totals.p)} g protein · ${formatMacro(totals.kcal)} kcal`, 4000);
+  showToast(`✓ Added ${fav.name} · ${formatMacro(totals.p)} g protein · ${formatMacro(totals.kcal)} kcal`, 4000);
 }
 
 function addFoodEntryFromHome(entry) {
@@ -8147,6 +8103,7 @@ function migrateKnownPeriodSeptember2026() {
 
 function init() {
   loadSyncedGoals();
+  ensureFavourites();
   migrateWeightsToLbs();
   migrateRunUnitsToMiles();
   migrateTimedExercisesToMinutes();
@@ -8176,11 +8133,25 @@ function init() {
   }
 }
 
+function refreshFromLibs() {
+  loadSyncedGoals();
+  ensureFavourites();
+  renderHeader();
+  renderDayList();
+  renderTodayPlan();
+}
+
+// Do not wait for the module event. An installed phone can keep the previous
+// boot script in the service worker cache, and that copy never sets
+// AthleteLogBreakfast or dispatches athletelog-libs. Waiting left the date
+// as "Today", the goal labels blank, and the breakfast favourite unseeded.
 function startApp() {
-  if (!window.AthleteLogPlan || !window.AthleteLogBreakfast) return;
-  if (window.__alogAppStarted) return;
-  window.__alogAppStarted = true;
-  init();
+  if (!window.__alogAppStarted) {
+    window.__alogAppStarted = true;
+    init();
+    return;
+  }
+  refreshFromLibs();
 }
 window.addEventListener('athletelog-libs', startApp);
 startApp();
