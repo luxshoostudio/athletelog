@@ -854,24 +854,8 @@ body {
 .tab-btn.active { color:#8c491a; background:#fff2eb; border:0; }
 .tab-btn:focus-visible, button:focus-visible, select:focus-visible { outline:2px solid #8c491a; outline-offset:2px; }
 .nav-glyph { font-family:var(--display); font-size:14px; line-height:1; }
-.plan-livy-note { font-size:11px; font-weight:700; color:#8c491a; letter-spacing:0; text-transform:none; }
-.plan-targets { display:flex; gap:12px; }
-.plan-targets label, .plan-field { font-size:12px; font-weight:700; color:var(--muted); }
-.plan-targets label { flex:1; min-width:0; }
-.plan-targets input, .plan-field input, .plan-field select {
-  width:100%; margin-top:4px; padding:8px 10px; border-radius:10px; box-sizing:border-box;
-  border:1px solid rgba(32,30,29,.16); background:rgba(255,255,255,.55);
-  font:600 13px var(--font); color:var(--text);
-}
-.plan-day-head { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
-.plan-day-name { font-family:var(--display); font-size:18px; color:var(--text); }
-.plan-day-work { font-size:13px; font-weight:700; color:var(--text); }
-.plan-day-meals { margin-top:4px; font-size:12px; color:var(--muted); line-height:1.45; white-space:pre-line; }
 .plan-status-done { color:#2f6b3a; font-weight:700; }
 .plan-status-open { color:#8c491a; font-weight:700; }
-.plan-edit { margin-top:12px; display:grid; gap:8px; }
-.plan-meal-row { display:grid; grid-template-columns:72px minmax(0,1fr) 58px; gap:6px; align-items:center; }
-.plan-meal-row span { font-size:11px; font-weight:700; color:var(--muted); }
 .today-plan-line { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:14px; font-weight:700; }
 .today-plan-line + .today-plan-line { margin-top:6px; }
 
@@ -1584,31 +1568,12 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     </div>
   </div>
 
-  <!-- PLAN PANEL -->
-  <div id="plan-panel" class="panel">
-    <div class="panel-inner">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;">
-        <div class="section-label" style="margin:0;">Weekly plan</div>
-        <span class="plan-livy-note" id="plan-livy-note" hidden>Updated by Livy</span>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Daily targets</span></div>
-        <div class="card-body plan-targets">
-          <label>Protein g<input id="plan-protein" inputmode="numeric" aria-label="Daily protein target"></label>
-          <label>Fiber g<input id="plan-fiber" inputmode="numeric" aria-label="Daily fiber target"></label>
-        </div>
-      </div>
-      <div id="plan-days"></div>
-    </div>
-  </div>
-
 </div>
 
 <!-- Persistent bottom navigation -->
 <nav id="tabs" aria-label="Main navigation">
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
-  <button class="tab-btn" data-tab="plan"><span class="nav-glyph" aria-hidden="true">▦</span>Plan</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
 </nav>
 
@@ -2764,15 +2729,40 @@ function fallbackUsualBreakfastFavourite() {
   };
 }
 
-function favouriteNeedsBreakfast(list) {
-  const current = list.find(item => String(item?.name || '').trim().toLocaleLowerCase() === 'usual breakfast');
-  return !(current && Array.isArray(current.components) && current.components.length);
-}
-
-// Missing and empty copies get the seven-item favourite. One that already
-// has its items is left alone.
 function isBreakfastName(name) {
   return String(name || '').trim().toLocaleLowerCase() === 'usual breakfast';
+}
+
+function isKefirName(name) {
+  return String(name || '').trim().toLocaleLowerCase() === 'lifeway strawberry kefir (1 cup)';
+}
+
+function isPinnedFavouriteName(name) {
+  return isBreakfastName(name) || isKefirName(name);
+}
+
+// Current Lifeway lowfat strawberry label, 1 cup (240 ml): 140 kcal, 2 g fat,
+// 18 g carb, 0 g fiber, 10 g protein. Protein matches her number.
+function kefirFavourite() {
+  return { name: 'Lifeway Strawberry Kefir (1 cup)', p: 10, kcal: 140, fat: 2, carbs: 18, fiber: 0 };
+}
+
+function pinPageFavourites(list) {
+  const items = (Array.isArray(list) ? list : []).filter(item => item && String(item.name || '').trim());
+  const breakfastCurrent = items.find(item => isBreakfastName(item.name));
+  const breakfast = breakfastCurrent && Array.isArray(breakfastCurrent.components) && breakfastCurrent.components.length
+    ? breakfastCurrent
+    : fallbackUsualBreakfastFavourite();
+  const kefir = items.find(item => isKefirName(item.name)) || kefirFavourite();
+  const rest = items.filter(item => !isPinnedFavouriteName(item.name));
+  const next = [breakfast, kefir, ...rest];
+  if (next.length === items.length && next.every((item, index) => item === items[index])) return items;
+  return next;
+}
+
+function saveFavourites(list) {
+  localStorage.setItem(FAVOURITES_KEY, JSON.stringify(list));
+  return list;
 }
 
 function ensureFavourites() {
@@ -2781,21 +2771,21 @@ function ensureFavourites() {
   const api = window.AthleteLogBreakfast;
   if (api?.favouritesForInstall) {
     const result = api.favouritesForInstall(stored, history);
-    const onlySeed = result.favourites.length > 0 && result.favourites.every(item => isBreakfastName(item.name));
-    const storedOwn = stored.some(item => item?.name && !isBreakfastName(item.name));
+    const onlyPins = result.favourites.length === 0 || result.favourites.every(item => isPinnedFavouriteName(item.name));
+    const storedOwn = stored.some(item => item?.name && !isPinnedFavouriteName(item.name));
     const historyHasFood = Object.values(history.days).some(day =>
-      (day.food || []).some(food => food?.name && !isBreakfastName(food.name))
+      (day.food || []).some(food => food?.name && !isPinnedFavouriteName(food.name))
     );
-    if (!(onlySeed && historyHasFood && !storedOwn)) {
-      if (result.seeded) localStorage.setItem(FAVOURITES_KEY, JSON.stringify(result.favourites));
-      return result.favourites;
+    if (!(onlyPins && historyHasFood && !storedOwn)) {
+      const pinned = pinPageFavourites(result.favourites);
+      if (result.seeded || pinned !== result.favourites) saveFavourites(pinned);
+      return pinned;
     }
   }
-  const own = stored.filter(item => item?.name && !isBreakfastName(item.name));
+  const own = stored.filter(item => item?.name && !isPinnedFavouriteName(item.name));
   if (own.length) {
-    if (!favouriteNeedsBreakfast(stored)) return stored;
-    const next = [fallbackUsualBreakfastFavourite(), ...own];
-    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(next));
+    const next = pinPageFavourites(stored);
+    if (next !== stored) saveFavourites(next);
     return next;
   }
   const today = new Date();
@@ -2810,7 +2800,7 @@ function ensureFavourites() {
     if (key < first || key > last) continue;
     for (const food of day.food || []) {
       const name = String(food?.name || '').trim();
-      if (!name || isBreakfastName(name) || food.source === 'Usual Breakfast') continue;
+      if (!name || isPinnedFavouriteName(name) || food.source === 'Usual Breakfast') continue;
       if (Array.isArray(food.components) && food.components.length) continue;
       const dedupe = `${key}|${name.toLocaleLowerCase()}|${food.time || ''}|${roundMacro(food.kcal)}`;
       if (seen.has(dedupe)) continue;
@@ -2839,14 +2829,25 @@ function ensureFavourites() {
       p: roundMacro(item.food.p), kcal: roundMacro(item.food.kcal), fat: roundMacro(item.food.fat),
       carbs: roundMacro(item.food.carbs), fiber: roundMacro(item.food.fiber),
     }));
-  const next = [fallbackUsualBreakfastFavourite(), ...rebuilt];
-  localStorage.setItem(FAVOURITES_KEY, JSON.stringify(next));
+  const next = pinPageFavourites([fallbackUsualBreakfastFavourite(), ...rebuilt]);
+  saveFavourites(next);
   return next;
 }
 
 function favouriteByName(name) {
   const id = String(name || '').trim().toLocaleLowerCase();
   return ensureFavourites().find(item => String(item?.name || '').trim().toLocaleLowerCase() === id && item.components?.length) || null;
+}
+
+function favouriteServing(name) {
+  const id = String(name || '').trim().toLocaleLowerCase();
+  const fav = ensureFavourites().find(item => String(item?.name || '').trim().toLocaleLowerCase() === id && !item.components?.length);
+  if (!fav) return null;
+  return {
+    name: fav.name,
+    p: +fav.p || 0, kcal: +fav.kcal || 0, fat: +fav.fat || 0, carbs: +fav.carbs || 0, fiber: +fav.fiber || 0,
+    unit: 'serving', qty: 1, source: 'favourite',
+  };
 }
 
 // ── Name matching ──────────────────────────────────────────────
@@ -3044,8 +3045,6 @@ function noteNextSync() {
   else window.__alogNextPending = true;
 }
 
-let openPlanDay = '';
-
 function readWeekPlan() {
   const api = window.AthleteLogPlan;
   if (!api) return null;
@@ -3053,25 +3052,6 @@ function readWeekPlan() {
     const raw = localStorage.getItem(api.PLAN_STORAGE_KEY);
     return api.normalizePlan(raw ? JSON.parse(raw) : api.defaultPlan());
   } catch { return api.normalizePlan(api.defaultPlan()); }
-}
-
-function storeWeekPlan(plan, touch) {
-  const api = window.AthleteLogPlan;
-  if (!api) return;
-  const next = api.normalizePlan(plan);
-  if (touch) { next.editedAt = Date.now(); next.updatedBy = null; next.holdMeals = false; }
-  localStorage.setItem(api.PLAN_STORAGE_KEY, JSON.stringify(next));
-  if (touch) noteNextSync();
-  renderTodayPlan();
-}
-
-function mealLine(day) {
-  return [
-    ['Breakfast', day.meals.breakfast],
-    ['Lunch', day.meals.lunch],
-    ['Afternoon', day.meals.snack],
-    ['Dinner', day.meals.dinner],
-  ].map(([label, meal]) => `${label}: ${meal.name}${meal.optional ? ' (optional)' : ''} · ${meal.protein} g`).join('\n');
 }
 
 function renderTodayPlan() {
@@ -3099,150 +3079,7 @@ function renderTodayPlan() {
   workState.className = card.workout.done ? 'plan-status-done' : 'plan-status-open';
   workState.textContent = card.workout.rest ? 'Rest day' : (card.workout.done ? 'Done' : 'Not logged yet');
   work.append(workName, workState);
-  const edit = document.createElement('button');
-  edit.className = 'outline-btn';
-  edit.type = 'button';
-  edit.style.marginTop = '10px';
-  edit.textContent = 'Edit week';
-  edit.onclick = () => document.querySelector('.tab-btn[data-tab="plan"]')?.click();
-  body.append(protein, work, edit);
-}
-
-function renderWeeklyPlan() {
-  const api = window.AthleteLogPlan;
-  const host = document.getElementById('plan-days');
-  if (!api || !host) return;
-  const plan = readWeekPlan();
-  const protein = document.getElementById('plan-protein');
-  const fiber = document.getElementById('plan-fiber');
-  if (protein && document.activeElement !== protein) protein.value = plan.protein;
-  if (fiber && document.activeElement !== fiber) fiber.value = plan.fiber;
-  if (protein && !protein.dataset.bound) {
-    protein.dataset.bound = '1';
-    const saveTargets = () => {
-      const current = readWeekPlan();
-      current.protein = Math.max(0, parseFloat(protein.value) || current.protein);
-      current.fiber = Math.max(0, parseFloat(fiber.value) || current.fiber);
-      storeWeekPlan(current, true);
-      const livy = document.getElementById('plan-livy-note');
-      if (livy) livy.hidden = true;
-    };
-    protein.addEventListener('change', saveTargets);
-    fiber.addEventListener('change', saveTargets);
-  }
-  const note = document.getElementById('plan-livy-note');
-  if (note) note.hidden = plan.updatedBy !== 'livy';
-  host.replaceChildren();
-  for (const day of api.WEEKDAYS) {
-    const data = plan.days[day.key];
-    const card = document.createElement('div');
-    card.className = 'card';
-    const header = document.createElement('button');
-    header.type = 'button';
-    header.className = 'card-header';
-    header.style.width = '100%';
-    header.style.background = 'transparent';
-    header.style.cursor = 'pointer';
-    header.style.textAlign = 'left';
-    const title = document.createElement('span');
-    title.className = 'plan-day-name';
-    title.textContent = day.short;
-    const work = document.createElement('span');
-    work.className = 'plan-day-work';
-    const minutes = data.workout.type === 'run' && data.workout.minutes ? ` ${data.workout.minutes} min` : '';
-    work.textContent = data.workout.type === 'rest' ? 'Rest' : `${data.workout.name}${minutes}`;
-    header.append(title, work);
-    header.onclick = () => { openPlanDay = openPlanDay === day.key ? '' : day.key; renderWeeklyPlan(); };
-    const body = document.createElement('div');
-    body.className = 'card-body';
-    const meals = document.createElement('div');
-    meals.className = 'plan-day-meals';
-    meals.textContent = mealLine(data);
-    body.append(meals);
-    if (openPlanDay === day.key) body.append(planEditor(plan, day.key));
-    card.append(header, body);
-    host.append(card);
-  }
-}
-
-function planEditor(plan, key) {
-  const day = plan.days[key];
-  const wrap = document.createElement('div');
-  wrap.className = 'plan-edit';
-  const typeField = document.createElement('label');
-  typeField.className = 'plan-field';
-  typeField.append('Workout');
-  const type = document.createElement('select');
-  for (const [value, label] of [['strength', 'Strength'], ['run', 'Run'], ['rest', 'Rest']]) {
-    const option = document.createElement('option');
-    option.value = value; option.textContent = label;
-    if (day.workout.type === value) option.selected = true;
-    type.append(option);
-  }
-  typeField.append(type);
-  const nameField = document.createElement('label');
-  nameField.className = 'plan-field';
-  nameField.append('Name');
-  const name = document.createElement('input');
-  name.value = day.workout.name;
-  nameField.append(name);
-  const minutesField = document.createElement('label');
-  minutesField.className = 'plan-field';
-  minutesField.append('Minutes');
-  const minutes = document.createElement('input');
-  minutes.inputMode = 'numeric';
-  minutes.value = day.workout.minutes || '';
-  minutesField.append(minutes);
-  minutesField.hidden = day.workout.type !== 'run';
-  type.onchange = () => { minutesField.hidden = type.value !== 'run'; saveOpenPlan(); };
-  wrap.append(typeField, nameField, minutesField);
-  for (const slot of ['breakfast', 'lunch', 'dinner', 'snack']) {
-    const row = document.createElement('div');
-    row.className = 'plan-meal-row';
-    const label = document.createElement('span');
-    label.textContent = slot === 'snack' ? 'Snack' : slot[0].toUpperCase() + slot.slice(1);
-    const mealName = document.createElement('input');
-    mealName.value = day.meals[slot].name;
-    mealName.setAttribute('aria-label', `${slot} name`);
-    const protein = document.createElement('input');
-    protein.inputMode = 'numeric';
-    protein.value = day.meals[slot].protein;
-    protein.setAttribute('aria-label', `${slot} protein grams`);
-    row.append(label, mealName, protein);
-    wrap.append(row);
-  }
-  wrap.querySelectorAll('input, select').forEach(field => {
-    if (field === type) return;
-    field.addEventListener('change', saveOpenPlan);
-  });
-  return wrap;
-
-  function saveOpenPlan() {
-    const current = readWeekPlan();
-    const workout = current.days[key].workout;
-    workout.type = type.value;
-    workout.name = name.value.trim() || workout.name;
-    workout.minutes = workout.type === 'run' ? Math.max(0, parseInt(minutes.value, 10) || 0) : 0;
-    workout.detail = workout.type === 'run' && workout.minutes ? `${workout.name} ${workout.minutes} min` : workout.name;
-    const inputs = [...wrap.querySelectorAll('.plan-meal-row')];
-    ['breakfast', 'lunch', 'dinner', 'snack'].forEach((slot, index) => {
-      const fields = inputs[index].querySelectorAll('input');
-      current.days[key].meals[slot].name = fields[0].value.trim();
-      current.days[key].meals[slot].protein = Math.max(0, parseFloat(fields[1].value) || 0);
-      if (slot === 'dinner') current.days[key].meals[slot].optional = true;
-    });
-    const proteinTarget = document.getElementById('plan-protein');
-    const fiberTarget = document.getElementById('plan-fiber');
-    if (proteinTarget) current.protein = Math.max(0, parseFloat(proteinTarget.value) || current.protein);
-    if (fiberTarget) current.fiber = Math.max(0, parseFloat(fiberTarget.value) || current.fiber);
-    storeWeekPlan(current, true);
-    const summary = wrap.closest('.card')?.querySelector('.plan-day-work');
-    if (summary) summary.textContent = workout.type === 'rest' ? 'Rest' : `${workout.name}${workout.minutes ? ` ${workout.minutes} min` : ''}`;
-    const meals = wrap.parentElement?.querySelector('.plan-day-meals');
-    if (meals) meals.textContent = mealLine(current.days[key]);
-    const livy = document.getElementById('plan-livy-note');
-    if (livy) livy.hidden = true;
-  }
+  body.append(protein, work);
 }
 
 function saveState() {
@@ -4118,6 +3955,8 @@ function quickAddFood(chip) {
   if (!chip) return;
   const fav = favouriteByName(chip);
   if (fav) { addFavouriteFood(fav, false); return; }
+  const serving = favouriteServing(chip);
+  if (serving) { openQtyModalWithItem(serving, serving.name); return; }
   const logged = loggedFoodItem(chip);
   if (logged) { openQtyModalWithItem(logged, logged.name); return; }
   document.getElementById('food-text').value = chip;
@@ -4508,6 +4347,14 @@ function homeQuickAdd(chip) {
   if (!chip) return;
   const fav = favouriteByName(chip);
   if (fav) { addFavouriteFood(fav, true); return; }
+  const serving = favouriteServing(chip);
+  if (serving) {
+    addingFromHome = true;
+    currentDetailKey = todayKey();
+    detailState = state;
+    openQtyModalWithItem(serving, serving.name);
+    return;
+  }
   const logged = loggedFoodItem(chip);
   if (logged) {
     addingFromHome = true;
@@ -6915,7 +6762,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       healthOrRelaySync(true);
     }
     if (tab === 'food') { renderDayList(); renderPlanPill(); }
-    if (tab === 'plan') renderWeeklyPlan();
   };
 });
 
