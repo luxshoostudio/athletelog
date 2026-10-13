@@ -8,6 +8,7 @@ import {
   learnUsualBreakfast,
   makeEntry,
   favouritesForInstall,
+  lifewayKefirFavourite,
   recipeForInstall,
   seedUsualBreakfast,
   sumMacros,
@@ -69,19 +70,25 @@ test('an existing install gets Usual Breakfast in favourites when it is missing'
   assert.equal(missing.seeded, true)
   assert.equal(missing.favourites[0].name, 'Usual Breakfast')
   assert.equal(missing.favourites[0].components.length, 7)
+  assert.equal(missing.favourites[1].name, 'Lifeway Strawberry Kefir (1 cup)')
 
   const beside = favouritesForInstall([{ name: 'Protein Shake', p: 30, kcal: 160 }])
   assert.equal(beside.seeded, true)
-  assert.deepEqual(beside.favourites.map(item => item.name), ['Usual Breakfast', 'Protein Shake'])
+  assert.deepEqual(beside.favourites.map(item => item.name), [
+    'Usual Breakfast', 'Lifeway Strawberry Kefir (1 cup)', 'Protein Shake',
+  ])
 
   const empty = favouritesForInstall([{ name: 'Usual Breakfast', components: [] }])
   assert.equal(empty.seeded, true)
-  assert.equal(empty.favourites.length, 1)
+  assert.equal(empty.favourites.length, 2)
   assert.equal(empty.favourites[0].components.length, 7)
+  assert.equal(empty.favourites[1].name, 'Lifeway Strawberry Kefir (1 cup)')
 
   const kept = favouritesForInstall([favourite])
-  assert.equal(kept.seeded, false)
-  assert.equal(kept.favourites.length, 1)
+  assert.equal(kept.seeded, true)
+  assert.equal(kept.favourites[0], favourite)
+  assert.equal(kept.favourites[1].p, 10)
+  assert.equal(kept.favourites.length, 2)
 })
 
 function dayKey(now, daysBack) {
@@ -108,18 +115,22 @@ test('existing favourites are kept and Usual Breakfast is only added when missin
   })
   assert.equal(result.rebuilt, false)
   assert.equal(result.seeded, true)
-  assert.deepEqual(result.favourites.map(item => item.name), ['Usual Breakfast', 'Tuna', 'Rice'])
+  assert.deepEqual(result.favourites.map(item => item.name), [
+    'Usual Breakfast', 'Lifeway Strawberry Kefir (1 cup)', 'Tuna', 'Rice',
+  ])
   assert.equal(result.favourites[0].components.length, 7)
-  assert.equal(result.favourites[1].p, 20)
-  assert.equal(result.favourites[1].kcal, 100)
+  assert.equal(result.favourites[2].p, 20)
+  assert.equal(result.favourites[2].kcal, 100)
 
-  const already = favouritesForInstall([usualBreakfastFavourite(), ...stored], {
+  const already = favouritesForInstall([usualBreakfastFavourite(), lifewayKefirFavourite(), ...stored], {
     now,
     days: { [dayKey(now, 1)]: { food: [food('Banana', 1, 90)] } },
   })
   assert.equal(already.seeded, false)
   assert.equal(already.rebuilt, false)
-  assert.deepEqual(already.favourites.map(item => item.name), ['Usual Breakfast', 'Tuna', 'Rice'])
+  assert.deepEqual(already.favourites.map(item => item.name), [
+    'Usual Breakfast', 'Lifeway Strawberry Kefir (1 cup)', 'Tuna', 'Rice',
+  ])
 })
 
 test('a missing or breakfast-only list is rebuilt from the last 30 days', () => {
@@ -156,9 +167,13 @@ test('a missing or breakfast-only list is rebuilt from the last 30 days', () => 
   assert.equal(fromSeed.seeded, true)
   assert.equal(fromSeed.favourites[0].name, 'Usual Breakfast')
   assert.equal(fromSeed.favourites[0].components.length, 7)
-  assert.deepEqual(fromSeed.favourites.slice(1).map(item => item.name), ['Tuna', 'Greek yogurt', 'Rice'])
-  assert.equal(fromSeed.favourites[1].p, 22)
-  assert.equal(fromSeed.favourites[1].kcal, 110)
+  assert.deepEqual(fromSeed.favourites.slice(1).map(item => item.name), [
+    'Lifeway Strawberry Kefir (1 cup)', 'Tuna', 'Greek yogurt', 'Rice',
+  ])
+  assert.equal(fromSeed.favourites[1].p, 10)
+  assert.equal(fromSeed.favourites[1].carbs, 18)
+  assert.equal(fromSeed.favourites[2].p, 22)
+  assert.equal(fromSeed.favourites[2].kcal, 110)
   assert.equal(fromSeed.favourites.some(item => item.name === 'Ancient bar'), false)
   assert.equal(fromSeed.favourites.filter(item => item.name === 'Usual Breakfast').length, 1)
 
@@ -173,8 +188,53 @@ test('a missing or breakfast-only list is rebuilt from the last 30 days', () => 
   }
   const capped = favouritesForInstall([], { now, days: many })
   assert.equal(capped.rebuilt, true)
-  assert.equal(capped.favourites.length, 17)
+  assert.equal(capped.favourites.length, 18)
   assert.equal(capped.favourites[0].name, 'Usual Breakfast')
+  assert.equal(capped.favourites[1].name, 'Lifeway Strawberry Kefir (1 cup)')
+})
+
+test('Lifeway strawberry kefir stays after breakfast and is not overwritten or rebuilt away', () => {
+  const kefir = lifewayKefirFavourite()
+  assert.equal(kefir.name, 'Lifeway Strawberry Kefir (1 cup)')
+  assert.equal(kefir.p, 10)
+  assert.equal(kefir.kcal, 140)
+  assert.equal(kefir.fat, 2)
+  assert.equal(kefir.carbs, 18)
+  assert.equal(kefir.fiber, 0)
+
+  const custom = { name: kefir.name, p: 11, kcal: 150, fat: 2, carbs: 20, fiber: 0 }
+  const kept = favouritesForInstall([
+    { name: 'Tuna', p: 20, kcal: 100, fat: 1, carbs: 0, fiber: 0 },
+    custom,
+  ])
+  assert.equal(kept.rebuilt, false)
+  assert.deepEqual(kept.favourites.map(item => item.name), [
+    'Usual Breakfast', 'Lifeway Strawberry Kefir (1 cup)', 'Tuna',
+  ])
+  assert.equal(kept.favourites[1], custom)
+  assert.equal(kept.favourites[2].p, 20)
+
+  const now = new Date('2026-10-12T15:00:00')
+  const rebuilt = favouritesForInstall(
+    [{ name: 'Usual Breakfast', components: [] }, kefir],
+    {
+      now,
+      days: {
+        [dayKey(now, 1)]: {
+          food: [
+            food('Chicken', 40, 220),
+            food('Lifeway Strawberry Kefir (1 cup)', 8, 100, '09:00'),
+          ],
+        },
+      },
+    },
+  )
+  assert.equal(rebuilt.rebuilt, true)
+  assert.deepEqual(rebuilt.favourites.map(item => item.name), [
+    'Usual Breakfast', 'Lifeway Strawberry Kefir (1 cup)', 'Chicken',
+  ])
+  assert.equal(rebuilt.favourites[1], kefir)
+  assert.equal(rebuilt.favourites.filter(item => item.name === kefir.name).length, 1)
 })
 
 test('an existing install with no recipe, or an empty one, gets the seven-item seed', () => {

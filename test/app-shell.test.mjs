@@ -5,6 +5,7 @@ import { seedUsualBreakfast } from '../lib/usual-breakfast.mjs'
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
+const boot = readFileSync(new URL('../lib/next-sync-boot.js', import.meta.url), 'utf8')
 
 test('the header goal labels are rendered from GOALS and the Food tab has no glance card', () => {
   assert.match(html, /const GOALS = \{ protein: 140, fat: 70, carbs: 220, fiber: 30 \}/)
@@ -16,8 +17,14 @@ test('the header goal labels are rendered from GOALS and the Food tab has no gla
   assert.doesNotMatch(html, /\/ 30 g/)
   assert.doesNotMatch(html, /id="today-plan-card"/)
   assert.doesNotMatch(html, /Today at a glance/)
-  assert.match(html, /id="plan-panel"/)
-  assert.match(html, /id="plan-days"/)
+  assert.doesNotMatch(html, /id="plan-panel"/)
+  assert.doesNotMatch(html, /id="plan-days"/)
+  assert.doesNotMatch(html, /data-tab="plan"/)
+  assert.match(html, /data-tab="food"/)
+  assert.match(html, /data-tab="gym"/)
+  assert.match(html, /data-tab="log"/)
+  assert.match(html, /function readWeekPlan/)
+  assert.match(html, /Lifeway Strawberry Kefir \(1 cup\)/)
   assert.match(html, /Today's workout/)
   assert.doesNotMatch(html, /Today's [Pp]lan/)
   assert.match(html, /getDate\(\) - 29/)
@@ -48,4 +55,8 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.match(sw, /usual-breakfast\.mjs/)
   assert.match(sw, /athletelog-v42/)
   assert.match(sw, /network for lib scripts/)
+  assert.match(boot, /window\.AthleteLogPlan = WeekPlan/)
+  assert.match(boot, /alog_week_plan|PLAN_STORAGE_KEY/)
+  assert.doesNotMatch(boot, /plan-panel/)
+  assert.match(boot, /renderHeader/)
 })
