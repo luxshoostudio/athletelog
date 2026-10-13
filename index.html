@@ -2625,15 +2625,25 @@ const FAVOURITES_KEY = 'alog_favourites';
 const USUAL_BREAKFAST_FALLBACK = {
   name: 'Usual Breakfast',
   items: [
-    { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
-    { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
+    { name: 'Blueberries', amount: '80 g', p: 0.6, kcal: 46, fat: 0.3, carbs: 11.6, fiber: 1.9 },
+    { name: 'Raspberries', amount: '80 g', p: 1, kcal: 42, fat: 0.5, carbs: 9.6, fiber: 5.2 },
     { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
     { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
-    { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
+    { name: 'Chia seeds', amount: '10 g', p: 1.7, kcal: 49, fat: 3.1, carbs: 4.2, fiber: 3.4 },
     { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
-    { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
+    { name: 'whole milk', amount: '50 ml', p: 1.6, kcal: 31, fat: 1.6, carbs: 2.4, fiber: 0 },
   ],
 };
+
+const OLD_USUAL_BREAKFAST_ITEMS = [
+  { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
+  { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
+  { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
+  { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
+  { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
+  { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
+  { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
+];
 
 function roundMacro(value) {
   const api = window.AthleteLogBreakfast;
@@ -2747,10 +2757,27 @@ function kefirFavourite() {
   return { name: 'Lifeway Strawberry Kefir (1 cup)', p: 10, kcal: 140, fat: 2, carbs: 18, fiber: 0 };
 }
 
+function breakfastItemSignature(item) {
+  return [
+    String(item?.name || '').trim().toLocaleLowerCase(),
+    String(item?.amount || '').trim(),
+    roundMacro(item?.p), roundMacro(item?.kcal), roundMacro(item?.fat),
+    roundMacro(item?.carbs), roundMacro(item?.fiber),
+  ].join('|');
+}
+
+function isOldUsualBreakfast(favourite) {
+  const items = favourite?.components;
+  if (!Array.isArray(items) || items.length !== OLD_USUAL_BREAKFAST_ITEMS.length) return false;
+  const have = items.map(breakfastItemSignature).sort();
+  const want = OLD_USUAL_BREAKFAST_ITEMS.map(breakfastItemSignature).sort();
+  return have.every((value, index) => value === want[index]);
+}
+
 function pinPageFavourites(list) {
   const items = (Array.isArray(list) ? list : []).filter(item => item && String(item.name || '').trim());
   const breakfastCurrent = items.find(item => isBreakfastName(item.name));
-  const breakfast = breakfastCurrent && Array.isArray(breakfastCurrent.components) && breakfastCurrent.components.length
+  const breakfast = breakfastCurrent && Array.isArray(breakfastCurrent.components) && breakfastCurrent.components.length && !isOldUsualBreakfast(breakfastCurrent)
     ? breakfastCurrent
     : fallbackUsualBreakfastFavourite();
   const kefir = items.find(item => isKefirName(item.name)) || kefirFavourite();
