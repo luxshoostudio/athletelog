@@ -15,7 +15,7 @@ import {
   usualBreakfastFavourite,
 } from '../lib/usual-breakfast.mjs'
 
-test('the saved breakfast is the fixed recipe and totals about 30 g / 470 kcal / 18 g fiber', () => {
+test('the saved breakfast is the fixed recipe and totals about 30.2 g / 464 kcal / 16.5 g fiber', () => {
   const recipe = seedUsualBreakfast()
   assert.equal(USUAL_BREAKFAST_KEY, 'alog_usual_breakfast')
   assert.deepEqual(recipe.items.map(item => item.name), [
@@ -25,32 +25,44 @@ test('the saved breakfast is the fixed recipe and totals about 30 g / 470 kcal /
     'Kodiak Protein oats',
     'Chia seeds',
     "Trader Joe's Greek yogurt",
-    '2% milk',
+    'whole milk',
   ])
   assert.deepEqual(recipe.items.map(item => item.amount), [
-    '100 g', '100 g', '50 g', '1/2 cup dry', '2 tsp', '150 g', '50 ml',
+    '80 g', '80 g', '50 g', '1/2 cup dry', '10 g', '150 g', '50 ml',
   ])
   const berries = Object.fromEntries(recipe.items.map(item => [item.name, item]))
+  assert.equal(berries.Blueberries.p, 0.6)
+  assert.equal(berries.Blueberries.kcal, 46)
+  assert.equal(berries.Blueberries.fiber, 1.9)
   assert.equal(berries.Blueberries.fat, 0.3)
-  assert.equal(berries.Blueberries.carbs, 14.5)
-  assert.equal(berries.Raspberries.fat, 0.7)
-  assert.equal(berries.Raspberries.carbs, 11.9)
+  assert.equal(berries.Blueberries.carbs, 11.6)
+  assert.equal(berries.Raspberries.p, 1)
+  assert.equal(berries.Raspberries.kcal, 42)
+  assert.equal(berries.Raspberries.fiber, 5.2)
+  assert.equal(berries.Raspberries.fat, 0.5)
+  assert.equal(berries.Raspberries.carbs, 9.6)
   assert.equal(berries.Strawberries.fat, 0.2)
   assert.equal(berries.Strawberries.carbs, 3.8)
-  assert.equal(berries['Chia seeds'].fat, 2.5)
-  assert.equal(berries['Chia seeds'].carbs, 3.4)
-  assert.equal(berries['2% milk'].fat, 1)
-  assert.equal(berries['2% milk'].carbs, 2.4)
+  assert.equal(berries['Chia seeds'].p, 1.7)
+  assert.equal(berries['Chia seeds'].kcal, 49)
+  assert.equal(berries['Chia seeds'].fiber, 3.4)
+  assert.equal(berries['Chia seeds'].fat, 3.1)
+  assert.equal(berries['Chia seeds'].carbs, 4.2)
+  assert.equal(berries['whole milk'].p, 1.6)
+  assert.equal(berries['whole milk'].kcal, 31)
+  assert.equal(berries['whole milk'].fiber, 0)
+  assert.equal(berries['whole milk'].fat, 1.6)
+  assert.equal(berries['whole milk'].carbs, 2.4)
   assert.equal(berries['Kodiak Protein oats'].fat, 4)
   assert.equal(berries['Kodiak Protein oats'].carbs, 29)
   assert.equal(berries["Trader Joe's Greek yogurt"].fat, 0)
   assert.equal(berries["Trader Joe's Greek yogurt"].carbs, 6)
   const totals = sumMacros(recipe.items)
   assert.equal(totals.p, 30.2)
-  assert.equal(totals.kcal, 470)
-  assert.equal(totals.fat, 8.7)
-  assert.equal(totals.carbs, 71)
-  assert.equal(totals.fiber, 17.7)
+  assert.equal(totals.kcal, 464)
+  assert.equal(totals.fat, 9.7)
+  assert.equal(totals.carbs, 66.6)
+  assert.equal(totals.fiber, 16.5)
 })
 
 test('an existing install gets Usual Breakfast in favourites when it is missing', () => {
@@ -58,13 +70,13 @@ test('an existing install gets Usual Breakfast in favourites when it is missing'
   assert.equal(favourite.name, 'Usual Breakfast')
   assert.deepEqual(favourite.components.map(item => item.name), [
     'Blueberries', 'Raspberries', 'Strawberries', 'Kodiak Protein oats',
-    'Chia seeds', "Trader Joe's Greek yogurt", '2% milk',
+    'Chia seeds', "Trader Joe's Greek yogurt", 'whole milk',
   ])
   assert.equal(favourite.p, 30.2)
-  assert.equal(favourite.kcal, 470)
-  assert.equal(favourite.fat, 8.7)
-  assert.equal(favourite.carbs, 71)
-  assert.equal(favourite.fiber, 17.7)
+  assert.equal(favourite.kcal, 464)
+  assert.equal(favourite.fat, 9.7)
+  assert.equal(favourite.carbs, 66.6)
+  assert.equal(favourite.fiber, 16.5)
 
   const missing = favouritesForInstall(null)
   assert.equal(missing.seeded, true)
@@ -191,6 +203,111 @@ test('a missing or breakfast-only list is rebuilt from the last 30 days', () => 
   assert.equal(capped.favourites.length, 18)
   assert.equal(capped.favourites[0].name, 'Usual Breakfast')
   assert.equal(capped.favourites[1].name, 'Lifeway Strawberry Kefir (1 cup)')
+})
+
+const OLD_USUAL_BREAKFAST_ITEMS = [
+  { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
+  { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
+  { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
+  { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
+  { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
+  { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
+  { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
+]
+
+function oldBreakfastFavourite(components = OLD_USUAL_BREAKFAST_ITEMS) {
+  return {
+    name: 'Usual Breakfast',
+    p: 30.2,
+    kcal: 470,
+    fat: 8.7,
+    carbs: 71,
+    fiber: 17.7,
+    components,
+  }
+}
+
+test('an untouched Usual Breakfast seed is replaced; an edit and every other favourite stay', () => {
+  const tuna = { name: 'Tuna', p: 20, kcal: 100, fat: 1, carbs: 0, fiber: 0 }
+  const kefir = { name: 'Lifeway Strawberry Kefir (1 cup)', p: 11, kcal: 150, fat: 2, carbs: 20, fiber: 0 }
+  const old = oldBreakfastFavourite()
+  const migrated = favouritesForInstall([old, kefir, tuna])
+  assert.equal(migrated.seeded, true)
+  assert.equal(migrated.rebuilt, false)
+  assert.equal(migrated.favourites[0].p, 30.2)
+  assert.equal(migrated.favourites[0].kcal, 464)
+  assert.equal(migrated.favourites[0].fat, 9.7)
+  assert.equal(migrated.favourites[0].carbs, 66.6)
+  assert.equal(migrated.favourites[0].fiber, 16.5)
+  const milk = migrated.favourites[0].components.find(item => item.name === 'whole milk')
+  assert.equal(milk.amount, '50 ml')
+  assert.equal(milk.p, 1.6)
+  assert.equal(milk.kcal, 31)
+  assert.equal(migrated.favourites[0].components.find(item => item.name === 'Blueberries').amount, '80 g')
+  assert.equal(migrated.favourites[0].components.some(item => item.name === '2% milk'), false)
+  assert.equal(migrated.favourites[1], kefir)
+  assert.equal(migrated.favourites[2], tuna)
+  assert.equal(migrated.favourites.length, 3)
+  assert.equal(old.kcal, 470)
+  assert.equal(old.components.find(item => item.name === '2% milk').amount, '50 ml')
+
+  const shuffled = oldBreakfastFavourite([...OLD_USUAL_BREAKFAST_ITEMS].reverse().map(item => (
+    item.name === 'Raspberries' ? { ...item, fiber: 6.5 + 1e-12 } : item
+  )))
+  const order = favouritesForInstall([{ ...shuffled, name: ' usual breakfast ' }, tuna])
+  assert.equal(order.seeded, true)
+  assert.equal(order.rebuilt, false)
+  assert.equal(order.favourites[0].kcal, 464)
+  assert.equal(order.favourites[0].components.find(item => item.name === 'Chia seeds').amount, '10 g')
+  assert.equal(order.favourites[2], tuna)
+
+  const edited = oldBreakfastFavourite(OLD_USUAL_BREAKFAST_ITEMS.map(item => (
+    item.name === 'Blueberries' ? { ...item, amount: '90 g' } : item
+  )))
+  const kept = favouritesForInstall([edited, tuna])
+  assert.equal(kept.rebuilt, false)
+  assert.equal(kept.favourites[0], edited)
+  assert.equal(kept.favourites[0].kcal, 470)
+  assert.equal(kept.favourites[0].components.find(item => item.name === 'Blueberries').amount, '90 g')
+  assert.equal(kept.favourites[2], tuna)
+
+  const macroEdit = oldBreakfastFavourite(OLD_USUAL_BREAKFAST_ITEMS.map(item => (
+    item.name === 'Chia seeds' ? { ...item, fiber: 3 } : item
+  )))
+  const keptMacro = favouritesForInstall([macroEdit, kefir, tuna])
+  assert.equal(keptMacro.seeded, false)
+  assert.equal(keptMacro.rebuilt, false)
+  assert.equal(keptMacro.favourites[0], macroEdit)
+  assert.equal(keptMacro.favourites[1], kefir)
+  assert.equal(keptMacro.favourites[2], tuna)
+
+  const fresh = usualBreakfastFavourite()
+  const alreadyNew = favouritesForInstall([fresh, kefir, tuna])
+  assert.equal(alreadyNew.seeded, false)
+  assert.equal(alreadyNew.favourites[0], fresh)
+
+  const now = new Date('2026-10-12T15:00:00')
+  const logged = {
+    name: 'Usual Breakfast',
+    p: 30.2,
+    kcal: 470,
+    time: '08:00',
+    source: 'Usual Breakfast',
+    components: OLD_USUAL_BREAKFAST_ITEMS.map(item => ({ ...item })),
+  }
+  const day = dayKey(now, 1)
+  const days = { [day]: { food: [logged, food('Chicken', 40, 220)] } }
+  const rebuilt = favouritesForInstall([oldBreakfastFavourite()], { now, days })
+  assert.equal(rebuilt.rebuilt, true)
+  assert.equal(rebuilt.favourites.filter(item => item.name === 'Usual Breakfast').length, 1)
+  assert.equal(rebuilt.favourites[0].kcal, 464)
+  assert.equal(rebuilt.favourites[0].fiber, 16.5)
+  assert.deepEqual(rebuilt.favourites.slice(1).map(item => item.name), [
+    'Lifeway Strawberry Kefir (1 cup)', 'Chicken',
+  ])
+  assert.equal(days[day].food[0], logged)
+  assert.equal(logged.kcal, 470)
+  assert.equal(logged.components.find(item => item.name === '2% milk').amount, '50 ml')
 })
 
 test('Lifeway strawberry kefir stays after breakfast and is not overwritten or rebuilt away', () => {
