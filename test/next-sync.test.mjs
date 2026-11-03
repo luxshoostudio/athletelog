@@ -63,6 +63,30 @@ describe('AthleteLog import ids', () => {
     assert.ok(second.needsPush)
     assert.ok(second.state.foodEntries.find(entry => entry.id === 'al-food-1bd5jng')._ts >= 5_000)
   })
+
+  it('stamps a unit and qty edit and leaves unchanged macros', () => {
+    const first = reconcile({ localDays: day, serverState: {}, now: 1_000 })
+    const edited = structuredClone(day)
+    edited.alog_2026_09_11.food[0].unit = 'g'
+    edited.alog_2026_09_11.food[0].qty = 150
+    const second = reconcile({
+      localDays: edited,
+      serverState: first.state,
+      memory: { ...first.memory, dirtyAt: 5_000 },
+      now: 5_000,
+    })
+    const food = second.state.foodEntries.find(entry => entry.id === 'al-food-1bd5jng')
+    assert.equal(food.unit, 'g')
+    assert.equal(food.qty, 150)
+    assert.equal(food.protein, 10)
+    assert.equal(food.calories, 59)
+    assert.equal(food.time, '09:15')
+    assert.ok(food._f.unit >= 5_000)
+    assert.ok(food._f.qty >= 5_000)
+    assert.equal(food._f.protein, undefined)
+    assert.equal(food._f.calories, undefined)
+    assert.equal(second.state.foodEntries.filter(entry => entry.name === 'greek yogurt').length, 1)
+  })
 })
 
 describe('merge', () => {

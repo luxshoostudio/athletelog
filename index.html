@@ -1640,11 +1640,18 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 </div>
 
-<!-- TIME EDIT MODAL -->
+<!-- TIME AND UNIT EDIT MODAL -->
 <div class="time-edit-overlay" id="time-edit-modal">
   <div class="time-edit-sheet">
-    <div class="modal-title">Edit Time</div>
+    <div class="modal-title">Edit entry</div>
+    <label class="modal-label" for="time-edit-input">Time</label>
     <input type="time" class="modal-input" id="time-edit-input">
+    <label class="modal-label" for="time-edit-qty">Quantity</label>
+    <input type="text" class="modal-input" id="time-edit-qty" inputmode="decimal" placeholder="Optional">
+    <label class="modal-label" for="time-edit-unit">Unit</label>
+    <select class="modal-input" id="time-edit-unit" onchange="onEntryUnitChange()"></select>
+    <input type="text" class="modal-input hidden" id="time-edit-unit-custom" placeholder="Custom unit" maxlength="40">
+    <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px;">Nutrition stays as logged.</div>
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeTimeModal()">Cancel</button>
       <button class="green-btn" onclick="confirmTimeEdit()">Save</button>
@@ -3484,10 +3491,10 @@ function renderHomeTodayFood() {
   }
   container.innerHTML = foods.map(f => `
     <div class="home-food-item">
-      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit time for ${escHtml(f.name)}"
+      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit time and unit for ${escHtml(f.name)}"
         style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:44px;border:0;background:transparent;padding:8px 0;text-align:left;">${f.time||'--:--'}</button>
       <div class="home-food-item-name">${escHtml(f.name)}</div>
-      <div class="home-food-item-meta">${formatMacro(f.p)}g P · ${formatMacro(f.kcal)} kcal</div>
+      <div class="home-food-item-meta">${formatMacro(f.p)}g P · ${formatMacro(f.kcal)} kcal${entryAmountLabel(f) ? ` · ${escHtml(entryAmountLabel(f))}` : ''}</div>
       <button class="home-food-item-del" onclick="homeDeleteFood('${f.id}')">✕</button>
     </div>
   `).join('');
@@ -3583,11 +3590,13 @@ function renderDetailContent() {
 }
 
 function renderFoodEntryHTML(f, editable) {
+  const amount = entryAmountLabel(f);
   return `<div class="food-entry-row" id="frow-${f.id}">
     <div class="food-entry-info">
       <div class="food-entry-name">${escHtml(f.name)}</div>
       <div class="food-entry-meta">
         <span class="food-entry-time" onclick="${editable?`editTime('${f.id}')`:'void 0'}">${f.time||'--:--'}</span>
+        ${amount ? ` · ${escHtml(amount)}` : ''}
         ${f.fiber ? `· ${formatMacro(f.fiber)}g fiber` : ''}
       </div>
     </div>
@@ -4432,6 +4441,68 @@ function deleteFoodEntry(id) {
   renderLogTab();
 }
 
+function foodUnitChoices(current) {
+  const choices = ['serving', 'g', 'ml', 'cup', 'tbsp', 'piece', 'slice', 'scoop', 'bowl'];
+  const unit = String(current || '').trim();
+  if (unit && choices.indexOf(unit) < 0) choices.push(unit);
+  return choices;
+}
+
+function entryAmountLabel(entry) {
+  const unit = String(entry && entry.unit || '').trim();
+  const qty = Number(entry && entry.qty);
+  const hasQty = Number.isFinite(qty) && qty > 0;
+  if (hasQty && unit) return String(qty) + ' ' + unit;
+  if (unit) return unit;
+  if (hasQty) return String(qty);
+  return '';
+}
+
+// The logged macros are already absolute. Catalog units are not convertible
+// (per 100 g versus per cup versus per egg), so a unit edit only relabels.
+function applyEntryAmount(entry, unit, qtyText) {
+  const next = Object.assign({}, entry);
+  const clean = String(unit || '').trim();
+  if (clean) next.unit = clean;
+  const raw = String(qtyText == null ? '' : qtyText).trim();
+  if (!raw) delete next.qty;
+  else {
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) next.qty = n;
+  }
+  return next;
+}
+
+function fillEntryUnitSelect(current) {
+  const sel = document.getElementById('time-edit-unit');
+  const custom = document.getElementById('time-edit-unit-custom');
+  if (!sel) return;
+  const unit = String(current || '').trim() || 'serving';
+  const choices = foodUnitChoices(unit);
+  sel.innerHTML = choices.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('')
+    + '<option value="__custom__">Other</option>';
+  sel.value = unit;
+  if (custom) {
+    custom.value = '';
+    custom.classList.add('hidden');
+  }
+}
+
+function onEntryUnitChange() {
+  const sel = document.getElementById('time-edit-unit');
+  const custom = document.getElementById('time-edit-unit-custom');
+  if (!sel || !custom) return;
+  const show = sel.value === '__custom__';
+  custom.classList.toggle('hidden', !show);
+  if (show) custom.focus();
+}
+
+function chosenEntryUnit() {
+  const sel = document.getElementById('time-edit-unit');
+  if (!sel || sel.value !== '__custom__') return sel ? sel.value : '';
+  return document.getElementById('time-edit-unit-custom').value;
+}
+
 function editTime(id) {
   editingTimeId = id;
   editingTimeKey = currentDetailKey || todayKey();
@@ -4441,6 +4512,9 @@ function editTime(id) {
   const entry = source.food.find(f => f.id === id);
   if (!entry) return;
   document.getElementById('time-edit-input').value = entry.time || nowTime();
+  const qty = document.getElementById('time-edit-qty');
+  if (qty) qty.value = entry.qty > 0 ? String(entry.qty) : '';
+  fillEntryUnitSelect(entry.unit || 'serving');
   document.getElementById('time-edit-modal').classList.add('open');
 }
 
@@ -4458,8 +4532,12 @@ function confirmTimeEdit() {
   const src = isToday ? state : (currentDetailKey === key && detailState ? detailState : loadState(key));
   const entry = src.food.find(f => f.id === editingTimeId);
   if (entry) {
+    const updated = applyEntryAmount(entry, chosenEntryUnit(), document.getElementById('time-edit-qty').value);
     entry.time = newTime;
     entry.ts = h*60+m;
+    if (updated.unit) entry.unit = updated.unit;
+    if (Object.prototype.hasOwnProperty.call(updated, 'qty')) entry.qty = updated.qty;
+    else delete entry.qty;
     if (isToday) { state = src; saveState(); }
     else { localStorage.setItem(key, JSON.stringify(src)); noteNextSync(); }
     if (currentDetailKey) {
