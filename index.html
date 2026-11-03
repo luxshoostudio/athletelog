@@ -5306,13 +5306,21 @@ function syncSessionSelect(sel, session) {
   sel.value = exact ? name : '';
 }
 
+function sessionNameKey(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
 function customSessionNames(activeSession, historyNames, templateNames, limit = 8) {
-  const seen = new Set(templateNames || []);
+  const templates = new Set((templateNames || []).map(sessionNameKey).filter(Boolean));
+  const seen = new Set();
   const names = [];
+  // First occurrence wins. Callers pass the active session, then history
+  // newest-first, so the spelling kept is the one used most recently.
   const add = (name) => {
     const trimmed = String(name || '').trim();
-    if (!trimmed || seen.has(trimmed)) return;
-    seen.add(trimmed);
+    const key = sessionNameKey(trimmed);
+    if (!key || templates.has(key) || seen.has(key)) return;
+    seen.add(key);
     names.push(trimmed);
   };
   add(activeSession);
@@ -5325,13 +5333,14 @@ function renderOrganicSessionSegments() {
   if (!container) return;
   const templates = getSessionTemplates();
   const activeSession = String(state.gym.session || '').trim();
+  const activeKey = sessionNameKey(activeSession);
   const historyNames = storedGymDays(365).map(day => day.gym && day.gym.session);
   const customNames = customSessionNames(activeSession, historyNames, templates.map(template => template.name));
   const templateChips = templates.map(template => `
-    <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
+    <button class="organic-segment${sessionNameKey(template.name) === activeKey ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
   `).join('');
   const customChips = customNames.map(name => `
-    <button class="organic-segment${name === activeSession ? ' active' : ''}" data-session="${escHtml(name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(name)}</button>
+    <button class="organic-segment${sessionNameKey(name) === activeKey ? ' active' : ''}" data-session="${escHtml(name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(name)}</button>
   `).join('');
   container.innerHTML = templateChips + customChips + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
 }
