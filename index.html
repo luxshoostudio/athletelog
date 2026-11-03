@@ -1640,11 +1640,22 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 </div>
 
-<!-- TIME EDIT MODAL -->
+<!-- TIME AND UNIT EDIT MODAL -->
 <div class="time-edit-overlay" id="time-edit-modal">
   <div class="time-edit-sheet">
-    <div class="modal-title">Edit Time</div>
+    <div class="modal-title">Edit entry</div>
+    <label class="modal-label" for="time-edit-qty">Quantity</label>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <button type="button" class="outline-btn" onclick="stepEntryQty(-0.5)" aria-label="Decrease quantity" style="width:44px;padding:11px 0;margin:0;">−</button>
+      <input type="text" class="modal-input" id="time-edit-qty" inputmode="decimal" oninput="updateEntryQtyPreview()" style="margin:0;text-align:center;font-size:20px;font-weight:700;">
+      <button type="button" class="outline-btn" onclick="stepEntryQty(0.5)" aria-label="Increase quantity" style="width:44px;padding:11px 0;margin:0;">+</button>
+    </div>
+    <div id="time-edit-preview" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+    <label class="modal-label" for="time-edit-input">Time</label>
     <input type="time" class="modal-input" id="time-edit-input">
+    <label class="modal-label" for="time-edit-unit">Unit</label>
+    <select class="modal-input" id="time-edit-unit" onchange="onEntryUnitChange()"></select>
+    <input type="text" class="modal-input hidden" id="time-edit-unit-custom" placeholder="Custom unit" maxlength="40">
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeTimeModal()">Cancel</button>
       <button class="green-btn" onclick="confirmTimeEdit()">Save</button>
@@ -3484,10 +3495,10 @@ function renderHomeTodayFood() {
   }
   container.innerHTML = foods.map(f => `
     <div class="home-food-item">
-      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit time for ${escHtml(f.name)}"
+      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit quantity and time for ${escHtml(f.name)}"
         style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:44px;border:0;background:transparent;padding:8px 0;text-align:left;">${f.time||'--:--'}</button>
       <div class="home-food-item-name">${escHtml(f.name)}</div>
-      <div class="home-food-item-meta">${formatMacro(f.p)}g P · ${formatMacro(f.kcal)} kcal</div>
+      <div class="home-food-item-meta">${formatMacro(f.p)}g P · ${formatMacro(f.kcal)} kcal${entryAmountLabel(f) ? ` · ${escHtml(entryAmountLabel(f))}` : ''}</div>
       <button class="home-food-item-del" onclick="homeDeleteFood('${f.id}')">✕</button>
     </div>
   `).join('');
@@ -3583,11 +3594,13 @@ function renderDetailContent() {
 }
 
 function renderFoodEntryHTML(f, editable) {
+  const amount = entryAmountLabel(f);
   return `<div class="food-entry-row" id="frow-${f.id}">
     <div class="food-entry-info">
       <div class="food-entry-name">${escHtml(f.name)}</div>
       <div class="food-entry-meta">
         <span class="food-entry-time" onclick="${editable?`editTime('${f.id}')`:'void 0'}">${f.time||'--:--'}</span>
+        ${amount ? ` · ${escHtml(amount)}` : ''}
         ${f.fiber ? `· ${formatMacro(f.fiber)}g fiber` : ''}
       </div>
     </div>
@@ -4432,6 +4445,134 @@ function deleteFoodEntry(id) {
   renderLogTab();
 }
 
+function foodUnitChoices(current) {
+  const choices = ['serving', 'g', 'ml', 'cup', 'tbsp', 'piece', 'slice', 'scoop', 'bowl'];
+  const unit = String(current || '').trim();
+  if (unit && choices.indexOf(unit) < 0) choices.push(unit);
+  return choices;
+}
+
+function entryAmountLabel(entry) {
+  const unit = String(entry && entry.unit || '').trim();
+  const qty = Number(entry && entry.qty);
+  const hasQty = Number.isFinite(qty) && qty > 0;
+  if (hasQty && unit) return String(qty) + ' ' + unit;
+  if (unit) return unit;
+  if (hasQty) return String(qty);
+  return '';
+}
+
+function entryMacroKeys() {
+  return ['p', 'kcal', 'fat', 'carbs', 'fiber'];
+}
+
+function entryQty(entry) {
+  const n = Number(entry && entry.qty);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function scaleMacroExact(value, factor) {
+  const n = Number(value) * factor;
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 10000) / 10000;
+}
+
+function qtyBasisOf(entry) {
+  const stored = entry && entry.qtyBasis;
+  if (stored && Number(stored.qty) > 0) return stored;
+  const basis = { qty: entryQty(entry) };
+  for (const key of entryMacroKeys()) basis[key] = Number(entry && entry[key]) || 0;
+  if (Array.isArray(entry && entry.components)) {
+    basis.components = entry.components.map(item => {
+      const copy = {};
+      for (const key of entryMacroKeys()) {
+        if (item && item[key] != null) copy[key] = Number(item[key]) || 0;
+      }
+      return copy;
+    });
+  }
+  return basis;
+}
+
+// Quantity scales macros from the original basis (missing qty counts as 1).
+// Unit is only a label. Display rounds to 1 decimal; the basis keeps the
+// unrounded source so 1 → 1.5 → 1 does not drift.
+function applyEntryAmount(entry, unit, qtyText) {
+  const next = Object.assign({}, entry);
+  const clean = String(unit || '').trim();
+  if (clean) next.unit = clean;
+  const raw = String(qtyText == null ? '' : qtyText).trim();
+  const parsed = Number(raw);
+  if (!raw || !Number.isFinite(parsed) || parsed <= 0) return next;
+  const basis = qtyBasisOf(entry);
+  const factor = parsed / Number(basis.qty);
+  next.qty = parsed;
+  next.qtyBasis = basis;
+  for (const key of entryMacroKeys()) next[key] = scaleMacroExact(basis[key], factor);
+  if (Array.isArray(entry.components) && Array.isArray(basis.components)) {
+    next.components = entry.components.map((item, index) => {
+      const source = basis.components[index] || {};
+      const scaled = Object.assign({}, item);
+      for (const key of entryMacroKeys()) {
+        if (source[key] == null && (item == null || item[key] == null)) continue;
+        scaled[key] = scaleMacroExact(source[key] != null ? source[key] : item[key], factor);
+      }
+      return scaled;
+    });
+  }
+  return next;
+}
+
+function fillEntryUnitSelect(current) {
+  const sel = document.getElementById('time-edit-unit');
+  const custom = document.getElementById('time-edit-unit-custom');
+  if (!sel) return;
+  const unit = String(current || '').trim() || 'serving';
+  const choices = foodUnitChoices(unit);
+  sel.innerHTML = choices.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('')
+    + '<option value="__custom__">Other</option>';
+  sel.value = unit;
+  if (custom) {
+    custom.value = '';
+    custom.classList.add('hidden');
+  }
+}
+
+function onEntryUnitChange() {
+  const sel = document.getElementById('time-edit-unit');
+  const custom = document.getElementById('time-edit-unit-custom');
+  if (!sel || !custom) return;
+  const show = sel.value === '__custom__';
+  custom.classList.toggle('hidden', !show);
+  if (show) custom.focus();
+}
+
+function chosenEntryUnit() {
+  const sel = document.getElementById('time-edit-unit');
+  if (!sel || sel.value !== '__custom__') return sel ? sel.value : '';
+  return document.getElementById('time-edit-unit-custom').value;
+}
+
+let editingEntrySnapshot = null;
+
+function updateEntryQtyPreview() {
+  const el = document.getElementById('time-edit-preview');
+  const input = document.getElementById('time-edit-qty');
+  if (!el || !input || !editingEntrySnapshot) return;
+  const updated = applyEntryAmount(editingEntrySnapshot, '', input.value);
+  el.textContent = formatMacro(updated.p) + ' g protein · ' + formatMacro(updated.kcal) + ' kcal';
+}
+
+function stepEntryQty(delta) {
+  const input = document.getElementById('time-edit-qty');
+  if (!input) return;
+  const current = Number(input.value);
+  const base = Number.isFinite(current) && current > 0 ? current : 1;
+  const next = Math.round((base + delta) * 1000) / 1000;
+  input.value = String(next < 0.5 ? 0.5 : next);
+  updateEntryQtyPreview();
+}
+
 function editTime(id) {
   editingTimeId = id;
   editingTimeKey = currentDetailKey || todayKey();
@@ -4440,7 +4581,12 @@ function editTime(id) {
     : (currentDetailKey === editingTimeKey && detailState ? detailState : loadState(editingTimeKey));
   const entry = source.food.find(f => f.id === id);
   if (!entry) return;
+  editingEntrySnapshot = entry;
   document.getElementById('time-edit-input').value = entry.time || nowTime();
+  const qty = document.getElementById('time-edit-qty');
+  if (qty) qty.value = String(entryQty(entry));
+  fillEntryUnitSelect(entry.unit || 'serving');
+  updateEntryQtyPreview();
   document.getElementById('time-edit-modal').classList.add('open');
 }
 
@@ -4448,6 +4594,7 @@ function closeTimeModal() {
   document.getElementById('time-edit-modal').classList.remove('open');
   editingTimeId = null;
   editingTimeKey = null;
+  editingEntrySnapshot = null;
 }
 
 function confirmTimeEdit() {
@@ -4458,8 +4605,14 @@ function confirmTimeEdit() {
   const src = isToday ? state : (currentDetailKey === key && detailState ? detailState : loadState(key));
   const entry = src.food.find(f => f.id === editingTimeId);
   if (entry) {
+    const updated = applyEntryAmount(entry, chosenEntryUnit(), document.getElementById('time-edit-qty').value);
     entry.time = newTime;
     entry.ts = h*60+m;
+    if (updated.unit) entry.unit = updated.unit;
+    if (updated.qty) entry.qty = updated.qty;
+    if (updated.qtyBasis) entry.qtyBasis = updated.qtyBasis;
+    for (const key of entryMacroKeys()) entry[key] = updated[key];
+    if (updated.components) entry.components = updated.components;
     if (isToday) { state = src; saveState(); }
     else { localStorage.setItem(key, JSON.stringify(src)); noteNextSync(); }
     if (currentDetailKey) {
@@ -5228,13 +5381,21 @@ function syncSessionSelect(sel, session) {
   sel.value = exact ? name : '';
 }
 
+function sessionNameKey(name) {
+  return String(name || '').trim().toLowerCase();
+}
+
 function customSessionNames(activeSession, historyNames, templateNames, limit = 8) {
-  const seen = new Set(templateNames || []);
+  const templates = new Set((templateNames || []).map(sessionNameKey).filter(Boolean));
+  const seen = new Set();
   const names = [];
+  // First occurrence wins. Callers pass the active session, then history
+  // newest-first, so the spelling kept is the one used most recently.
   const add = (name) => {
     const trimmed = String(name || '').trim();
-    if (!trimmed || seen.has(trimmed)) return;
-    seen.add(trimmed);
+    const key = sessionNameKey(trimmed);
+    if (!key || templates.has(key) || seen.has(key)) return;
+    seen.add(key);
     names.push(trimmed);
   };
   add(activeSession);
@@ -5247,13 +5408,14 @@ function renderOrganicSessionSegments() {
   if (!container) return;
   const templates = getSessionTemplates();
   const activeSession = String(state.gym.session || '').trim();
+  const activeKey = sessionNameKey(activeSession);
   const historyNames = storedGymDays(365).map(day => day.gym && day.gym.session);
   const customNames = customSessionNames(activeSession, historyNames, templates.map(template => template.name));
   const templateChips = templates.map(template => `
-    <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
+    <button class="organic-segment${sessionNameKey(template.name) === activeKey ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
   `).join('');
   const customChips = customNames.map(name => `
-    <button class="organic-segment${name === activeSession ? ' active' : ''}" data-session="${escHtml(name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(name)}</button>
+    <button class="organic-segment${sessionNameKey(name) === activeKey ? ' active' : ''}" data-session="${escHtml(name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(name)}</button>
   `).join('');
   container.innerHTML = templateChips + customChips + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
 }

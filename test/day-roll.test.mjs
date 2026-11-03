@@ -115,16 +115,27 @@ test('the open page rebinds when the calendar day changes', () => {
 })
 
 test('a custom session is its own selected chip and does not select a built-in bucket', () => {
-  const customSessionNames = pageFunction('customSessionNames')
+  const customSessionNames = new Function(`${extractFunction(html, 'sessionNameKey')}\n${extractFunction(html, 'customSessionNames')}\nreturn customSessionNames;`)()
   const templates = ['Lower Body', 'Upper', 'Running', 'Other']
   const names = customSessionNames('Upper Push', ['Upper Push', 'Easy Spin', 'Upper', ''], templates)
   assert.deepEqual(names, ['Upper Push', 'Easy Spin'])
   assert.equal(customSessionNames('Upper', ['Upper Push'], templates)[0], 'Upper Push')
   assert.ok(!customSessionNames('Upper', ['Upper'], templates).includes('Upper'))
+  assert.deepEqual(customSessionNames(' upper ', ['Upper'], templates), [])
+  // Newest spelling wins: 11/3 "functioning" then 10/28 "Functioning" is one chip.
+  assert.deepEqual(
+    customSessionNames('', ['functioning', 'Functioning', '  functioning  '], templates),
+    ['functioning'],
+  )
+  assert.deepEqual(
+    customSessionNames('Functioning', ['functioning'], templates),
+    ['Functioning'],
+  )
 
   const render = extractFunction(html, 'renderOrganicSessionSegments')
   assert.match(render, /customSessionNames/)
-  assert.match(render, /template\.name === activeSession/)
+  assert.match(render, /sessionNameKey\(template\.name\) === activeKey/)
+  assert.match(render, /sessionNameKey\(name\) === activeKey/)
   assert.doesNotMatch(render, /canonicalSessionType\(state\.gym\.session/)
   const select = extractFunction(html, 'selectOrganicSession')
   assert.doesNotMatch(select, /sel\.value = canonicalSessionType\(session\)/)
