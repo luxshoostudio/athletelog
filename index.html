@@ -1644,14 +1644,18 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <div class="time-edit-overlay" id="time-edit-modal">
   <div class="time-edit-sheet">
     <div class="modal-title">Edit entry</div>
+    <label class="modal-label" for="time-edit-qty">Quantity</label>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <button type="button" class="outline-btn" onclick="stepEntryQty(-0.5)" aria-label="Decrease quantity" style="width:44px;padding:11px 0;margin:0;">−</button>
+      <input type="text" class="modal-input" id="time-edit-qty" inputmode="decimal" oninput="updateEntryQtyPreview()" style="margin:0;text-align:center;font-size:20px;font-weight:700;">
+      <button type="button" class="outline-btn" onclick="stepEntryQty(0.5)" aria-label="Increase quantity" style="width:44px;padding:11px 0;margin:0;">+</button>
+    </div>
+    <div id="time-edit-preview" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
     <label class="modal-label" for="time-edit-input">Time</label>
     <input type="time" class="modal-input" id="time-edit-input">
-    <label class="modal-label" for="time-edit-qty">Quantity</label>
-    <input type="text" class="modal-input" id="time-edit-qty" inputmode="decimal" placeholder="Optional">
     <label class="modal-label" for="time-edit-unit">Unit</label>
     <select class="modal-input" id="time-edit-unit" onchange="onEntryUnitChange()"></select>
     <input type="text" class="modal-input hidden" id="time-edit-unit-custom" placeholder="Custom unit" maxlength="40">
-    <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px;">Nutrition stays as logged.</div>
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeTimeModal()">Cancel</button>
       <button class="green-btn" onclick="confirmTimeEdit()">Save</button>
@@ -3491,7 +3495,7 @@ function renderHomeTodayFood() {
   }
   container.innerHTML = foods.map(f => `
     <div class="home-food-item">
-      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit time and unit for ${escHtml(f.name)}"
+      <button type="button" onclick="editTime('${f.id}')" aria-label="Edit quantity and time for ${escHtml(f.name)}"
         style="font-size:10px;color:var(--dim);font-family:var(--mono);flex-shrink:0;width:44px;border:0;background:transparent;padding:8px 0;text-align:left;">${f.time||'--:--'}</button>
       <div class="home-food-item-name">${escHtml(f.name)}</div>
       <div class="home-food-item-meta">${formatMacro(f.p)}g P · ${formatMacro(f.kcal)} kcal${entryAmountLabel(f) ? ` · ${escHtml(entryAmountLabel(f))}` : ''}</div>
@@ -4458,17 +4462,63 @@ function entryAmountLabel(entry) {
   return '';
 }
 
-// The logged macros are already absolute. Catalog units are not convertible
-// (per 100 g versus per cup versus per egg), so a unit edit only relabels.
+function entryMacroKeys() {
+  return ['p', 'kcal', 'fat', 'carbs', 'fiber'];
+}
+
+function entryQty(entry) {
+  const n = Number(entry && entry.qty);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function scaleMacroExact(value, factor) {
+  const n = Number(value) * factor;
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n * 10000) / 10000;
+}
+
+function qtyBasisOf(entry) {
+  const stored = entry && entry.qtyBasis;
+  if (stored && Number(stored.qty) > 0) return stored;
+  const basis = { qty: entryQty(entry) };
+  for (const key of entryMacroKeys()) basis[key] = Number(entry && entry[key]) || 0;
+  if (Array.isArray(entry && entry.components)) {
+    basis.components = entry.components.map(item => {
+      const copy = {};
+      for (const key of entryMacroKeys()) {
+        if (item && item[key] != null) copy[key] = Number(item[key]) || 0;
+      }
+      return copy;
+    });
+  }
+  return basis;
+}
+
+// Quantity scales macros from the original basis (missing qty counts as 1).
+// Unit is only a label. Display rounds to 1 decimal; the basis keeps the
+// unrounded source so 1 → 1.5 → 1 does not drift.
 function applyEntryAmount(entry, unit, qtyText) {
   const next = Object.assign({}, entry);
   const clean = String(unit || '').trim();
   if (clean) next.unit = clean;
   const raw = String(qtyText == null ? '' : qtyText).trim();
-  if (!raw) delete next.qty;
-  else {
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) next.qty = n;
+  const parsed = Number(raw);
+  if (!raw || !Number.isFinite(parsed) || parsed <= 0) return next;
+  const basis = qtyBasisOf(entry);
+  const factor = parsed / Number(basis.qty);
+  next.qty = parsed;
+  next.qtyBasis = basis;
+  for (const key of entryMacroKeys()) next[key] = scaleMacroExact(basis[key], factor);
+  if (Array.isArray(entry.components) && Array.isArray(basis.components)) {
+    next.components = entry.components.map((item, index) => {
+      const source = basis.components[index] || {};
+      const scaled = Object.assign({}, item);
+      for (const key of entryMacroKeys()) {
+        if (source[key] == null && (item == null || item[key] == null)) continue;
+        scaled[key] = scaleMacroExact(source[key] != null ? source[key] : item[key], factor);
+      }
+      return scaled;
+    });
   }
   return next;
 }
@@ -4503,6 +4553,26 @@ function chosenEntryUnit() {
   return document.getElementById('time-edit-unit-custom').value;
 }
 
+let editingEntrySnapshot = null;
+
+function updateEntryQtyPreview() {
+  const el = document.getElementById('time-edit-preview');
+  const input = document.getElementById('time-edit-qty');
+  if (!el || !input || !editingEntrySnapshot) return;
+  const updated = applyEntryAmount(editingEntrySnapshot, '', input.value);
+  el.textContent = formatMacro(updated.p) + ' g protein · ' + formatMacro(updated.kcal) + ' kcal';
+}
+
+function stepEntryQty(delta) {
+  const input = document.getElementById('time-edit-qty');
+  if (!input) return;
+  const current = Number(input.value);
+  const base = Number.isFinite(current) && current > 0 ? current : 1;
+  const next = Math.round((base + delta) * 1000) / 1000;
+  input.value = String(next < 0.5 ? 0.5 : next);
+  updateEntryQtyPreview();
+}
+
 function editTime(id) {
   editingTimeId = id;
   editingTimeKey = currentDetailKey || todayKey();
@@ -4511,10 +4581,12 @@ function editTime(id) {
     : (currentDetailKey === editingTimeKey && detailState ? detailState : loadState(editingTimeKey));
   const entry = source.food.find(f => f.id === id);
   if (!entry) return;
+  editingEntrySnapshot = entry;
   document.getElementById('time-edit-input').value = entry.time || nowTime();
   const qty = document.getElementById('time-edit-qty');
-  if (qty) qty.value = entry.qty > 0 ? String(entry.qty) : '';
+  if (qty) qty.value = String(entryQty(entry));
   fillEntryUnitSelect(entry.unit || 'serving');
+  updateEntryQtyPreview();
   document.getElementById('time-edit-modal').classList.add('open');
 }
 
@@ -4522,6 +4594,7 @@ function closeTimeModal() {
   document.getElementById('time-edit-modal').classList.remove('open');
   editingTimeId = null;
   editingTimeKey = null;
+  editingEntrySnapshot = null;
 }
 
 function confirmTimeEdit() {
@@ -4536,8 +4609,10 @@ function confirmTimeEdit() {
     entry.time = newTime;
     entry.ts = h*60+m;
     if (updated.unit) entry.unit = updated.unit;
-    if (Object.prototype.hasOwnProperty.call(updated, 'qty')) entry.qty = updated.qty;
-    else delete entry.qty;
+    if (updated.qty) entry.qty = updated.qty;
+    if (updated.qtyBasis) entry.qtyBasis = updated.qtyBasis;
+    for (const key of entryMacroKeys()) entry[key] = updated[key];
+    if (updated.components) entry.components = updated.components;
     if (isToday) { state = src; saveState(); }
     else { localStorage.setItem(key, JSON.stringify(src)); noteNextSync(); }
     if (currentDetailKey) {
