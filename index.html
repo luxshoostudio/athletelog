@@ -2959,6 +2959,8 @@ function searchFoodDb(query, limit = 8) {
 // STATE
 // ═══════════════════════════════════════════════════════════════
 let state = { food: [], gym: { session: '', exercises: [] }, water: 0, period: false };
+// Day the in-memory log was loaded for. Saves stay on this key after midnight.
+let stateDayKey = null;
 let currentDetailKey = null;
 let detailState = null; // state for currently viewed day
 let pendingFoodItem = null; // food item staged for qty modal
@@ -3109,9 +3111,114 @@ function renderTodayPlan() {
   body.append(protein, work);
 }
 
+function saveTargetKey(openKey, calendarKey) {
+  return openKey || calendarKey;
+}
+
+// Switch the open log to the calendar day. The open object is written back
+// only under its own key, never copied onto the new day and never deleted.
+function rollOpenDay(options) {
+  const openKey = options.openKey;
+  const calendarKey = options.calendarKey;
+  const memory = options.memory;
+  const read = options.read;
+  const write = options.write;
+  const from = openKey || calendarKey;
+  if (!calendarKey || from === calendarKey) {
+    return { rolled: false, openKey: from, nextState: memory, previousKey: from };
+  }
+  const persisted = JSON.stringify(memory);
+  const stored = read(from);
+  const hasEntries = !!(memory && (
+    (Array.isArray(memory.food) && memory.food.length) ||
+    (memory.gym && (memory.gym.session || (Array.isArray(memory.gym.exercises) && memory.gym.exercises.length))) ||
+    memory.waterMl || memory.water || memory.period || memory.garminKcal || memory.garminAutoKcal || memory.checkin
+  ));
+  if (stored !== persisted && (stored != null || hasEntries)) write(from, persisted);
+  const raw = read(calendarKey);
+  let nextState = null;
+  if (raw) {
+    try { nextState = JSON.parse(raw); }
+    catch { nextState = null; }
+  }
+  return { rolled: true, openKey: calendarKey, nextState, previousKey: from };
+}
+
+function useStoredToday() {
+  const previous = stateDayKey;
+  stateDayKey = todayKey();
+  state = loadState(stateDayKey);
+  // A sync or Health read can rebind the open day without going through the
+  // midnight watcher. Refresh Today when that happens so yesterday's rows
+  // do not stay on screen.
+  if (previous && previous !== stateDayKey) refreshAfterDayRoll();
+}
+
 function saveState() {
-  localStorage.setItem(todayKey(), JSON.stringify(state));
+  const key = saveTargetKey(stateDayKey, todayKey());
+  if (!stateDayKey) stateDayKey = key;
+  localStorage.setItem(key, JSON.stringify(state));
   noteNextSync();
+}
+
+function refreshAfterDayRoll() {
+  renderHeader();
+  renderDayList();
+  renderLogTab();
+  const gymPanel = document.getElementById('gym-panel');
+  if (gymPanel && gymPanel.classList.contains('active')) {
+    renderOrganicSessionSegments();
+    renderSessionSuggestions();
+    renderExerciseList();
+    renderFreqExercises();
+    renderGymHistory();
+  }
+  const foodDetail = document.getElementById('food-day-detail');
+  if (currentDetailKey && foodDetail && foodDetail.classList.contains('slide-in')) {
+    const title = document.getElementById('detail-date-title');
+    if (title) title.textContent = currentDetailKey === todayKey() ? 'Today' : formatKey(currentDetailKey);
+    renderDetailContent();
+  }
+}
+
+function onCalendarDayMaybeChanged() {
+  if (!stateDayKey || stateDayKey === todayKey()) return;
+  const previousKey = stateDayKey;
+  const viewingPrevious = currentDetailKey === previousKey;
+  const result = rollOpenDay({
+    openKey: stateDayKey,
+    calendarKey: todayKey(),
+    memory: state,
+    read: key => localStorage.getItem(key),
+    write: (key, value) => {
+      localStorage.setItem(key, value);
+      noteNextSync();
+    },
+  });
+  stateDayKey = result.openKey;
+  state = loadState(stateDayKey);
+  if (viewingPrevious) detailState = loadState(previousKey);
+  refreshAfterDayRoll();
+}
+
+function watchCalendarDay() {
+  if (window.__alogDayWatch) return;
+  window.__alogDayWatch = true;
+  const check = () => onCalendarDayMaybeChanged();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') check();
+  });
+  window.addEventListener('pageshow', check);
+  window.addEventListener('focus', check);
+  document.addEventListener('resume', check);
+  // Roll before the tap or key that would otherwise edit yesterday's object.
+  document.addEventListener('pointerdown', check, true);
+  document.addEventListener('keydown', check, true);
+  setInterval(check, 60000);
+  const app = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (app && app.addListener) {
+    app.addListener('appStateChange', change => { if (change && change.isActive) check(); });
+  }
 }
 
 function saveDetailState() {
@@ -5069,7 +5176,7 @@ function initGymTab() {
   for (const template of getSessionTemplates()) {
     sel.innerHTML += `<option value="${escHtml(template.name)}">${escHtml(template.name)}</option>`;
   }
-  sel.value = canonicalSessionType(state.gym.session || '');
+  syncSessionSelect(sel, state.gym.session || '');
   renderOrganicSessionSegments();
   renderFeelingRow();
   renderSessionSuggestions();
@@ -5093,8 +5200,7 @@ function selectOrganicSession(session) {
   }
   state.gym.session = session;
   if (template) loadTemplatePlan(template);
-  const sel = document.getElementById('session-select');
-  if (sel) sel.value = canonicalSessionType(session);
+  syncSessionSelect(document.getElementById('session-select'), session);
   const exerciseName = document.getElementById('gym-ex-name');
   if (exerciseName) {
     if (canonicalSessionType(session) === 'Running' && !exerciseName.value.trim()) exerciseName.value = 'Running';
@@ -5114,14 +5220,42 @@ function selectCustomSession() {
   selectOrganicSession(name.trim());
 }
 
+function syncSessionSelect(sel, session) {
+  if (!sel) return;
+  const name = String(session || '');
+  let exact = false;
+  for (const option of sel.options) if (option.value === name) exact = true;
+  sel.value = exact ? name : '';
+}
+
+function customSessionNames(activeSession, historyNames, templateNames, limit = 8) {
+  const seen = new Set(templateNames || []);
+  const names = [];
+  const add = (name) => {
+    const trimmed = String(name || '').trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    names.push(trimmed);
+  };
+  add(activeSession);
+  for (const name of historyNames || []) add(name);
+  return names.slice(0, limit);
+}
+
 function renderOrganicSessionSegments() {
   const container = document.getElementById('organic-session-segments');
   if (!container) return;
   const templates = getSessionTemplates();
-  const activeSession = canonicalSessionType(state.gym.session || '');
-  container.innerHTML = templates.map(template => `
+  const activeSession = String(state.gym.session || '').trim();
+  const historyNames = storedGymDays(365).map(day => day.gym && day.gym.session);
+  const customNames = customSessionNames(activeSession, historyNames, templates.map(template => template.name));
+  const templateChips = templates.map(template => `
     <button class="organic-segment${template.name === activeSession ? ' active' : ''}" data-session="${escHtml(template.name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(shortSessionLabel(template.name))}</button>
-  `).join('') + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
+  `).join('');
+  const customChips = customNames.map(name => `
+    <button class="organic-segment${name === activeSession ? ' active' : ''}" data-session="${escHtml(name)}" onclick="selectOrganicSession(this.dataset.session)">${escHtml(name)}</button>
+  `).join('');
+  container.innerHTML = templateChips + customChips + `<button class="organic-segment" onclick="selectCustomSession()">Custom</button>`;
 }
 
 function renderSessionSuggestions() {
@@ -5358,8 +5492,7 @@ function preloadTodayWorkout() {
 
 function renderExerciseList() {
   if (preloadTodayWorkout()) {
-    const sel = document.getElementById('session-select');
-    if (sel) sel.value = canonicalSessionType(state.gym.session || '');
+    syncSessionSelect(document.getElementById('session-select'), state.gym.session || '');
     renderOrganicSessionSegments();
     renderSessionSuggestions();
     renderFreqExercises();
@@ -5939,7 +6072,7 @@ function handleBackupFileRestore(event) {
       if (count === 0) throw new Error('No log data found in file');
       closeRestoreModal();
       // Reload state from today
-      state = loadState(todayKey());
+      useStoredToday();
       renderHeader();
       renderDayList();
       renderLogTab();
@@ -5993,7 +6126,7 @@ async function restoreFromGist() {
     localStorage.setItem('github_gist_id', backup.id);
 
     closeRestoreModal();
-    state = loadState(todayKey());
+    useStoredToday();
     renderHeader();
     renderDayList();
     renderLogTab();
@@ -6087,7 +6220,7 @@ async function setupNativeReminders() {
 // GITHUB GIST CLOUD SYNC
 // ═══════════════════════════════════════════════════════════════
 function applyNextSyncDays() {
-  state = loadState(todayKey());
+  useStoredToday();
   if (currentDetailKey) detailState = loadState(currentDetailKey);
   renderHeader();
   if (typeof renderDayList === 'function') renderDayList();
@@ -6265,7 +6398,7 @@ async function healthSync(silent = true, days = 7) {
     if (changed) { localStorage.setItem(key, JSON.stringify(day)); applied++; }
   }
 
-  state = loadState(todayKey());
+  useStoredToday();
   localStorage.setItem('garmin_last_sync', new Date().toISOString());
   renderLogTab();
   updateGarminBtn();
@@ -6402,7 +6535,7 @@ async function garminAutoSync(silent = true) {
       applied++;
     }
 
-    state = loadState(todayKey());
+    useStoredToday();
     localStorage.setItem('garmin_last_sync', new Date().toISOString());
     renderLogTab();
     updateGarminBtn();
@@ -7288,7 +7421,7 @@ async function handleGymImport(event) {
   status.style.color = 'var(--muted)';
   status.textContent = `Imported ${totals.days} sessions · ${totals.exercises} exercises`
     + (totals.skipped ? ` · ${totals.skipped} days already had data (skipped)` : '');
-  state = loadState(todayKey());
+  useStoredToday();
   renderHeader();
   renderDayList();
   renderLogTab();
@@ -8047,7 +8180,8 @@ function init() {
   migrateTimedExercisesToMinutes();
   migrateUsualBreakfastBundles();
   migrateKnownPeriodSeptember2026();
-  state = loadState(todayKey());
+  useStoredToday();
+  watchCalendarDay();
   initVoice();
   renderHeader();
   renderDayList();
