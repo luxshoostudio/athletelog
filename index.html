@@ -998,6 +998,17 @@ body {
 .history-row { border-bottom:1px solid rgba(32,30,29,.08); }
 .copy-btn { border:1px solid var(--glass-border); border-radius:999px; background:transparent; color:var(--text); box-shadow:none; }
 .summary-chart-card { margin-bottom:16px; padding:16px; background:var(--surface); border-radius:22px; border:1px solid #e5e5ea; box-shadow:0 6px 18px rgba(28,28,30,.05); }
+.concentric-nutrition-card { padding-bottom:14px; }
+.concentric-nutrition-chart { display:flex; flex-direction:column; align-items:center; width:100%; }
+.concentric-svg { display:block; width:min(100%, 330px); height:auto; overflow:visible; }
+.concentric-ring { transition:stroke-dashoffset .35s ease; }
+.concentric-center-label { fill:var(--text); font-size:13px; font-weight:800; letter-spacing:.12em; text-anchor:middle; }
+.concentric-center-subtitle { fill:var(--muted); font-size:10px; font-weight:700; letter-spacing:.08em; text-anchor:middle; }
+.concentric-legend { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; width:100%; margin-top:6px; }
+.concentric-legend-item { display:flex; align-items:center; gap:7px; min-width:0; color:var(--text2); font-size:11px; }
+.concentric-legend-dot { width:8px; height:8px; flex:0 0 8px; border-radius:50%; }
+.concentric-legend-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.concentric-legend-value { margin-left:auto; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .summary-chart-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
 .summary-chart-title { color:var(--text); font-size:14px; font-weight:800; }
 .summary-chart-subtitle { margin-top:4px; color:var(--muted); font-size:11px; line-height:1.4; }
@@ -1589,22 +1600,16 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div class="card-body" id="metabolism-card"></div>
       </div>
 
-      <!-- Nutrition macros -->
-      <div class="macro-grid" id="macro-stats-grid"></div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Goals</span></div>
-        <div class="card-body" id="goal-bars"></div>
-      </div>
-
-      <div class="summary-chart-card">
+      <!-- One concentric nutrition visualization replaces the duplicate
+           macro rings + goal bars. -->
+      <div class="summary-chart-card concentric-nutrition-card">
         <div class="summary-chart-head">
           <div>
-            <div class="summary-chart-title">7-day nutrition trend</div>
-            <div class="summary-chart-subtitle">每根柱子按当天目标完成度显示</div>
+            <div class="summary-chart-title">Daily nutrition</div>
+            <div class="summary-chart-subtitle">五个指标合成五层同心环</div>
           </div>
-          <div class="summary-chart-legend"><span><i class="legend-dot protein"></i>Protein</span><span><i class="legend-dot calories"></i>Calories</span></div>
         </div>
-        <div id="nutrition-trend-chart" class="nutrition-trend-chart"></div>
+        <div id="concentric-nutrition-chart" class="concentric-nutrition-chart"></div>
       </div>
 
       <div class="summary-chart-card">
@@ -6183,44 +6188,48 @@ function dailyCalorieGoal(day = state) {
   return BASE_CALORIE_GOAL + activeBurnForDay(day);
 }
 
-function macroStatMarkup(label, value, goal, unit, color) {
-  const numeric = Math.round(value || 0);
-  const pct = Math.min(100, Math.round((numeric / Math.max(1, goal)) * 100));
-  return `<div class="macro-stat-card">
-    <div class="macro-stat-top">
-      <div class="macro-stat-val" style="color:${color}">${numeric}<span class="macro-unit">${unit}</span></div>
-      <div class="macro-mini-ring" style="--ring-pct:${pct}%;--ring-color:${color}"><span>${pct}%</span></div>
-    </div>
-    <div class="macro-stat-lbl">${label}</div>
-  </div>`;
-}
-
 function summaryDayRecord(key) {
   const day = loadState(key);
   const macros = sumMacros(day.food || []);
   return { key, day, macros, session: day.gym?.session || '' };
 }
 
-function renderSummaryCharts() {
-  const trend = document.getElementById('nutrition-trend-chart');
-  const mix = document.getElementById('workout-mix-chart');
-  if (!trend || !mix) return;
-
-  const trendDays = getRecentKeys(6).reverse().map(summaryDayRecord);
-  trend.innerHTML = trendDays.map(record => {
-    const proteinPct = Math.min(100, Math.round((record.macros.p / GOALS.protein) * 100));
-    const kcalPct = Math.min(100, Math.round((record.macros.kcal / dailyCalorieGoal(record.day)) * 100));
-    const date = keyToDate(record.key);
-    const label = date.toLocaleDateString('en-US', { weekday:'short' });
-    return `<div class="trend-column">
-      <div class="trend-values"><span style="color:#ff2d55">${Math.round(record.macros.p)}g</span><br><span style="color:#ff9500">${Math.round(record.macros.kcal)}</span></div>
-      <div class="trend-bars" title="${escHtml(formatKey(record.key))}">
-        <span class="trend-bar protein" style="height:${Math.max(3, proteinPct)}%"></span>
-        <span class="trend-bar calories" style="height:${Math.max(3, kcalPct)}%"></span>
-      </div>
-      <div class="trend-label">${label} ${date.getDate()}</div>
-    </div>`;
+function renderConcentricNutritionChart(m) {
+  const el = document.getElementById('concentric-nutrition-chart');
+  if (!el) return;
+  const metrics = [
+    { label:'Protein', value:m.p, goal:GOALS.protein, unit:'g', color:'#ff2d55' },
+    { label:'Calories', value:m.kcal, goal:dailyCalorieGoal(state), unit:'kcal', color:'#ff9500' },
+    { label:'Fat', value:m.fat, goal:GOALS.fat, unit:'g', color:'#5ac8fa' },
+    { label:'Carbs', value:m.carbs, goal:GOALS.carbs, unit:'g', color:'#34c759' },
+    { label:'Fiber', value:m.fiber, goal:GOALS.fiber, unit:'g', color:'#af52de' },
+  ];
+  const center = 150;
+  const radii = [34, 56, 78, 100, 122];
+  const rings = metrics.map((metric, index) => {
+    const radius = radii[index];
+    const circumference = 2 * Math.PI * radius;
+    const pct = Math.min(100, Math.max(0, Math.round((metric.value / Math.max(1, metric.goal)) * 100)));
+    const offset = circumference * (1 - pct / 100);
+    return `<circle class="concentric-ring" cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#e9e9ee" stroke-width="10" />
+      <circle class="concentric-ring" cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="${metric.color}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" transform="rotate(-90 ${center} ${center})" />`;
   }).join('');
+  const legend = metrics.map(metric => `<div class="concentric-legend-item">
+    <span class="concentric-legend-dot" style="background:${metric.color}"></span>
+    <span class="concentric-legend-label">${metric.label}</span>
+    <span class="concentric-legend-value">${Math.round(metric.value || 0)} / ${Math.round(metric.goal)} ${metric.unit}</span>
+  </div>`).join('');
+  el.innerHTML = `<svg class="concentric-svg" viewBox="0 0 300 300" role="img" aria-label="Daily nutrition progress">
+      ${rings}
+      <text x="150" y="145" class="concentric-center-label">TODAY</text>
+      <text x="150" y="164" class="concentric-center-subtitle">NUTRITION</text>
+    </svg>
+    <div class="concentric-legend">${legend}</div>`;
+}
+
+function renderSummaryCharts() {
+  const mix = document.getElementById('workout-mix-chart');
+  if (!mix) return;
 
   const counts = new Map();
   getRecentKeys(13).map(summaryDayRecord).forEach(record => {
@@ -6277,33 +6286,7 @@ function renderLogTab() {
       Base goal ${BASE_CALORIE_GOAL} kcal${burnSource ? ` + ${burnSource} ${sessionBurn} kcal` : ' + no training logged'}
     </div>`;
 
-  // ── Macro stats grid ──
-  document.getElementById('macro-stats-grid').innerHTML = [
-    macroStatMarkup('Protein', m.p, GOALS.protein, 'g', '#ff2d55'),
-    macroStatMarkup('Calories', m.kcal, dailyCalorieGoal(state), '', '#ff9500'),
-    macroStatMarkup('Fat', m.fat, GOALS.fat, 'g', '#5ac8fa'),
-    macroStatMarkup('Carbs', m.carbs, GOALS.carbs, 'g', '#34c759'),
-    macroStatMarkup('Fiber', m.fiber, GOALS.fiber, 'g', '#af52de'),
-  ].join('');
-
-  // ── Goal bars ──
-  const goalsHtml = [
-    { label:'Protein', val:m.p, goal:GOALS.protein, cls:'prot', unit:'g' },
-    { label:'Calories', val:m.kcal, goal:dailyCalorieGoal(state), cls:'kcal', unit:' kcal' },
-    { label:'Fat', val:m.fat, goal:GOALS.fat, cls:'fat', unit:'g' },
-    { label:'Carbs', val:m.carbs, goal:GOALS.carbs, cls:'carbs', unit:'g' },
-    { label:'Fiber', val:m.fiber, goal:GOALS.fiber, cls:'fiber', unit:'g' },
-  ].map(g => {
-    const pct = Math.min(100, Math.round((g.val/g.goal)*100));
-    return `<div class="goal-bar-wrap">
-      <div class="goal-bar-label">
-        <span class="goal-bar-name">${g.label}</span>
-        <span class="goal-bar-val">${Math.round(g.val)}${g.unit} / ${g.goal}${g.unit} (${pct}%)</span>
-      </div>
-      <div class="goal-bar-track"><div class="goal-bar-fill ${g.cls}" style="width:${pct}%"></div></div>
-    </div>`;
-  }).join('');
-  document.getElementById('goal-bars').innerHTML = goalsHtml;
+  renderConcentricNutritionChart(m);
   renderSummaryCharts();
 
   // ── Training summary ──
