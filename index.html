@@ -916,7 +916,10 @@ body {
   background:transparent; color:var(--text2); font:700 12px var(--font); cursor:pointer;
 }
 .organic-segment.active { background:#c67139; border-color:#c67139; color:#201e1d; }
-.session-bar { display:none; }
+  /* Session is intentionally a native pull-down on the compact workout view. */
+  .organic-segments { display:none; }
+  .session-bar { display:flex; margin-bottom:14px; padding:12px 16px; }
+  .session-bar .session-label { margin-bottom:4px; }
 .freq-ex-panel { padding:0; margin:0 0 18px; background:transparent; border:0; box-shadow:none; }
 .gym-cat-label { margin:10px 0 7px; color:var(--muted); }
 .gym-cat-pills { gap:7px; }
@@ -945,6 +948,8 @@ body {
 .exercise-delete { width:28px; height:28px; padding:0; }
 .template-note { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; line-height:1.4; }
 .template-note-dot { width:7px; height:7px; border-radius:999px; background:#7a8a5e; flex:0 0 auto; }
+.today-plan-title { margin-bottom:6px; color:var(--text); font-size:11px; font-weight:800; letter-spacing:.12em; }
+.gym-bank-select { width:100%; margin-top:8px; }
 #session-suggestions { padding:0; background:transparent; border:0; border-radius:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card { margin-bottom:16px; background:var(--surface); border:0; border-radius:24px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card-header { padding:16px 18px 8px; border:0; }
@@ -1379,7 +1384,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
                 <div class="organic-macro-label">Protein</div>
               </div>
               <div class="organic-macro-total">
-                <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / <span id="header-kcal-goal">1306</span> kcal</span></div>
+              <div class="organic-macro-value kcal"><span id="header-kcal-total">0</span><span class="organic-macro-goal"> / <span id="header-kcal-goal">1650</span> kcal</span></div>
                 <div class="organic-macro-label">Calories</div>
               </div>
               <div class="organic-macro-total">
@@ -1935,6 +1940,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <input type="file" id="barcode-input" accept="image/*" capture="environment" style="display:none" onchange="handleBarcodePhoto(event)">
 
 <script type="module" src="./lib/next-sync-boot.js"></script>
+<script src="workout-bank.js"></script>
 <script>
 'use strict';
 
@@ -1943,6 +1949,8 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 // ═══════════════════════════════════════════════════════════════
 const GOALS = { protein: 140, fat: 70, carbs: 220, fiber: 30 };
 const SYNCED_GOALS_KEY = 'alog_synced_goals';
+const BASE_CALORIE_GOAL = 1650;
+const BASE_CALORIE_GOAL = 1650;
 const WATER_GOAL_ML = 2500;
 
 // The seven values of Training.Session Type in the Health Airtable base
@@ -1952,6 +1960,21 @@ const SESSION_TYPES = [
   'Lower Body', 'Upper', 'Shoulder & Arm',
   'Handstand Drill', 'Calisthenics', 'Core', 'Running', 'Walking', 'Hiking', 'Resting', 'Other',
 ];
+
+// Workout bank curated from Lux's `workouts-by-muscle.md` source. The source
+// contains saved workout ideas rather than a machine-readable exercise table,
+// so these are normalized exercise labels for the app's pull-down picker.
+const WORKOUT_BANK = (window.LUX_WORKOUT_BANK || [
+  { category:'Lower body', items:['Back Squat','Front Squat','Goblet Squat','Deadlift','Romanian Deadlift (RDL)','Single-leg RDL','Bulgarian Split Squat','Single Leg Press','Hip Thrust','Glute Bridge','Reverse Lunge','Step-up','Kettlebell Swing','Calf Raise'] },
+  { category:'Upper · Push', items:['Push-ups','Pike Push-ups','Handstand Push-ups','Dips','Bench Press','Overhead Press','Half Kneeling Single Arm DB OHP','Lateral Raises','Reverse Fly','Thruster'] },
+  { category:'Upper · Pull', items:['Pull-ups','Chin-ups','Wide Grip Pull-ups','Scapular Pull-ups','Bent Over Row','Ring Row','Inverted Row','Lat Pulldown','Dead Hang','High Pull-up'] },
+  { category:'Arms & shoulders', items:['Biceps Curl','Hammer Curl','Triceps Extension','Forearm Curl','Wrist Curl','Shoulder Press','Shoulder Flexion Liftoff','Wall Slides'] },
+  { category:'Core', items:['Hollow Hold','Plank','Superman Hold','Toes to Bar','Hanging Knee Raises','Dead Bug','Ab Wheel','Side Plank','Dragon Flag','Stability Ball Core'] },
+  { category:'Full body & power', items:['Burpee','Clean','Power Clean','Snatch','Landmine Press','Turkish Get-up','Bear Crawl','Box Jump','Weighted Jump','Agility Drill'] },
+  { category:'Calisthenics skills', items:['Handstand','Handstand Wall Walk','Handstand Shoulder Taps','Muscle-up','Ring Muscle-up','False Grip Hold','L-Sit Hold','Front Lever','Front Lever Progression','Planche','Human Flag','Pistol Squat'] },
+  { category:'Mobility & recovery', items:['Stretching','Hip Mobility','Shoulder Mobility','Ankle Prep','Knee Mobility','Skin the Cat','Bridge Hold','Balancing','Yoga Flow'] },
+  { category:'Running & walking', items:['Running','Walking','Hiking','Sprint Warm-up','Running Form Drill','Cadence Drill'] },
+]);
 
 // Same buckets, same order, as `session_type()` in _Data/_parser_gym.py.
 // First match wins: "Lat & Back+5k" is a back session, not a run.
@@ -2024,15 +2047,21 @@ const STARTER_TEMPLATES = [
   { name:'Other', exercises:[] },
 ];
 
-// Run-type exercises (track distance + time, not sets × reps)
+// Distance-based exercises (track miles + time + pace, not sets × reps).
+// Walking and hiking intentionally share the same fields as running.
 const RUN_EXERCISES_LIST = [
   'run','running','jog','jogging','sprint','marathon','long run','tempo run',
   'interval run','recovery run','easy run','trail run','5k','10k','half marathon',
-  'treadmill','race','parkrun','fartlek',
+  'treadmill','race','parkrun','fartlek','walk','walking','hike','hiking','trail walk',
 ];
 function isRunExercise(name) {
   const n = (name || '').toLowerCase();
   return RUN_EXERCISES_LIST.some(r => n.includes(r));
+}
+
+function isDistanceSession(session) {
+  const type = canonicalSessionType(session);
+  return type === 'Running' || type === 'Walking' || type === 'Hiking';
 }
 
 function calcPacePerMile(miles, timeStr) {
@@ -5183,6 +5212,22 @@ function storedGymDays(maxAgeDays = null) {
     .filter(day => day.gym && (day.gym.session || day.gym.exercises.length));
 }
 
+function recentSessionDays(session, maxAgeDays = 30) {
+  const target = canonicalSessionType(session);
+  if (!target) return [];
+  return storedGymDays(maxAgeDays)
+    .filter(day => canonicalSessionType(day.gym?.session || '') === target)
+    .sort((a, b) => b.key.localeCompare(a.key));
+}
+
+function sessionHistoryDays(session) {
+  const target = canonicalSessionType(session);
+  if (!target) return [];
+  return storedGymDays()
+    .filter(day => canonicalSessionType(day.gym?.session || '') === target)
+    .sort((a, b) => a.key.localeCompare(b.key));
+}
+
 function getSessionTemplates() {
   const allDays = storedGymDays();
   if (allDays.length < 4) return STARTER_TEMPLATES;
@@ -5312,8 +5357,13 @@ function makePlannedExercise(name) {
 
 function loadTemplatePlan(template) {
   const existing = new Set(state.gym.exercises.map(exercise => normalizeExerciseName(exercise.name)));
+  const recent = recentSessionDays(template.name, 30).find(day => (day.gym?.exercises || []).length);
+  const recentNames = recent
+    ? recent.gym.exercises.map(exercise => exercise.name).filter(Boolean)
+    : [];
+  const planNames = recentNames.length ? recentNames : template.exercises;
   let added = 0;
-  for (const name of template.exercises) {
+  for (const name of planNames) {
     const normalized = normalizeExerciseName(name);
     if (!normalized || existing.has(normalized)) continue;
     state.gym.exercises.push(makePlannedExercise(name));
@@ -5356,8 +5406,9 @@ function selectOrganicSession(session) {
   syncSessionSelect(document.getElementById('session-select'), session);
   const exerciseName = document.getElementById('gym-ex-name');
   if (exerciseName) {
-    if (canonicalSessionType(session) === 'Running' && !exerciseName.value.trim()) exerciseName.value = 'Running';
-    else if (canonicalSessionType(session) !== 'Running' && exerciseName.value.trim() === 'Running') exerciseName.value = '';
+    const distanceSession = isDistanceSession(session);
+    if (distanceSession && !exerciseName.value.trim()) exerciseName.value = canonicalSessionType(session);
+    else if (!distanceSession && isDistanceSession(exerciseName.value)) exerciseName.value = '';
   }
   saveState();
   updateGymInputMode();
@@ -5428,7 +5479,15 @@ function renderSessionSuggestions() {
 
   el.classList.remove('hidden');
   const completed = state.gym.exercises.filter(exercise => exercise.completed).length;
-  el.innerHTML = `<div class="template-note"><span class="template-note-dot"></span><span>${state.gym.exercises.length} planned · ${completed} completed. Check each exercise as you train.</span></div>`;
+  const recent = recentSessionDays(session, 30);
+  const allSessions = sessionHistoryDays(session);
+  const latest = recent[0] || allSessions[allSessions.length - 1];
+  const lastNumber = latest ? Math.max(1, allSessions.findIndex(day => day.key === latest.key) + 1) : 0;
+  const recentCopy = latest
+    ? `Last session #${lastNumber} · ${formatKey(latest.key)} · ${latest.gym.exercises.length} exercises`
+    : 'No matching workout logged in the last 30 days';
+  el.innerHTML = `<div class="today-plan-title">TODAY'S WORKOUT PLAN</div>
+    <div class="template-note"><span class="template-note-dot"></span><span>${escHtml(recentCopy)} · ${state.gym.exercises.length} planned · ${completed} completed</span></div>`;
 }
 
 function onExNameInput() {
@@ -5616,7 +5675,7 @@ function exerciseRowHTML(e, dayKey) {
   }
 
   const feelBadge = '';
-  const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">RUN</span>`
+  const tag = run  ? `<span style="font-size:9px;color:var(--blue);font-weight:800;margin-left:4px;">MILES</span>`
             : hold ? `<span style="font-size:9px;color:var(--purple);font-weight:800;margin-left:4px;">HOLD</span>` : '';
   return `
   <div class="exercise-row${e.completed ? ' is-complete' : ''}">
@@ -5687,12 +5746,24 @@ function renderFreqExercises() {
     html += template.exercises.map(name => `<button class="freq-pill" data-exercise="${escHtml(name)}" onclick="selectFreqEx(this.dataset.exercise)">${escHtml(name)}</button>`).join('');
     html += '</div>';
   }
+  html += `<span class="gym-cat-label">Other workouts · muscle bank</span>
+    <select class="quick-add-select gym-bank-select" aria-label="Workout bank by muscle" onchange="selectWorkoutBank(this.value);this.selectedIndex=0;">
+      <option value="">Choose from workout bank…</option>
+      ${WORKOUT_BANK.map(group => `<optgroup label="${escHtml(group.category)}">${group.items.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('')}</optgroup>`).join('')}
+    </select>`;
   body.innerHTML = html || '<span style="color:var(--muted);font-size:13px;">No exercises</span>';
 }
 
 function selectFreqEx(name) {
   document.getElementById('gym-ex-name').value = name;
   prefillGymInputs(name);
+}
+
+function selectWorkoutBank(name) {
+  if (!name) return;
+  document.getElementById('gym-ex-name').value = name;
+  prefillGymInputs(name);
+  document.getElementById('gym-ex-name').scrollIntoView({ block:'nearest', behavior:'smooth' });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5736,7 +5807,7 @@ function showGymDayDetail(key) {
     .join('');
 
   const completed = (gym.exercises || []).filter(e => e.completed).length;
-  const runningDay = canonicalSessionType(gym.session) === 'Running';
+  const distanceDay = isDistanceSession(gym.session);
 
   inner.innerHTML = `
     ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(formatKey(key))} — changes save straight to that day.</div>`}
@@ -5751,9 +5822,9 @@ function showGymDayDetail(key) {
     <div class="gym-input-wrap" style="margin-bottom:18px;">
       <input type="text" class="gym-text-input" id="gym-detail-name" data-session="${escHtml(gym.session || '')}" placeholder="Exercise name…" autocomplete="off" oninput="updateGymDetailInputMode()">
       <div class="gym-input-row" style="margin-top:8px;">
-        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${runningDay ? 'Miles' : 'Sets'}" inputmode="decimal">
-        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${runningDay ? 'Duration' : 'Reps'}" inputmode="text">
-        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${runningDay ? 'Pace /mile' : 'lbs'}" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-sets" placeholder="${distanceDay ? 'Miles' : 'Sets'}" inputmode="decimal">
+        <input type="text" class="gym-num-input" id="gym-detail-reps" placeholder="${distanceDay ? 'Duration' : 'Reps'}" inputmode="text">
+        <input type="text" class="gym-num-input" id="gym-detail-weight" placeholder="${distanceDay ? 'Pace /mile' : 'lbs'}" inputmode="text">
         <button class="green-btn" onclick="addExerciseToDay('${key}')"></button>
       </div>
     </div>
@@ -5852,7 +5923,7 @@ function updateGymInputMode() {
   const timeEl     = document.getElementById('gym-run-time');
   const paceEl     = document.getElementById('gym-pace');
   if (!repsEl) return;
-  const run  = isRunExercise(name) || (!name.trim() && canonicalSessionType(state.gym.session) === 'Running');
+  const run  = isRunExercise(name) || (!name.trim() && isDistanceSession(state.gym.session));
   const hold = !run && isHoldExercise(name);
   // run mode: distance + time only
   setsEl.style.display   = (run || hold) ? 'none' : '';
@@ -5873,7 +5944,7 @@ function updateGymDetailInputMode() {
   if (!nameEl || !setsEl || !repsEl || !weightEl) return;
   const name = nameEl.value || '';
   const session = nameEl.dataset.session || '';
-  const run = isRunExercise(name) || (!name.trim() && canonicalSessionType(session) === 'Running');
+  const run = isRunExercise(name) || (!name.trim() && isDistanceSession(session));
   const hold = !run && isHoldExercise(name);
   setsEl.style.display = hold ? 'none' : '';
   weightEl.style.display = hold ? 'none' : '';
@@ -6003,7 +6074,8 @@ const SESSION_BURN = {
   'Handstand Drill': 240, 'Calisthenics': 320, 'Core': 220, 'Running': 700,
   'Walking': 250, 'Hiking': 500, 'Resting': 0, 'Other': 300,
 };
-// RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day
+// Daily basic calorie goal supplied by Lux: 1,650 kcal/day.
+// RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day.
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
 // The server profile's nutritionTargets.calories (1300) is not used here.
 const BMR_ESTIMATE = 1306;
@@ -6020,7 +6092,7 @@ function activeBurnForDay(day) {
 }
 
 function dailyCalorieGoal(day = state) {
-  return BMR_ESTIMATE + activeBurnForDay(day);
+  return BASE_CALORIE_GOAL + activeBurnForDay(day);
 }
 
 function renderLogTab() {
@@ -6056,7 +6128,7 @@ function renderLogTab() {
       <div class="energy-cell"><div class="energy-value net">${netLabel}</div><div class="energy-label">Net</div></div>
     </div>
     <div class="energy-source">
-      RMR ${BMR_ESTIMATE} kcal${burnSource ? ` + ${burnSource} ${sessionBurn} kcal` : ' + no training logged'}
+      Base goal ${BASE_CALORIE_GOAL} kcal${burnSource ? ` + ${burnSource} ${sessionBurn} kcal` : ' + no training logged'}
     </div>`;
 
   // ── Macro stats grid ──
@@ -6974,7 +7046,7 @@ function buildSystemPrompt() {
   const plan = loadPlan();
   const entry = todayPlanEntry();
   const planContext = plan ? `\n\nThe user follows this eating protocol. Treat it as the source of truth and never contradict it:\n---\n${plan.markdown}\n---\n${entry ? `Today is a ${entry.template} day (${TEMPLATE_NAMES[entry.template] || ''})${entry.activity ? `, planned activity: ${entry.activity}` : ''}${entry.focus ? `, nutrient focus: ${entry.focus}` : ''}.` : 'Today is not in the protocol schedule.'}` : '';
-  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.fiber}g fiber, ${dailyCalorieGoal(state)} kcal based on RMR plus today's training.\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
+  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.fiber}g fiber, ${dailyCalorieGoal(state)} kcal (base goal ${BASE_CALORIE_GOAL} plus today's training).\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
 }
 
 function appendAIBubble(role, text) {
