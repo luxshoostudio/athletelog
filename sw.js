@@ -1,8 +1,9 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v42';
+const CACHE = 'athletelog-v43';
 const ASSETS = [
   './',
   './index.html',
+  './workout-bank.js',
   './manifest.json',
   './icon.svg',
   './lib/week-plan.mjs',
@@ -58,6 +59,21 @@ self.addEventListener('fetch', e => {
   // updated and never seeded breakfast or painted the header. Prefer the
   // network for lib scripts, and fall back to the cache when offline.
   if (url.origin === self.location.origin && /\/lib\/[^/]+\.m?js$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // The workout catalogue carries the per-action source URLs. Prefer the
+  // network so an installed PWA does not keep an older source-less catalogue.
+  if (url.origin === self.location.origin && /\/workout-bank\.js$/.test(url.pathname)) {
     e.respondWith(
       fetch(e.request).then(res => {
         if (res.ok) {

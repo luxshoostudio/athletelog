@@ -53,7 +53,8 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.ok(fallback, 'page keeps a breakfast seed for installs whose module has not loaded')
   assert.deepEqual(Function(`return (${fallback[1]})`)(), seedUsualBreakfast())
   assert.match(sw, /usual-breakfast\.mjs/)
-  assert.match(sw, /athletelog-v42/)
+  assert.match(sw, /athletelog-v43/)
+  assert.match(sw, /\.\/workout-bank\.js/)
   assert.match(sw, /network for lib scripts/)
   assert.match(boot, /window\.AthleteLogPlan = WeekPlan/)
   assert.match(boot, /alog_week_plan|PLAN_STORAGE_KEY/)
@@ -61,6 +62,12 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.match(boot, /renderHeader/)
   assert.match(html, /function isOldUsualBreakfast/)
   assert.match(html, /!isOldUsualBreakfast\(breakfastCurrent\)/)
+})
+
+test('workout bank shows a clickable source for the selected action', () => {
+  assert.match(html, /id="workout-source-meta"/)
+  assert.match(html, /id="workout-source-link"/)
+  assert.match(html, /sourceMeta\.classList\.toggle\('hidden', !item\.source\)/)
 })
 
 test('the page replaces a stored Usual Breakfast that still matches the old seed', () => {
