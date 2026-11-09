@@ -918,8 +918,12 @@ body {
 .organic-segment.active { background:#c67139; border-color:#c67139; color:#201e1d; }
   /* Session is intentionally a native pull-down on the compact workout view. */
   .organic-segments { display:none; }
-  .session-bar { display:flex; margin-bottom:14px; padding:12px 16px; }
-  .session-bar .session-label { margin-bottom:4px; }
+  .session-bar { display:block; margin-bottom:14px; padding:14px 16px 16px; background:#fff; border:1px solid #e5e5ea; border-radius:22px; box-shadow:0 8px 22px rgba(28,28,30,.08); }
+  .session-control { position:relative; }
+  .session-bar .session-label { margin:0 0 7px; }
+  .session-select { width:100%; min-height:48px; padding:0 44px 0 14px; border:1px solid #d8d8de; border-radius:15px; background:#f7f7f9; color:#1c1c1e; font-size:16px; font-weight:700; box-shadow:inset 0 1px 1px rgba(28,28,30,.04); }
+  .session-control::after { content:'⌄'; position:absolute; right:15px; bottom:12px; color:#6e6e73; font-size:20px; line-height:1; pointer-events:none; }
+  .session-select:focus { border-color:#ff2d55; outline:3px solid rgba(255,45,85,.14); background:#fff; }
 .freq-ex-panel { padding:0; margin:0 0 18px; background:transparent; border:0; box-shadow:none; }
 .gym-cat-label { margin:10px 0 7px; color:var(--muted); }
 .gym-cat-pills { gap:7px; }
@@ -950,6 +954,14 @@ body {
 .template-note-dot { width:7px; height:7px; border-radius:999px; background:#7a8a5e; flex:0 0 auto; }
 .today-plan-title { margin-bottom:6px; color:var(--text); font-size:11px; font-weight:800; letter-spacing:.12em; }
 .gym-bank-select { width:100%; margin-top:8px; }
+.workout-bank-card { padding:14px 16px 16px; margin-top:2px; background:#fff; border:1px solid #e5e5ea; border-radius:22px; box-shadow:0 8px 22px rgba(28,28,30,.06); }
+.workout-bank-title { color:var(--text); font-size:11px; font-weight:800; letter-spacing:.12em; }
+.workout-bank-subtitle { margin-top:4px; color:var(--muted); font-size:11px; line-height:1.45; }
+.workout-bank-field { display:block; margin-top:12px; }
+.workout-bank-field .gym-cat-label { display:block; margin:0 0 6px; }
+.workout-bank-select { width:100%; min-height:46px; padding:0 38px 0 13px; margin:0; border:1px solid #d8d8de; border-radius:14px; background:#f7f7f9; color:var(--text); font-size:15px; font-weight:600; }
+.workout-source-link { display:inline-flex; align-items:center; gap:5px; margin-top:10px; color:#007aff; font-size:12px; font-weight:700; text-decoration:none; }
+.workout-source-link.hidden { display:none; }
 #session-suggestions { padding:0; background:transparent; border:0; border-radius:0; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card { margin-bottom:16px; background:var(--surface); border:0; border-radius:24px; box-shadow:none; backdrop-filter:none; -webkit-backdrop-filter:none; }
 .card-header { padding:16px 18px 8px; border:0; }
@@ -1456,7 +1468,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div class="organic-segment-label">Session</div>
         <div class="organic-segments" id="organic-session-segments" aria-label="Session templates"></div>
         <div class="session-bar">
-          <div style="flex:1">
+          <div class="session-control">
             <div class="session-label">Session</div>
             <select class="session-select" id="session-select" onchange="onSessionChange()">
               <option value="">Choose session</option>
@@ -5731,26 +5743,29 @@ function renderExerciseList() {
 function renderFreqExercises() {
   const body = document.getElementById('freq-ex-body');
   if (!body) return;
-  const logged = getFreqExercises();
-  let html = '';
-  if (logged.length > 0) {
-    html += '<span class="gym-cat-label">Recent</span><div class="gym-cat-pills">';
-    html += logged.slice(0,6).map(name => `<button class="freq-pill" data-exercise="${escHtml(name)}" onclick="selectFreqEx(this.dataset.exercise)">${escHtml(name)}</button>`).join('');
-    html += '</div>';
-  }
-  const templates = getSessionTemplates();
-  const template = templates.find(item => item.name === state.gym.session) || templates[0];
-  if (template) {
-    html += `<span class="gym-cat-label">${escHtml(template.name)}</span><div class="gym-cat-pills">`;
-    html += template.exercises.map(name => `<button class="freq-pill" data-exercise="${escHtml(name)}" onclick="selectFreqEx(this.dataset.exercise)">${escHtml(name)}</button>`).join('');
-    html += '</div>';
-  }
-  html += `<span class="gym-cat-label">Other workouts · muscle bank</span>
-    <select class="quick-add-select gym-bank-select" aria-label="Workout bank by muscle" onchange="selectWorkoutBank(this.value);this.selectedIndex=0;">
-      <option value="">Choose from workout bank…</option>
-      ${WORKOUT_BANK.map(group => `<optgroup label="${escHtml(group.category)}">${group.items.map(name => `<option value="${escHtml(name)}">${escHtml(name)}</option>`).join('')}</optgroup>`).join('')}
-    </select>`;
-  body.innerHTML = html || '<span style="color:var(--muted);font-size:13px;">No exercises</span>';
+  const firstGroup = WORKOUT_BANK[0];
+  const groupOptions = WORKOUT_BANK.map((group, index) =>
+    `<option value="${index}">${escHtml(group.category)}</option>`).join('');
+  const itemOptions = (group) => (group?.items || []).map((item, index) => {
+    const normalized = workoutBankItem(item, group);
+    return `<option value="${index}">${escHtml(normalized.name)}</option>`;
+  }).join('');
+  const firstItem = workoutBankItem(firstGroup?.items?.[0], firstGroup);
+  body.innerHTML = `<div class="workout-bank-card">
+    <div class="workout-bank-title">WORKOUT BANK</div>
+    <div class="workout-bank-subtitle">先选肌肉群，再选动作；动作来源会显示在下方。</div>
+    <label class="workout-bank-field"><span class="gym-cat-label">Muscle group</span>
+      <select class="quick-add-select workout-bank-select" id="workout-muscle-select" aria-label="Choose muscle group" onchange="renderWorkoutBankActions(this.value)">
+        ${groupOptions}
+      </select>
+    </label>
+    <label class="workout-bank-field"><span class="gym-cat-label">Exercise</span>
+      <select class="quick-add-select workout-bank-select" id="workout-exercise-select" aria-label="Choose exercise" onchange="selectWorkoutBank(this.value)">
+        ${itemOptions(firstGroup)}
+      </select>
+    </label>
+    <a class="workout-source-link${firstItem?.source ? '' : ' hidden'}" id="workout-source-link" href="${escHtml(firstItem?.source || '#')}" target="_blank" rel="noopener noreferrer">↗ View source</a>
+  </div>`;
 }
 
 function selectFreqEx(name) {
@@ -5758,10 +5773,35 @@ function selectFreqEx(name) {
   prefillGymInputs(name);
 }
 
-function selectWorkoutBank(name) {
+function workoutBankItem(item, group) {
+  if (typeof item === 'string') return { name:item, source:group?.source || '' };
+  return item || { name:'', source:'' };
+}
+
+function renderWorkoutBankActions(groupIndex) {
+  const group = WORKOUT_BANK[Number(groupIndex)] || WORKOUT_BANK[0];
+  const select = document.getElementById('workout-exercise-select');
+  if (!select) return;
+  select.innerHTML = (group?.items || []).map((item, index) => {
+    const normalized = workoutBankItem(item, group);
+    return `<option value="${index}">${escHtml(normalized.name)}</option>`;
+  }).join('');
+  selectWorkoutBank('0');
+}
+
+function selectWorkoutBank(itemIndex) {
+  const groupSelect = document.getElementById('workout-muscle-select');
+  const group = WORKOUT_BANK[Number(groupSelect?.value || 0)] || WORKOUT_BANK[0];
+  const item = workoutBankItem(group?.items?.[Number(itemIndex || 0)], group);
+  const name = item.name;
   if (!name) return;
   document.getElementById('gym-ex-name').value = name;
   prefillGymInputs(name);
+  const source = document.getElementById('workout-source-link');
+  if (source) {
+    source.href = item.source || '#';
+    source.classList.toggle('hidden', !item.source);
+  }
   document.getElementById('gym-ex-name').scrollIntoView({ block:'nearest', behavior:'smooth' });
 }
 
