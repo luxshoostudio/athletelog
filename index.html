@@ -985,6 +985,10 @@ body {
 .macro-stat-card:nth-child(2), .macro-stat-card:nth-child(3) { display:none; }
 .macro-stat-val { font-family:var(--display); font-size:26px; }
 .macro-unit { font-family:var(--font); font-size:13px; font-weight:700; margin-left:3px; }
+.macro-stat-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.macro-mini-ring { --ring-pct:0%; --ring-color:#ff2d55; width:42px; height:42px; flex:0 0 42px; display:grid; place-items:center; border-radius:50%; background:conic-gradient(var(--ring-color) var(--ring-pct), #ececf0 0); position:relative; }
+.macro-mini-ring::after { content:''; position:absolute; inset:5px; border-radius:50%; background:#fff; }
+.macro-mini-ring span { position:relative; z-index:1; color:var(--muted); font-size:9px; font-weight:800; }
 .macro-stat-card:nth-child(4) .macro-stat-val { color:#56633f !important; }
 .goal-bar-track { height:7px; background:#dcd3c4; }
 .goal-bar-fill.prot { background:#c67139; }
@@ -993,6 +997,30 @@ body {
 .goal-bar-fill.fat { background:#56633f; }
 .history-row { border-bottom:1px solid rgba(32,30,29,.08); }
 .copy-btn { border:1px solid var(--glass-border); border-radius:999px; background:transparent; color:var(--text); box-shadow:none; }
+.summary-chart-card { margin-bottom:16px; padding:16px; background:var(--surface); border-radius:22px; border:1px solid #e5e5ea; box-shadow:0 6px 18px rgba(28,28,30,.05); }
+.summary-chart-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.summary-chart-title { color:var(--text); font-size:14px; font-weight:800; }
+.summary-chart-subtitle { margin-top:4px; color:var(--muted); font-size:11px; line-height:1.4; }
+.summary-chart-legend { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; color:var(--muted); font-size:10px; white-space:nowrap; }
+.summary-chart-legend span { display:inline-flex; align-items:center; gap:4px; }
+.legend-dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+.legend-dot.protein { background:#ff2d55; }
+.legend-dot.calories { background:#ff9500; }
+.nutrition-trend-chart { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:7px; align-items:end; min-height:154px; padding-top:4px; }
+.trend-column { min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; }
+.trend-values { min-height:25px; color:var(--muted); font-size:9px; line-height:1.2; text-align:center; font-variant-numeric:tabular-nums; }
+.trend-bars { width:100%; height:100px; display:flex; align-items:flex-end; justify-content:center; gap:3px; padding:0 3px; border-bottom:1px solid #e5e5ea; background:repeating-linear-gradient(to top, transparent 0, transparent 24px, rgba(110,110,115,.09) 25px); }
+.trend-bar { width:9px; min-height:3px; border-radius:5px 5px 1px 1px; }
+.trend-bar.protein { background:#ff2d55; }
+.trend-bar.calories { background:#ff9500; }
+.trend-label { max-width:42px; overflow:hidden; color:var(--muted); font-size:9px; text-align:center; text-overflow:ellipsis; white-space:nowrap; }
+.workout-mix-chart { display:flex; flex-direction:column; gap:9px; }
+.mix-row { display:grid; grid-template-columns:94px minmax(0,1fr) 26px; align-items:center; gap:8px; }
+.mix-name { overflow:hidden; color:var(--text2); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.mix-track { height:9px; overflow:hidden; border-radius:999px; background:#e5e5ea; }
+.mix-fill { height:100%; border-radius:999px; background:#7a8a5e; }
+.mix-count { color:var(--muted); font-size:11px; font-weight:700; text-align:right; font-variant-numeric:tabular-nums; }
+.chart-empty { padding:14px 0 4px; color:var(--muted); font-size:12px; }
 
 /* Dialogs and coach */
 .modal-overlay { background:rgba(46,43,37,.5); backdrop-filter:none; -webkit-backdrop-filter:none; }
@@ -1566,6 +1594,27 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       <div class="card">
         <div class="card-header"><span class="card-title">Goals</span></div>
         <div class="card-body" id="goal-bars"></div>
+      </div>
+
+      <div class="summary-chart-card">
+        <div class="summary-chart-head">
+          <div>
+            <div class="summary-chart-title">7-day nutrition trend</div>
+            <div class="summary-chart-subtitle">每根柱子按当天目标完成度显示</div>
+          </div>
+          <div class="summary-chart-legend"><span><i class="legend-dot protein"></i>Protein</span><span><i class="legend-dot calories"></i>Calories</span></div>
+        </div>
+        <div id="nutrition-trend-chart" class="nutrition-trend-chart"></div>
+      </div>
+
+      <div class="summary-chart-card">
+        <div class="summary-chart-head">
+          <div>
+            <div class="summary-chart-title">Workout mix</div>
+            <div class="summary-chart-subtitle">最近 14 天训练类型</div>
+          </div>
+        </div>
+        <div id="workout-mix-chart" class="workout-mix-chart"></div>
       </div>
 
       <div class="card life-coach-card">
@@ -6134,6 +6183,64 @@ function dailyCalorieGoal(day = state) {
   return BASE_CALORIE_GOAL + activeBurnForDay(day);
 }
 
+function macroStatMarkup(label, value, goal, unit, color) {
+  const numeric = Math.round(value || 0);
+  const pct = Math.min(100, Math.round((numeric / Math.max(1, goal)) * 100));
+  return `<div class="macro-stat-card">
+    <div class="macro-stat-top">
+      <div class="macro-stat-val" style="color:${color}">${numeric}<span class="macro-unit">${unit}</span></div>
+      <div class="macro-mini-ring" style="--ring-pct:${pct}%;--ring-color:${color}"><span>${pct}%</span></div>
+    </div>
+    <div class="macro-stat-lbl">${label}</div>
+  </div>`;
+}
+
+function summaryDayRecord(key) {
+  const day = loadState(key);
+  const macros = sumMacros(day.food || []);
+  return { key, day, macros, session: day.gym?.session || '' };
+}
+
+function renderSummaryCharts() {
+  const trend = document.getElementById('nutrition-trend-chart');
+  const mix = document.getElementById('workout-mix-chart');
+  if (!trend || !mix) return;
+
+  const trendDays = getRecentKeys(6).reverse().map(summaryDayRecord);
+  trend.innerHTML = trendDays.map(record => {
+    const proteinPct = Math.min(100, Math.round((record.macros.p / GOALS.protein) * 100));
+    const kcalPct = Math.min(100, Math.round((record.macros.kcal / dailyCalorieGoal(record.day)) * 100));
+    const date = keyToDate(record.key);
+    const label = date.toLocaleDateString('en-US', { weekday:'short' });
+    return `<div class="trend-column">
+      <div class="trend-values"><span style="color:#ff2d55">${Math.round(record.macros.p)}g</span><br><span style="color:#ff9500">${Math.round(record.macros.kcal)}</span></div>
+      <div class="trend-bars" title="${escHtml(formatKey(record.key))}">
+        <span class="trend-bar protein" style="height:${Math.max(3, proteinPct)}%"></span>
+        <span class="trend-bar calories" style="height:${Math.max(3, kcalPct)}%"></span>
+      </div>
+      <div class="trend-label">${label} ${date.getDate()}</div>
+    </div>`;
+  }).join('');
+
+  const counts = new Map();
+  getRecentKeys(13).map(summaryDayRecord).forEach(record => {
+    if (!record.session) return;
+    const name = canonicalSessionType(record.session) || record.session;
+    counts.set(name, (counts.get(name) || 0) + 1);
+  });
+  const sessions = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  if (!sessions.length) {
+    mix.innerHTML = '<div class="chart-empty">最近 14 天还没有训练记录</div>';
+    return;
+  }
+  const max = sessions[0][1];
+  mix.innerHTML = sessions.map(([name, count]) => `<div class="mix-row">
+    <div class="mix-name">${escHtml(name)}</div>
+    <div class="mix-track"><div class="mix-fill" style="width:${Math.round((count / max) * 100)}%"></div></div>
+    <div class="mix-count">${count}</div>
+  </div>`).join('');
+}
+
 function renderLogTab() {
   const m = sumMacros(state.food);
   const d = new Date();
@@ -6171,27 +6278,13 @@ function renderLogTab() {
     </div>`;
 
   // ── Macro stats grid ──
-  document.getElementById('macro-stats-grid').innerHTML = `
-    <div class="macro-stat-card">
-      <div class="macro-stat-val" style="color:var(--sp-green)">${Math.round(m.p)}<span class="macro-unit">g</span></div>
-      <div class="macro-stat-lbl">Protein</div>
-    </div>
-    <div class="macro-stat-card">
-      <div class="macro-stat-val" style="color:var(--yellow)">${Math.round(m.kcal)}</div>
-      <div class="macro-stat-lbl">Calories</div>
-    </div>
-    <div class="macro-stat-card">
-      <div class="macro-stat-val" style="color:var(--orange)">${Math.round(m.fat)}<span class="macro-unit">g</span></div>
-      <div class="macro-stat-lbl">Fat</div>
-    </div>
-    <div class="macro-stat-card">
-      <div class="macro-stat-val" style="color:var(--blue)">${Math.round(m.carbs)}<span class="macro-unit">g</span></div>
-      <div class="macro-stat-lbl">Carbs</div>
-    </div>
-    <div class="macro-stat-card">
-      <div class="macro-stat-val" style="color:var(--purple)">${Math.round(m.fiber)}<span class="macro-unit">g</span></div>
-      <div class="macro-stat-lbl">Fiber</div>
-    </div>`;
+  document.getElementById('macro-stats-grid').innerHTML = [
+    macroStatMarkup('Protein', m.p, GOALS.protein, 'g', '#ff2d55'),
+    macroStatMarkup('Calories', m.kcal, dailyCalorieGoal(state), '', '#ff9500'),
+    macroStatMarkup('Fat', m.fat, GOALS.fat, 'g', '#5ac8fa'),
+    macroStatMarkup('Carbs', m.carbs, GOALS.carbs, 'g', '#34c759'),
+    macroStatMarkup('Fiber', m.fiber, GOALS.fiber, 'g', '#af52de'),
+  ].join('');
 
   // ── Goal bars ──
   const goalsHtml = [
@@ -6211,6 +6304,7 @@ function renderLogTab() {
     </div>`;
   }).join('');
   document.getElementById('goal-bars').innerHTML = goalsHtml;
+  renderSummaryCharts();
 
   // ── Training summary ──
   const trainingEl = document.getElementById('summary-training-body');
