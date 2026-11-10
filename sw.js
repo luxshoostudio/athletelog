@@ -5,6 +5,7 @@ const ASSETS = [
   './index.html',
   './workout-bank.js',
   './manifest.json',
+  './icon-1024.png',
   './icon.svg',
   './lib/week-plan.mjs',
   './lib/next-sync.mjs',

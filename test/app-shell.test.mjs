@@ -5,6 +5,7 @@ import { seedUsualBreakfast } from '../lib/usual-breakfast.mjs'
 
 const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
+const manifest = readFileSync(new URL('../manifest.json', import.meta.url), 'utf8')
 const boot = readFileSync(new URL('../lib/next-sync-boot.js', import.meta.url), 'utf8')
 
 test('the header goal labels are rendered from GOALS and the Food tab has no glance card', () => {
@@ -56,6 +57,10 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.match(sw, /athletelog-v43/)
   assert.match(sw, /\.\/workout-bank\.js/)
   assert.match(sw, /network for lib scripts/)
+  assert.match(html, /apple-touch-icon" href="icon-1024\.png"/)
+  assert.match(manifest, /"src": "icon-1024\.png"/)
+  assert.match(sw, /'\.\/icon-1024\.png'/)
+  assert.match(html, /icon-1024\.png/)
   assert.match(html, /const BACKUP_EXTRA_KEYS = \['alog_favourites', 'alog_recipes', 'alog_usual_breakfast'\]/)
   assert.doesNotMatch(html, /generateIcons/)
   assert.doesNotMatch(html, /athletelog-v38/)
