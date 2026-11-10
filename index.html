@@ -566,79 +566,6 @@ body {
 .search-result-name { font-size: 14px; font-weight: 700; color: var(--text); }
 .search-result-macros { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
 
-/* AI OVERLAY */
-.ai-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(240,242,247,0.92);
-  backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
-  display: flex; flex-direction: column;
-  transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
-}
-.ai-overlay.open { transform: translateY(0); }
-.ai-header {
-  background: rgba(255,255,255,0.75);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--glass-border);
-  box-shadow: 0 1px 0 rgba(0,0,0,0.06);
-  padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
-  display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-}
-.ai-title { flex: 1; font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: 0.06em; text-transform: uppercase; }
-.ai-close {
-  background: rgba(255,255,255,0.62);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
-  color: var(--text2); font-size: 10px; font-weight: 700; padding: 7px 14px; cursor: pointer;
-  font-family: var(--font); letter-spacing: 0.06em; text-transform: uppercase;
-  transition: box-shadow .15s, color .15s;
-}
-.ai-close:active { box-shadow: var(--nm-inset-sm); color: var(--text); }
-.ai-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-.ai-bubble { max-width: 88%; padding: 12px 16px; font-size: 14px; line-height: 1.7; word-wrap: break-word; font-weight: 500; }
-.ai-bubble.user {
-  background: linear-gradient(135deg, var(--sp-green), var(--sp-green-d));
-  color: #fff; align-self: flex-end; font-weight: 600;
-  border-radius: var(--radius) var(--radius) 6px var(--radius);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.35), 0 0 14px var(--sp-green-glow);
-}
-.ai-bubble.assistant {
-  background: rgba(255,255,255,0.62);
-  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  color: var(--text2); align-self: flex-start;
-  border-radius: 6px var(--radius) var(--radius) var(--radius);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow-sm);
-}
-.ai-bubble.thinking { color: var(--muted); font-family: var(--mono); font-size: 12px; }
-.ai-input-row {
-  background: rgba(255,255,255,0.75);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid var(--glass-border);
-  box-shadow: 0 -1px 0 rgba(0,0,0,0.06);
-  padding: 10px 16px calc(env(safe-area-inset-bottom) + 12px);
-  display: flex; gap: 8px; flex-shrink: 0; align-items: center;
-}
-.ai-text-input {
-  flex: 1; background: rgba(255,255,255,0.62);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
-  color: var(--text); font-size: 14px; padding: 10px 14px; outline: none;
-  font-family: var(--font); resize: none; transition: border-color .2s, background .2s;
-}
-.ai-text-input:focus { border-color: var(--sp-green); background: rgba(255,255,255,0.82); }
-.ai-send-btn {
-  background: linear-gradient(145deg, var(--sp-green), var(--sp-green-d));
-  color: #fff; border: none; border-radius: var(--radius-sm);
-  width: 42px; height: 42px; font-size: 16px; cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 20px rgba(249,115,22,0.45);
-  transition: box-shadow .15s, transform .1s;
-}
-.ai-send-btn:active { transform: scale(0.95); }
-.ai-send-btn:disabled { background: rgba(0,0,0,0.06); color: var(--dim); cursor: not-allowed; box-shadow: none; }
-.api-key-setup { padding: 20px; }
-.api-key-setup h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-.api-key-setup p { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 .photo-result-item {
   background: rgba(255,255,255,0.62);
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
@@ -854,11 +781,6 @@ body {
 .tab-btn.active { color:#8c491a; background:#fff2eb; border:0; }
 .tab-btn:focus-visible, button:focus-visible, select:focus-visible { outline:2px solid #8c491a; outline-offset:2px; }
 .nav-glyph { font-family:var(--display); font-size:14px; line-height:1; }
-.plan-status-done { color:#2f6b3a; font-weight:700; }
-.plan-status-open { color:#8c491a; font-weight:700; }
-.today-plan-line { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:14px; font-weight:700; }
-.today-plan-line + .today-plan-line { margin-top:6px; }
-
 /* Organic controls and content */
 .home-add-row {
   width:100%; min-width:0; display:grid;
@@ -868,15 +790,15 @@ body {
 .home-add-row > * { min-width:0; }
 .home-add-row .food-text-input { width:100%; min-width:0; padding-left:12px; padding-right:12px; }
 .home-add-row .add-btn { min-width:58px; height:44px; padding:0 14px; white-space:nowrap; }
-.food-text-input, .gym-text-input, .gym-num-input, .modal-input, .ai-text-input, .session-select {
+.food-text-input, .gym-text-input, .gym-num-input, .modal-input, .session-select {
   min-height:44px; color:var(--text); background:var(--surface);
   border:1px solid var(--glass-border); border-radius:999px; box-shadow:none;
   font-family:var(--font); font-size:14px;
 }
-.food-text-input:focus, .gym-text-input:focus, .gym-num-input:focus, .modal-input:focus, .ai-text-input:focus {
+.food-text-input:focus, .gym-text-input:focus, .gym-num-input:focus, .modal-input:focus {
   border-color:#c67139; background:#f0e4d0; outline:2px solid rgba(198,113,57,.16); outline-offset:1px;
 }
-.food-text-input::placeholder, .gym-text-input::placeholder, .gym-num-input::placeholder, .modal-input::placeholder, .ai-text-input::placeholder { color:rgba(32,30,29,.55); }
+.food-text-input::placeholder, .gym-text-input::placeholder, .gym-num-input::placeholder, .modal-input::placeholder { color:rgba(32,30,29,.55); }
 .quick-add-wrapper { margin-bottom:0; }
 .quick-add-select { min-height:44px; border-radius:999px; background:var(--surface); border-color:var(--glass-border); color:var(--text2); }
 .quick-add-select option { background:var(--surface); color:var(--text); }
@@ -1037,13 +959,12 @@ body {
 
 /* Dialogs and coach */
 .modal-overlay { background:rgba(46,43,37,.5); backdrop-filter:none; -webkit-backdrop-filter:none; }
-.modal-overlay, .time-edit-overlay, .ai-overlay { visibility:hidden; }
-.modal-overlay.open, .time-edit-overlay.open, .ai-overlay.open { visibility:visible; }
+.modal-overlay, .time-edit-overlay { visibility:hidden; }
+.modal-overlay.open, .time-edit-overlay.open { visibility:visible; }
 #food-day-detail:not(.slide-in), #gym-day-detail:not(.slide-in) { visibility:hidden; }
 .modal-sheet, .time-edit-sheet { background:var(--surface); border:0; border-radius:32px; box-shadow:0 12px 32px rgba(46,43,37,.22); }
 .modal-title, .ai-title { font-family:var(--display); font-weight:400; color:var(--text); }
 .modal-label { color:var(--muted); }
-.ai-overlay { background:var(--bg); }
 .ai-header, .ai-input-row { background:var(--surface); border-color:rgba(32,30,29,.08); }
 .ai-close { color:var(--text); background:transparent; border:1px solid var(--glass-border); border-radius:999px; }
 .ai-bubble.assistant { background:var(--surface); color:var(--text); }
@@ -1082,31 +1003,6 @@ body {
 }
 .search-group-label:first-child { margin-top: 0; }
 
-/* Eating protocol sheet */
-#plan-title { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.plan-body { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px 18px 24px; }
-.plan-empty { padding: 24px 4px; color: var(--muted); font-size: 14px; line-height: 1.7; }
-.plan-empty p + p { margin-top: 10px; }
-.plan-warning {
-  margin-bottom: 14px; padding: 10px 14px; border-radius: 14px;
-  background: #fff2eb; color: #8c491a; font-size: 12px; font-weight: 700;
-}
-.plan-today {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 20px; padding: 16px 18px;
-  border-radius: 24px; background: var(--surface);
-}
-.plan-today-badge {
-  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 999px;
-  display: flex; align-items: center; justify-content: center;
-  background: #c67139; color: #201e1d;
-  font-family: var(--display); font-size: 22px; line-height: 1;
-}
-.plan-today-text { min-width: 0; }
-.plan-today-name { font-size: 14px; font-weight: 700; color: var(--text); }
-.plan-today-meta { margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.5; }
-.plan-today-note { margin-top: 4px; font-size: 12px; color: #8c491a; font-weight: 600; }
-
 /* Apple Health-inspired visual system: calm grouped canvas, white metric
    cards, system typography and one clear health accent. */
 :root {
@@ -1119,10 +1015,9 @@ body {
 html, body, #panels, .panel, #food-day-list, #gym-day-list { background:#f2f2f7; }
 body { background-image:none; }
 .panel-inner, .day-list-inner { padding-top:calc(env(safe-area-inset-top) + 22px); }
-#header-date, #summary-date-label, .checkin-date { font-weight:750 !important; letter-spacing:-.025em !important; }
+#header-date, #summary-date-label { font-weight:750 !important; letter-spacing:-.025em !important; }
 .organic-macro-hero, .card, .macro-stat-card,
-#home-today-food .home-food-item, .past-day-card, .gym-history-card, .exercise-row,
-.checkin-scores, .checkin-tasks {
+#home-today-food .home-food-item, .past-day-card, .gym-history-card, .exercise-row {
   background:#fff; border:0; box-shadow:0 .5px 0 rgba(0,0,0,.08); border-radius:20px;
 }
 .organic-macro-hero { border-radius:24px; }
@@ -1130,9 +1025,8 @@ body { background-image:none; }
 #protein-arc { stroke:#ff2d55; }
 #ring-pct, .energy-value.net { color:#ff2d55; }
 .quick-add-select, .food-text-input, .gym-text-input, .gym-num-input, .modal-input,
-.ai-text-input, .session-select { background:#fff; border:1px solid #e5e5ea; }
+.session-select { background:#fff; border:1px solid #e5e5ea; }
 .food-text-input:focus, .gym-text-input:focus, .gym-num-input:focus, .modal-input:focus,
-.ai-text-input:focus { background:#fff; border-color:#007aff; outline:3px solid rgba(0,122,255,.12); }
 .voice-icon-btn { width:44px; min-width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; flex:0 0 44px; }
 .voice-icon-btn svg { width:19px; height:19px; fill:#007aff; }
 .voice-icon-btn.recording { background:#ffebef; border-color:#ff2d55; animation:pulseVoice 1.1s ease-in-out infinite; }
@@ -1160,41 +1054,6 @@ body { background-image:none; }
 .goal-bar-fill.kcal { background:#ff9500; }
 .goal-bar-fill.carbs { background:#34c759; }
 .goal-bar-fill.fat { background:#5ac8fa; }
-.life-coach-card { background:linear-gradient(145deg,#fff,#f7f2ff); }
-#life-coach-summary { white-space:pre-wrap; color:#3a3a3c; font-size:13px; line-height:1.65; }
-#life-coach-btn { min-height:32px; padding:6px 11px; font-size:11px; }
-
-.plan-markdown { color: var(--text); font-size: 14px; line-height: 1.75; }
-.plan-markdown h2 { margin: 26px 0 10px; font-family: var(--display); font-size: 20px; font-weight: 400; }
-.plan-markdown h3 { margin: 22px 0 8px; font-size: 15px; font-weight: 700; }
-.plan-markdown h4, .plan-markdown h5, .plan-markdown h6 { margin: 18px 0 6px; font-size: 13px; font-weight: 700; color: var(--text2); }
-.plan-markdown h2:first-child, .plan-markdown h3:first-child { margin-top: 0; }
-.plan-markdown p { margin: 8px 0; }
-.plan-markdown ul, .plan-markdown ol { margin: 8px 0 8px 20px; }
-.plan-markdown li { margin: 4px 0; }
-.plan-markdown ul.plan-tasks { list-style: none; margin-left: 0; }
-.plan-markdown ul.plan-tasks li::before { content: '○ '; color: var(--muted); }
-.plan-markdown ul.plan-tasks li.done::before { content: '● '; color: #7a8a5e; }
-.plan-markdown blockquote {
-  margin: 12px 0; padding: 10px 14px;
-  border-left: 3px solid #c67139; border-radius: 0 14px 14px 0;
-  background: var(--surface); color: var(--text2); font-size: 13px;
-}
-.plan-markdown code {
-  padding: 1px 5px; border-radius: 6px;
-  background: var(--surface); font-family: var(--mono); font-size: 12px;
-}
-.plan-markdown hr { margin: 22px 0; border: 0; border-top: 1px solid var(--glass-border); }
-/* Wide tables scroll inside themselves; the sheet never scrolls sideways. */
-.plan-table-wrap { margin: 12px 0; overflow-x: auto; overscroll-behavior-x: contain; }
-.plan-markdown table { border-collapse: collapse; width: 100%; min-width: max-content; font-size: 12px; }
-.plan-markdown th, .plan-markdown td {
-  padding: 8px 10px; border-bottom: 1px solid var(--glass-border);
-  text-align: left; vertical-align: top;
-}
-.plan-markdown th { color: var(--muted); font-weight: 700; white-space: nowrap; }
-.plan-stamp { margin-top: 24px; color: var(--dim); font-size: 11px; font-family: var(--mono); }
-
 .photo-result-info { min-width: 0; flex: 1; }
 .photo-qty { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .photo-qty-input {
@@ -1249,63 +1108,6 @@ body { background-image:none; }
 
 .exercise-rpe { font-variant-numeric: tabular-nums; }
 .exercise-rpe:not(:placeholder-shown) { color: #8c491a; font-weight: 700; }
-
-/* Recipes */
-.recipe-card { padding: 14px 16px; margin-bottom: 10px; border-radius: 20px; background: var(--surface); cursor: pointer; }
-.recipe-card-name { font-size: 15px; font-weight: 700; color: var(--text); }
-.recipe-card-macros { margin-top: 3px; font-size: 12px; color: #8c491a; font-weight: 700; font-variant-numeric: tabular-nums; }
-.recipe-card-parts { margin-top: 5px; font-size: 11px; color: var(--muted); line-height: 1.5; }
-.recipe-row { display: grid; grid-template-columns: minmax(0,1fr) 76px 34px 34px; gap: 7px; align-items: center; margin-bottom: 8px; }
-.recipe-row .modal-input { margin-bottom: 0; }
-.recipe-qty { text-align: right; font-variant-numeric: tabular-nums; }
-.recipe-unit { color: var(--muted); font-size: 12px; font-weight: 700; }
-.recipe-del { width: 34px; height: 34px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--dim); font-size: 14px; cursor: pointer; }
-.recipe-totals { margin: 4px 0 16px; padding: 14px 16px; border-radius: 18px; background: #fff2eb; }
-.recipe-totals-label { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.recipe-totals-value { margin-top: 5px; font-size: 13px; font-weight: 700; color: #8c491a; line-height: 1.5; font-variant-numeric: tabular-nums; }
-.recipe-warning { margin-top: 8px; font-size: 11px; color: var(--red); line-height: 1.5; }
-
-/* Check-in */
-.checkin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-.checkin-date { font-family: var(--display); font-size: 24px; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
-.checkin-scores { padding: 6px 16px; margin-bottom: 4px; border-radius: 20px; background: var(--surface); }
-.checkin-score { display: flex; align-items: center; gap: 10px; padding: 11px 0; }
-.checkin-score + .checkin-score { border-top: 1px solid var(--glass-border); }
-.checkin-score-label { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; color: var(--text); }
-.checkin-score-input {
-  width: 62px; padding: 7px 10px; text-align: right;
-  border: 1px solid var(--glass-border); border-radius: 12px;
-  background: rgba(255,255,255,.45); color: #8c491a;
-  font-family: var(--font); font-weight: 700; font-variant-numeric: tabular-nums;
-  outline: none; -moz-appearance: textfield;
-}
-.checkin-score-input:focus { border-color: #c67139; background: rgba(255,255,255,.78); }
-.checkin-score-max { width: 26px; color: var(--muted); font-size: 12px; font-weight: 700; }
-.checkin-tasks { padding: 6px 16px; margin-bottom: 16px; border-radius: 20px; background: var(--surface); }
-.checkin-task { display:flex; align-items:center; gap:12px; padding:12px 0; cursor:pointer; }
-.checkin-task + .checkin-task { border-top:1px solid var(--glass-border); }
-.checkin-task input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--sp-green); }
-.checkin-task-label { color:var(--text); font-size:13px; font-weight:650; line-height:1.35; }
-.checkin-custom-row { cursor:default; }
-.checkin-task .checkin-custom-input { flex:1 1 0; width:0; height:auto; min-width:0; border:0; border-bottom:1px solid var(--glass-border); background:transparent; padding:7px 2px; color:var(--text); font:inherit; text-indent:0; outline:none; }
-.checkin-custom-input:focus { border-color:var(--sp-green); }
-.checkin-custom-action {
-  width:30px; height:30px; flex:0 0 30px; display:grid; place-items:center;
-  border:0; border-radius:50%; background:#eaf4ff; color:#007aff;
-  font-size:18px; font-weight:500; line-height:1; cursor:pointer;
-}
-.checkin-custom-action.remove { background:#f2f2f7; color:#8e8e93; font-size:16px; }
-/* The firework question is the entry, not a field label. */
-.checkin-prompt { margin-bottom: 5px; color: var(--text); font-size: 14px; font-weight: 700; line-height: 1.5; }
-.checkin-hint { margin-bottom: 9px; color: var(--muted); font-size: 12px; line-height: 1.55; }
-.checkin-text {
-  width: 100%; padding: 13px 15px; margin-bottom: 4px;
-  border: 1px solid var(--glass-border); border-radius: 18px;
-  background: var(--surface); color: var(--text);
-  font-family: var(--font); font-size: 16px; line-height: 1.6;
-  outline: none; resize: vertical;
-}
-.checkin-text:focus { border-color: #c67139; background: var(--surface-raised); }
 
 .photo-corrected { margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 700; }
 
@@ -1382,7 +1184,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
    does not shrink, so a bottom-anchored sheet ends up behind it — the token
    field was covered with no way to scroll to it. --kb carries the measured
    keyboard overlap (see lockViewport) and the sheets sit on top of it. */
-.modal-overlay, .time-edit-overlay, .ai-overlay {
+.modal-overlay, .time-edit-overlay {
   height: auto;
   padding-bottom: var(--kb, 0px);
   transition: padding-bottom .18s ease-out;
@@ -1468,7 +1270,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           <button class="water-add-icon" id="water-add-btn" onclick="addWater(500)" title="Water · Add 500 ml" aria-label="Add 500 millilitres of water">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5S5.5 9.5 5.5 15a6.5 6.5 0 0 0 13 0C18.5 9.5 12 2.5 12 2.5Zm0 16.5a4 4 0 0 1-4-4c0-2.5 2.3-5.8 4-7.9 1.7 2.1 4 5.4 4 7.9a4 4 0 0 1-4 4Z"/></svg>
           </button>
-          <button class="action-pill" id="plan-pill" onclick="openAI('gym')">AI Coach</button>
           <button class="action-pill" onclick="triggerPhoto()">Photo</button>
           <button class="action-pill" onclick="openBarcodeScanner()">Scan</button>
         </div>
@@ -1488,7 +1289,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       <div class="detail-header">
         <button class="back-btn" onclick="backToDayList()">← Back</button>
         <div class="detail-title" id="detail-date-title">Today</div>
-        <button class="icon-btn" id="detail-ai-btn" onclick="openAI('food')" style="width:36px;height:36px;font-size:16px;">🤖</button>
       </div>
       <div class="detail-inner" id="detail-inner-content">
         <!-- quick chips, food entries, freq accordion rendered here -->
@@ -1547,7 +1347,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             <button class="action-pill" id="feeling-voice-btn" onclick="toggleFeelingVoice()" title="Say your RPE, for example: feeling seven point five">Voice</button>
             <span id="feel-hint" style="font-size:10px;color:var(--dim);margin-left:4px;"></span>
           </div>
-          <button class="outline-btn" onclick="openAI('gym')">Ask coach</button>
         </div>
 
         <!-- Today's Exercise List -->
@@ -1622,14 +1421,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
           </div>
         </div>
         <div id="workout-mix-chart" class="workout-mix-chart"></div>
-      </div>
-
-      <div class="card life-coach-card">
-        <div class="card-header">
-          <span class="card-title">Life Coach AI Summary</span>
-          <button class="outline-btn" id="life-coach-btn" onclick="generateLifeCoachSummary()">Generate</button>
-        </div>
-        <div class="card-body" id="life-coach-summary">Review today’s data and generate a concise coaching summary.</div>
       </div>
 
       <!-- 14-day history -->
@@ -1736,38 +1527,12 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   </div>
 </div>
 
-<!-- GYM AI CHAT MODAL -->
-<div class="modal-overlay" id="gym-ai-modal">
-  <div class="modal-sheet" style="max-height:82vh;display:flex;flex-direction:column;padding:0;">
-    <div style="padding:18px 20px 12px;flex-shrink:0;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,0.62);">
-      <div class="modal-title" style="margin-bottom:0;font-size:17px;">🤖 Gym AI Coach</div>
-      <button class="outline-btn" onclick="closeGymAI()" style="margin-left:auto;padding:7px 14px;">Close</button>
-    </div>
-    <div class="ai-messages" id="gym-ai-messages" style="flex:1;padding:12px 16px;gap:12px;min-height:160px;"></div>
-    <div class="ai-input-row" style="padding:8px 16px 20px;flex-shrink:0;">
-      <textarea class="ai-text-input" id="gym-ai-input" rows="2" placeholder="e.g. Did 3 sets of deadlifts at 185 lbs for 8 reps, then 4 sets of pull-ups…" onkeydown="gymAiKeydown(event)" style="height:auto;"></textarea>
-      <button class="ai-send-btn" id="gym-ai-send" onclick="sendGymAI()">➤</button>
-    </div>
-  </div>
-</div>
-
-<!-- FREQ FOODS MODAL -->
-<div class="modal-overlay" id="freq-modal">
-  <div class="modal-sheet">
-    <div class="modal-title">⭐ Frequent Foods</div>
-    <div id="freq-modal-pills" class="freq-pills"></div>
-    <div class="modal-btn-row" style="margin-top:12px;">
-      <button class="outline-btn" onclick="closeFreqModal()" style="flex:1">Close</button>
-    </div>
-  </div>
-</div>
-
 <!-- SERVER SYNC (athletelog-next). Off until turned on. Gist backup is separate. -->
 <div class="modal-overlay" id="next-sync-modal">
   <div class="modal-sheet">
     <div class="modal-title">Server sync</div>
     <p style="font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:12px;">
-      Food and workouts can sync to your athletelog-next server so the coach can read them.
+      Sync your food and workouts with your AthleteLog Next account.
       This page cannot use the server passkey (that key is tied to the server’s own address),
       so sign-in is a pairing code from a browser that is already signed in there.
     </p>
@@ -1901,39 +1666,13 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
 <div class="modal-overlay" id="api-key-modal">
   <div class="modal-sheet">
     <div class="modal-title">🤖 OpenAI Setup</div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter an OpenAI API key for AI Coach, food voice cleanup and photo recognition. The key stays on this device. For a published app, use a server-side proxy instead.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter an OpenAI API key for food voice cleanup, nutrition estimates and photo recognition. The key stays on this device. For a published app, use a server-side proxy instead.</p>
     <label class="modal-label">API Key</label>
     <input type="password" class="modal-input" id="api-key-input" placeholder="sk-...">
     <div class="modal-btn-row">
       <button class="outline-btn" onclick="closeApiKeyModal()">Cancel</button>
-      <button class="green-btn" onclick="saveApiKey()">Save & Open Chat</button>
+      <button class="green-btn" onclick="saveApiKey()">Save & Continue</button>
     </div>
-  </div>
-</div>
-
-<!-- AI OVERLAY -->
-<div class="ai-overlay" id="ai-overlay">
-  <div class="ai-header">
-    <button class="ai-close" onclick="closeAI()">✕ Close</button>
-    <div class="ai-title" id="ai-overlay-title">AI Assistant</div>
-  </div>
-  <div class="ai-messages" id="ai-messages"></div>
-  <div class="ai-input-row">
-    <textarea class="ai-text-input" id="ai-input" placeholder="Ask anything about your nutrition or training…" rows="1" onkeydown="aiInputKeydown(event)"></textarea>
-    <button class="ai-send-btn" id="ai-send-btn" onclick="sendAIMessage()">➤</button>
-  </div>
-</div>
-
-<!-- EATING PROTOCOL OVERLAY -->
-<div class="ai-overlay" id="plan-overlay">
-  <div class="ai-header">
-    <button class="ai-close" onclick="closePlanSheet()">✕ Close</button>
-    <div class="ai-title" id="plan-title">Eating protocol</div>
-    <button class="ai-close" onclick="planAutoSync(false)" title="Refresh from vault">⟳</button>
-  </div>
-  <div class="plan-body" id="plan-body"></div>
-  <div class="ai-input-row">
-    <button class="outline-btn" onclick="askCoachAboutPlan()" style="flex:1;">Ask coach about this</button>
   </div>
 </div>
 
@@ -1943,15 +1682,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <div class="barcode-frame" aria-hidden="true"></div>
   <div class="barcode-hint" id="barcode-hint">Point the camera at the barcode</div>
   <button class="barcode-cancel" onclick="closeBarcodeScanner()">Cancel</button>
-</div>
-
-<!-- RECIPES OVERLAY -->
-<div class="ai-overlay" id="recipe-overlay">
-  <div class="ai-header">
-    <button class="ai-close" onclick="closeRecipeOverlay()">✕ Close</button>
-    <div class="ai-title" id="recipe-title">Recipes</div>
-  </div>
-  <div class="plan-body" id="recipe-body"></div>
 </div>
 
 <!-- PHOTO RESULT OVERLAY -->
@@ -2732,15 +2462,13 @@ const FAVOURITES_KEY = 'alog_favourites';
 // phone can seed the favourite even when the service worker is still serving
 // an older boot script that never imported that module.
 const USUAL_BREAKFAST_FALLBACK = {
-  name: 'Usual Breakfast',
+  name: 'Regular Breakfast',
   items: [
-    { name: 'Blueberries', amount: '80 g', p: 0.6, kcal: 46, fat: 0.3, carbs: 11.6, fiber: 1.9 },
-    { name: 'Raspberries', amount: '80 g', p: 1, kcal: 42, fat: 0.5, carbs: 9.6, fiber: 5.2 },
-    { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
-    { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
-    { name: 'Chia seeds', amount: '10 g', p: 1.7, kcal: 49, fat: 3.1, carbs: 4.2, fiber: 3.4 },
-    { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
-    { name: 'whole milk', amount: '50 ml', p: 1.6, kcal: 31, fat: 1.6, carbs: 2.4, fiber: 0 },
+    { name: 'Kodiak Protein oats', amount: '1/2 cup (50 g)', p: 10, kcal: 190, fat: 3, carbs: 31, fiber: 4 },
+    { name: 'Chia seeds', amount: '2 tbsp (24 g)', p: 5, kcal: 120, fat: 8, carbs: 8, fiber: 8 },
+    { name: "Trader Joe's yogurt", amount: '3/4 cup (170 g)', p: 14, kcal: 190, fat: 8, carbs: 22, fiber: 0 },
+    { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
+    { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
   ],
 };
 
@@ -2842,14 +2570,14 @@ function fallbackUsualBreakfastFavourite() {
   const items = JSON.parse(JSON.stringify(USUAL_BREAKFAST_FALLBACK.items));
   const totals = sumMacros(items);
   return {
-    name: 'Usual Breakfast',
+    name: 'Regular Breakfast',
     p: totals.p, kcal: totals.kcal, fat: totals.fat, carbs: totals.carbs, fiber: totals.fiber,
     components: items,
   };
 }
 
 function isBreakfastName(name) {
-  return String(name || '').trim().toLocaleLowerCase() === 'usual breakfast';
+  return ['usual breakfast', 'regular breakfast'].includes(String(name || '').trim().toLocaleLowerCase());
 }
 
 function isKefirName(name) {
@@ -2902,6 +2630,12 @@ function saveFavourites(list) {
 }
 
 function ensureFavourites() {
+  const resetKey = 'alog_regular_breakfast_reset_2026_11_v1';
+  if (!localStorage.getItem(resetKey)) {
+    const existing = loadFavourites().filter(item => !isBreakfastName(item?.name));
+    saveFavourites([fallbackUsualBreakfastFavourite(), ...existing]);
+    localStorage.setItem(resetKey, '1');
+  }
   const stored = loadFavourites();
   const history = collectFoodHistory();
   const api = window.AthleteLogBreakfast;
@@ -3055,10 +2789,8 @@ function searchFoodDb(query, limit = 8) {
   }
   return results
     // On a tie the longer name is the more specific one: "2 boiled eggs"
-    // should land on `boiled egg`, not on plain `egg`. A recipe outranks a
-    // database entry at equal score — it is the more specific thing she has.
+    // should land on `boiled egg`, not on plain `egg`.
     .sort((a, b) => b.score - a.score
-      || (b.item.recipe ? 1 : 0) - (a.item.recipe ? 1 : 0)
       || b.key.length - a.key.length
       || a.key.localeCompare(b.key))
     .slice(0, limit);
@@ -3079,9 +2811,6 @@ let editingTimeId = null;
 let editingTimeKey = null;
 let freqAccordionOpen = false;
 let addingFromHome = false;
-let aiContext = 'food'; // 'food' or 'gym'
-let aiHistory = [];
-let aiStreaming = false;
 let recognition = null;
 let voiceActive = false;
 let mediaRecorder = null;
@@ -3185,8 +2914,6 @@ function loadState(key) {
     if (s.waterMl === undefined) s.waterMl = 0;
     if (s.garminKcal === undefined) s.garminKcal = 0;
     if (s.garminAutoKcal === undefined) s.garminAutoKcal = 0;
-    if (!s.checkin) s.checkin = { scores:{}, tasks:{}, firework:'', tomorrow:'', thoughts:'' };
-    if (!s.checkin.tasks) s.checkin.tasks = {};
     return s;
   } catch { return { food:[], gym:{session:'',exercises:[]}, water:0, waterMl:0, period:false }; }
 }
@@ -3203,34 +2930,6 @@ function readWeekPlan() {
     const raw = localStorage.getItem(api.PLAN_STORAGE_KEY);
     return api.normalizePlan(raw ? JSON.parse(raw) : api.defaultPlan());
   } catch { return api.normalizePlan(api.defaultPlan()); }
-}
-
-function renderTodayPlan() {
-  const body = document.getElementById('today-plan-body');
-  const api = window.AthleteLogPlan;
-  if (!body || !api) return;
-  const plan = readWeekPlan();
-  const today = (typeof state !== 'undefined' && state) ? state : loadState(todayKey());
-  const card = api.todayCard(plan, new Date(), today.food, today.gym);
-  const note = document.getElementById('today-plan-note');
-  if (note) note.hidden = !card.updatedByLivy;
-  body.replaceChildren();
-  const protein = document.createElement('div');
-  protein.className = 'today-plan-line';
-  const proteinName = document.createElement('span');
-  proteinName.textContent = 'Protein';
-  const proteinValue = document.createElement('span');
-  proteinValue.textContent = `${Math.round(card.proteinLogged)} / ${Math.round(card.proteinPlanned)} g`;
-  protein.append(proteinName, proteinValue);
-  const work = document.createElement('div');
-  work.className = 'today-plan-line';
-  const workName = document.createElement('span');
-  workName.textContent = card.workout.rest ? 'Rest' : card.workout.name;
-  const workState = document.createElement('span');
-  workState.className = card.workout.done ? 'plan-status-done' : 'plan-status-open';
-  workState.textContent = card.workout.rest ? 'Rest day' : (card.workout.done ? 'Done' : 'Not logged yet');
-  work.append(workName, workState);
-  body.append(protein, work);
 }
 
 function saveTargetKey(openKey, calendarKey) {
@@ -3549,8 +3248,6 @@ function checkPeriodReminder() {
 // DAY LIST VIEW (Primary)
 // ═══════════════════════════════════════════════════════════════
 function renderDayList() {
-  renderTodayPlan();
-
   const homeQS = document.getElementById('home-quick-select');
   if (homeQS) {
     homeQS.innerHTML = '<option value="">⭐</option>';
@@ -3768,449 +3465,6 @@ function freqFoodTap(name) {
     document.getElementById('qty-name').value = name;
     openQtyModal();
   }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CHECK-IN
-// The same template Lux already keeps in the vault, in the same order and
-// with the same wording, so what is typed here can be pasted straight back.
-//
-// Deliberately absent: any average, trend, streak or verdict on the numbers.
-// The moment this scores her it becomes another exam, which is the thing the
-// practice is meant to avoid. It records; it does not grade.
-// ═══════════════════════════════════════════════════════════════
-const CHECKIN_SCORES = [
-  { key: 'mood',  label: '情绪能量' },
-  { key: 'body',  label: '身体能量' },
-  { key: 'diet',  label: '饮食健康度' },
-  { key: 'focus', label: '专注度' },
-  { key: 'sleep', label: '睡眠质量（昨晚）' },
-];
-
-const CHECKIN_TASKS = [
-  { key:'school', label:'School course', target:'4 hours/day' },
-  { key:'ceo', label:'Match Studio CEO Duty', target:'2 hours/day' },
-  { key:'workouts', label:'Workouts', target:'2 hours · 3–4/week' },
-  { key:'acsm', label:'ACSM test prep', target:'0.5 hour/day' },
-  { key:'spanish', label:'Spanish', target:'0.5 hour/day' },
-  { key:'reading', label:'Readings & Podcast', target:'1 hour/day' },
-  { key:'running', label:'10 miles running', target:'2/week' },
-  { key:'food', label:'Food intake ≥ 7.5/10', target:'6/7 week' },
-  { key:'protein', label:'Log protein intake > 120 g', target:'6/7 week' },
-  { key:'slate', label:'Slate Voice Memo', target:'' },
-];
-
-let checkinKey = null;   // which day is open; defaults to today
-
-function checkinDayKey() {
-  return checkinKey || todayKey();
-}
-
-function loadCheckin(key) {
-  const day = loadState(key);
-  const checkin = day.checkin || { scores:{}, tasks:{} };
-  if (!checkin.tasks) checkin.tasks = {};
-  normalizeCheckinCustomItems(checkin);
-  return checkin;
-}
-
-function normalizeCheckinCustomItems(checkin) {
-  if (!Array.isArray(checkin.customItems)) {
-    checkin.customItems = (checkin.customLabel || checkin.tasks?.custom)
-      ? [{ label:checkin.customLabel || 'Custom item', done:Boolean(checkin.tasks?.custom) }]
-      : [];
-  }
-  return checkin.customItems;
-}
-
-function saveCheckin(key, checkin) {
-  const day = loadState(key);
-  day.checkin = checkin;
-  if (key === todayKey()) { state.checkin = checkin; saveState(); }
-  else localStorage.setItem(key, JSON.stringify(day));
-}
-
-function isoDate(key) {
-  const [, y, m, d] = key.split('_');
-  return `${y}-${m}-${d}`;
-}
-
-function setCheckinScore(scoreKey, value) {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  const n = parseFloat(value);
-  // Halves are used throughout the vault log (6.5, 8.5).
-  checkin.scores[scoreKey] = isFinite(n) && n > 0 && n <= 10 ? n : null;
-  saveCheckin(key, checkin);
-}
-
-function setCheckinTask(taskKey, checked) {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  checkin.tasks[taskKey] = Boolean(checked);
-  saveCheckin(key, checkin);
-}
-
-function setCheckinCustomItem(index, field, value) {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  while (checkin.customItems.length <= index) checkin.customItems.push({ label:'', done:false });
-  if (field === 'done') checkin.customItems[index].done = Boolean(value);
-  else checkin.customItems[index].label = String(value);
-  saveCheckin(key, checkin);
-}
-
-function addCheckinCustomItem() {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  if (!checkin.customItems.length || checkin.customItems[checkin.customItems.length - 1].label.trim()) {
-    checkin.customItems.push({ label:'', done:false });
-    saveCheckin(key, checkin);
-    renderCheckin();
-  }
-  requestAnimationFrame(() => {
-    const inputs = document.querySelectorAll('.checkin-custom-input');
-    inputs[inputs.length - 1]?.focus();
-  });
-}
-
-function removeCheckinCustomItem(index) {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  checkin.customItems.splice(index, 1);
-  saveCheckin(key, checkin);
-  renderCheckin();
-}
-
-function openCheckinDay(key) {
-  checkinKey = key;
-  renderCheckin();
-}
-
-function renderCheckin() {
-  const key = checkinDayKey();
-  const checkin = loadCheckin(key);
-  const isToday = key === todayKey();
-
-  const dateEl = document.getElementById('checkin-date');
-  if (dateEl) dateEl.textContent = `${isoDate(key)} Check-In`;
-  const kicker = document.getElementById('checkin-kicker');
-  if (kicker) kicker.textContent = isToday ? 'Today' : 'Editing a past day';
-
-  const scoreRows = CHECKIN_SCORES.map(s => `
-    <div class="checkin-score">
-      <label class="checkin-score-label" for="ci-${s.key}">${s.label}</label>
-      <input class="checkin-score-input" id="ci-${s.key}" inputmode="decimal"
-             value="${checkin.scores[s.key] ?? ''}" placeholder="–"
-             aria-label="${s.label}"
-             oninput="setCheckinScore('${s.key}', this.value)">
-      <span class="checkin-score-max">/10</span>
-    </div>`).join('');
-  const taskRows = CHECKIN_TASKS.map(task => `
-    <label class="checkin-task">
-      <input type="checkbox" ${checkin.tasks?.[task.key] ? 'checked' : ''}
-             onchange="setCheckinTask('${task.key}', this.checked)">
-      <span class="checkin-task-label">${escHtml(task.label)}${task.target ? ` · ${escHtml(task.target)}` : ''}</span>
-    </label>`).join('');
-  const customItems = checkin.customItems.length ? checkin.customItems : [{ label:'', done:false }];
-  const customRows = customItems.map((item, index) => `
-    <div class="checkin-task checkin-custom-row">
-      <input type="checkbox" aria-label="Complete custom item" ${item.done ? 'checked' : ''}
-             onchange="setCheckinCustomItem(${index}, 'done', this.checked)">
-      <input class="checkin-custom-input" value="${escHtml(item.label || '')}" placeholder="Add your own item…"
-             aria-label="Custom checklist item" oninput="setCheckinCustomItem(${index}, 'label', this.value)"
-             onblur="this.scrollLeft=0">
-      ${checkin.customItems[index] ? `<button class="checkin-custom-action remove" aria-label="Delete custom item" onclick="removeCheckinCustomItem(${index})">×</button>` : ''}
-      ${index === customItems.length - 1 ? `<button class="checkin-custom-action" aria-label="Add another custom item" onclick="addCheckinCustomItem()">＋</button>` : ''}
-    </div>`).join('');
-
-  const past = Object.keys(localStorage)
-    .filter(k => /^alog_\d{4}_\d{2}_\d{2}$/.test(k) && k !== todayKey())
-    .sort().reverse()
-    .map(k => ({ key: k, checkin: loadCheckin(k) }))
-    .filter(d => d.checkin && (Object.values(d.checkin.scores || {}).some(v => v != null)
-                               || Object.values(d.checkin.tasks || {}).some(Boolean)
-                               || d.checkin.customItems.some(item => item.label.trim() || item.done)))
-    .slice(0, 14);
-
-  document.getElementById('checkin-body').innerHTML = `
-    ${isToday ? '' : `<div class="detail-backfill">Editing ${escHtml(isoDate(key))} — <a href="#" onclick="openCheckinDay(todayKey());return false;" style="color:inherit;">back to today</a></div>`}
-
-    <div class="section-label">状态（1-10）</div>
-    <div class="checkin-scores">${scoreRows}</div>
-
-    <div class="section-label">Checklist</div>
-    <div class="checkin-tasks">${taskRows}${customRows}</div>
-
-    ${past.length ? `<div class="section-label">History</div>${past.map(d => {
-      const scores = CHECKIN_SCORES.map(s => d.checkin.scores?.[s.key]).filter(v => v != null);
-      const namedCustom = d.checkin.customItems.filter(item => item.label.trim());
-      const done = CHECKIN_TASKS.filter(task => d.checkin.tasks?.[task.key]).length
-        + namedCustom.filter(item => item.done).length;
-      const total = CHECKIN_TASKS.length + namedCustom.length;
-      return `<div class="past-day-card" onclick="openCheckinDay('${d.key}')">
-        <div style="min-width:0;">
-          <div class="past-day-date">${escHtml(isoDate(d.key))}</div>
-          <div class="past-day-name">${done}/${total} checked</div>
-        </div>
-        <div class="past-day-stats">${scores.length ? scores.join(' · ') : ''}</div>
-        <span class="chevron-right">›</span>
-      </div>`;
-    }).join('')}` : ''}`;
-}
-
-// The vault file is the record; this produces a block that pastes into it
-// unchanged, in the same order and with the same punctuation.
-function checkinAsText(key) {
-  const checkin = loadCheckin(key);
-  const lines = [`# ${isoDate(key)} Check-In`, ' 状态（1-10）'];
-  for (const s of CHECKIN_SCORES) {
-    const v = checkin.scores[s.key];
-    lines.push(`\t- ${s.label}：${v ?? ''} /10`);
-  }
-  lines.push('', ' Checklist');
-  for (const task of CHECKIN_TASKS) {
-    lines.push(`\t- [${checkin.tasks?.[task.key] ? 'x' : ' '}] ${task.label}${task.target ? ` · ${task.target}` : ''}`);
-  }
-  for (const item of checkin.customItems.filter(item => item.label.trim())) {
-    lines.push(`\t- [${item.done ? 'x' : ' '}] ${item.label.trim()}`);
-  }
-  return lines.join('\n');
-}
-
-async function copyCheckin() {
-  const text = checkinAsText(checkinDayKey());
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('✓ Copied — paste into 0 Lux Daily Checkin.md', 4000);
-  } catch {
-    showToast('Could not copy');
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// RECIPES
-// Anything cooked from parts. The macros are summed from the food database
-// rather than typed in, so a recipe stays correct when its amounts change,
-// and it becomes searchable like any other food once saved.
-//
-// Stored whole: ingredients and method are kept, not just the totals, so a
-// recipe can be edited later instead of re-entered.
-// ═══════════════════════════════════════════════════════════════
-const RECIPES_KEY = 'alog_recipes';
-
-function loadRecipes() {
-  try { return JSON.parse(localStorage.getItem(RECIPES_KEY)) || []; }
-  catch { return []; }
-}
-
-function saveRecipes(list) {
-  localStorage.setItem(RECIPES_KEY, JSON.stringify(list));
-}
-
-// An ingredient is a name plus an amount in the database's own unit, so
-// "celery 10" means 10 g and "egg 2" means two eggs.
-function recipeIngredientMacros(ingredient) {
-  const match = searchFoodDb(ingredient.name, 1)[0];
-  if (!match) return null;
-  const qty = parseFloat(ingredient.qty);
-  if (!isFinite(qty) || qty <= 0) return null;
-  return { ...calcQty(match.item, qty), matched: match.key, unit: match.item.unit };
-}
-
-function recipeTotals(recipe) {
-  const totals = { p: 0, kcal: 0, fat: 0, carbs: 0, fiber: 0, unresolved: [] };
-  for (const ingredient of recipe.ingredients || []) {
-    const macros = recipeIngredientMacros(ingredient);
-    if (!macros) { if (ingredient.name) totals.unresolved.push(ingredient.name); continue; }
-    totals.p += macros.p; totals.kcal += macros.kcal;
-    totals.fat += macros.fat; totals.carbs += macros.carbs; totals.fiber += macros.fiber;
-  }
-  const servings = Math.max(1, parseFloat(recipe.servings) || 1);
-  return {
-    unresolved: totals.unresolved,
-    servings,
-    perServing: {
-      p: +(totals.p / servings).toFixed(1),
-      kcal: Math.round(totals.kcal / servings),
-      fat: +(totals.fat / servings).toFixed(1),
-      carbs: +(totals.carbs / servings).toFixed(1),
-      fiber: +(totals.fiber / servings).toFixed(1),
-    },
-  };
-}
-
-// Seeded once so it is there on first open rather than needing re-entry.
-// Stored as a recipe, not a fixed food, so changing an amount recomputes it.
-const SEED_RECIPES = [{
-  id: 'seed-green-drink',
-  name: 'Green Drink',
-  servings: 1,
-  ingredients: [
-    { name: 'celery',    qty: '10' },
-    { name: 'pineapple', qty: '5' },
-    { name: 'ginger',    qty: '1' },
-    { name: 'spinach',   qty: '3' },
-    { name: 'water',     qty: '300' },
-  ],
-  method: 'Blend everything with the water.',
-}];
-
-function seedRecipesOnce() {
-  if (localStorage.getItem('alog_recipes_seeded')) return;
-  const existing = loadRecipes();
-  const have = new Set(existing.map(r => r.id));
-  const added = SEED_RECIPES.filter(r => !have.has(r.id));
-  if (added.length) saveRecipes([...existing, ...added]);
-  localStorage.setItem('alog_recipes_seeded', '1');
-}
-
-// ── Editor ─────────────────────────────────────────────────────
-let editingRecipeId = null;
-
-function openRecipeList() {
-  editingRecipeId = null;
-  renderRecipeList();
-  document.getElementById('recipe-overlay').classList.add('open');
-}
-
-function closeRecipeOverlay() {
-  document.getElementById('recipe-overlay').classList.remove('open');
-}
-
-function renderRecipeList() {
-  const recipes = loadRecipes();
-  document.getElementById('recipe-title').textContent = 'Recipes';
-  document.getElementById('recipe-body').innerHTML = `
-    <button class="add-btn" style="width:100%;margin-bottom:16px;" onclick="openRecipeEditor()">+ New recipe</button>
-    ${recipes.length ? recipes.map(r => {
-      const t = recipeTotals(r);
-      return `<div class="recipe-card" onclick="openRecipeEditor('${r.id}')">
-        <div class="recipe-card-name">${escHtml(r.name)}</div>
-        <div class="recipe-card-macros">${t.perServing.p}g protein · ${t.perServing.kcal} kcal per serving${t.servings > 1 ? ` · ${t.servings} servings` : ''}</div>
-        <div class="recipe-card-parts">${escHtml((r.ingredients || []).map(i => i.name).filter(Boolean).join(' · ')) || 'No ingredients yet'}</div>
-      </div>`;
-    }).join('') : '<div class="empty-state">No recipes yet</div>'}`;
-}
-
-function openRecipeEditor(id) {
-  editingRecipeId = id || null;
-  const recipe = id
-    ? loadRecipes().find(r => r.id === id)
-    : { id: uid(), name: '', servings: 1, ingredients: [{ name: '', qty: '' }], method: '' };
-  window._recipeDraft = JSON.parse(JSON.stringify(recipe));
-  renderRecipeEditor();
-}
-
-function renderRecipeEditor() {
-  const draft = window._recipeDraft;
-  const totals = recipeTotals(draft);
-  document.getElementById('recipe-title').textContent = editingRecipeId ? 'Edit recipe' : 'New recipe';
-
-  const rows = draft.ingredients.map((ing, i) => {
-    const macros = recipeIngredientMacros(ing);
-    const unit = macros ? (macros.unit === 'g' || macros.unit === 'ml' ? macros.unit : macros.unit) : '';
-    return `<div class="recipe-row">
-      <input class="modal-input recipe-ing" value="${escHtml(ing.name)}" placeholder="Ingredient"
-             oninput="updateRecipeIngredient(${i},'name',this.value)" list="recipe-food-list">
-      <input class="modal-input recipe-qty" value="${escHtml(ing.qty)}" placeholder="Amt" inputmode="decimal"
-             oninput="updateRecipeIngredient(${i},'qty',this.value)">
-      <span class="recipe-unit">${escHtml(unit)}</span>
-      <button class="recipe-del" onclick="removeRecipeIngredient(${i})" aria-label="Remove">✕</button>
-    </div>`;
-  }).join('');
-
-  document.getElementById('recipe-body').innerHTML = `
-    <label class="modal-label">Name</label>
-    <input class="modal-input" value="${escHtml(draft.name)}" placeholder="e.g. Green Drink"
-           oninput="updateRecipeField('name', this.value)">
-
-    <label class="modal-label">Makes how many servings</label>
-    <input class="modal-input" value="${escHtml(draft.servings)}" inputmode="decimal"
-           oninput="updateRecipeField('servings', this.value)">
-
-    <div class="modal-label">Ingredients</div>
-    <datalist id="recipe-food-list">${Object.keys(DB).map(k => `<option value="${escHtml(k)}">`).join('')}</datalist>
-    ${rows}
-    <button class="action-pill" style="width:100%;margin:4px 0 16px;" onclick="addRecipeIngredient()">+ Add ingredient</button>
-
-    <div class="recipe-totals">
-      <div class="recipe-totals-label">Per serving</div>
-      <div class="recipe-totals-value">${totals.perServing.p}g protein · ${totals.perServing.kcal} kcal
-        · ${totals.perServing.fat}g fat · ${totals.perServing.carbs}g carbs · ${totals.perServing.fiber}g fiber</div>
-      ${totals.unresolved.length
-        ? `<div class="recipe-warning">Not in the food database: ${escHtml(totals.unresolved.join(', '))} — these count as zero.</div>`
-        : ''}
-    </div>
-
-    <label class="modal-label">Method</label>
-    <textarea class="modal-input" rows="4" placeholder="How it is made"
-              style="height:auto;resize:vertical;" oninput="updateRecipeField('method', this.value)">${escHtml(draft.method || '')}</textarea>
-
-    <div class="modal-btn-row">
-      ${editingRecipeId ? `<button class="outline-btn" onclick="deleteRecipe()" style="color:var(--red);">Delete</button>` : ''}
-      <button class="outline-btn" onclick="renderRecipeList()">Back</button>
-      <button class="green-btn" onclick="saveRecipeDraft()">Save</button>
-    </div>`;
-}
-
-function updateRecipeField(field, value) {
-  window._recipeDraft[field] = value;
-  if (field === 'servings') renderRecipeTotalsOnly();
-}
-
-function updateRecipeIngredient(index, field, value) {
-  window._recipeDraft.ingredients[index][field] = value;
-  renderRecipeTotalsOnly();
-}
-
-// Re-rendering the whole editor on every keystroke would steal focus.
-function renderRecipeTotalsOnly() {
-  const totals = recipeTotals(window._recipeDraft);
-  const box = document.querySelector('.recipe-totals');
-  if (!box) return;
-  box.innerHTML = `<div class="recipe-totals-label">Per serving</div>
-    <div class="recipe-totals-value">${totals.perServing.p}g protein · ${totals.perServing.kcal} kcal
-      · ${totals.perServing.fat}g fat · ${totals.perServing.carbs}g carbs · ${totals.perServing.fiber}g fiber</div>
-    ${totals.unresolved.length
-      ? `<div class="recipe-warning">Not in the food database: ${escHtml(totals.unresolved.join(', '))} — these count as zero.</div>`
-      : ''}`;
-}
-
-function addRecipeIngredient() {
-  window._recipeDraft.ingredients.push({ name: '', qty: '' });
-  renderRecipeEditor();
-}
-
-function removeRecipeIngredient(index) {
-  window._recipeDraft.ingredients.splice(index, 1);
-  if (!window._recipeDraft.ingredients.length) window._recipeDraft.ingredients.push({ name: '', qty: '' });
-  renderRecipeEditor();
-}
-
-function saveRecipeDraft() {
-  const draft = window._recipeDraft;
-  if (!String(draft.name).trim()) { showToast('Give the recipe a name'); return; }
-  draft.ingredients = draft.ingredients.filter(i => String(i.name).trim());
-  const list = loadRecipes();
-  const at = list.findIndex(r => r.id === draft.id);
-  if (at >= 0) list[at] = draft; else list.push(draft);
-  saveRecipes(list);
-  showToast(`✓ Saved “${draft.name}”`);
-  renderRecipeList();
-}
-
-function deleteRecipe() {
-  saveRecipes(loadRecipes().filter(r => r.id !== editingRecipeId));
-  editingRecipeId = null;
-  renderRecipeList();
-}
-
-// Saved recipes answer the food search like anything else, so logging one is
-// the same two taps as logging a banana.
-function recipeAsFoodItem(recipe) {
-  const t = recipeTotals(recipe);
-  return { ...t.perServing, unit: 'serving', qty: 1, name: recipe.name, recipe: true };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4779,7 +4033,7 @@ function addFavouriteFood(fav, fromHome) {
   const totals = sumMacros(breakfast);
   const entry = {
     ...makeEntry(fav.name, totals, time),
-    source:'Usual Breakfast',
+    source: isBreakfastName(fav.name) ? 'Regular Breakfast' : 'favourite',
     components: breakfast.map(item => ({
       name:item.name, p:roundMacro(item.p), kcal:roundMacro(item.kcal), fat:roundMacro(item.fat),
       carbs:roundMacro(item.carbs), fiber:roundMacro(item.fiber),
@@ -4851,41 +4105,6 @@ function renderWater() {
   const ml = state.waterMl || 0;
   button.title = `Water · ${ml} / ${WATER_GOAL_ML} ml · Add 500 ml`;
   button.setAttribute('aria-label', `Water ${ml} of ${WATER_GOAL_ML} millilitres. Add 500 millilitres`);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FREQUENT FOODS MODAL (standalone)
-// ═══════════════════════════════════════════════════════════════
-function openFreqModal() {
-  const container = document.getElementById('freq-modal-pills');
-  const logged = getFreqFoods();
-  const quickNames = QUICK_SEED.map(q => ({ name: q, emoji: '', count: -1 }));
-  // Merge: logged history first, then seed items not already in history
-  const loggedNames = new Set(logged.map(f => f.name.toLowerCase()));
-  const merged = [
-    ...logged.map(f => ({ ...f, emoji: '' })),
-    ...quickNames.filter(q => !loggedNames.has(q.name.toLowerCase()))
-  ];
-  container.innerHTML = merged.map(f => {
-    const label = f.emoji ? `${f.emoji} ${f.name}` : f.name;
-    const badge = f.count > 0 ? ` <span style="color:var(--dim);font-size:10px">${f.count}×</span>` : '';
-    return `<div class="freq-pill" onclick="freqModalTap('${escHtml(f.name)}')">${escHtml(label)}${badge}</div>`;
-  }).join('') || '<span style="color:var(--muted)">No foods yet</span>';
-  document.getElementById('freq-modal').classList.add('open');
-}
-
-function closeFreqModal() { document.getElementById('freq-modal').classList.remove('open'); }
-
-function freqModalTap(name) {
-  closeFreqModal();
-  // Show in detail view or open qty modal
-  if (currentDetailKey) {
-    freqFoodTap(name);
-  } else {
-    // Navigate to today detail first
-    showDayDetail(todayKey());
-    setTimeout(() => freqFoodTap(name), 350);
-  }
 }
 
 function showToast(msg, dur = 3000) {
@@ -6077,107 +5296,6 @@ function updateRunPacePreview() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GYM AI COACH
-// ═══════════════════════════════════════════════════════════════
-let gymAiHistory = [];
-let gymAiStreaming = false;
-
-function openGymAI() {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) { pendingApiKeyAction = { type: 'ai', context: 'gym-modal' }; openApiKeyModal(); return; }
-  gymAiHistory = [];
-  const msgs = document.getElementById('gym-ai-messages');
-  msgs.innerHTML = '';
-  appendGymAIBubble('assistant', `Hi Coach! Tell me what you did today and I'll log it. Example: "3 sets of deadlifts at 185 lbs for 8 reps, 4 sets of narrow pull-ups, front squats 4×10 at 95 lbs"`);
-  document.getElementById('gym-ai-modal').classList.add('open');
-}
-
-function closeGymAI() {
-  document.getElementById('gym-ai-modal').classList.remove('open');
-  gymAiStreaming = false;
-}
-
-function appendGymAIBubble(role, text) {
-  const msgs = document.getElementById('gym-ai-messages');
-  const div = document.createElement('div');
-  div.className = `ai-bubble ${role}`;
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-
-function gymAiKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendGymAI(); }
-}
-
-async function sendGymAI() {
-  if (gymAiStreaming) return;
-  const input = document.getElementById('gym-ai-input');
-  const text = input.value.trim();
-  if (!text) return;
-  const apiKey = getOpenAIKey();
-  if (!apiKey) { openApiKeyModal(); return; }
-  input.value = '';
-  gymAiHistory.push({ role:'user', content:text });
-  appendGymAIBubble('user', text);
-
-  const bubble = appendGymAIBubble('assistant','');
-  bubble.classList.add('thinking'); bubble.innerHTML='<div class="spinner"></div>';
-  document.getElementById('gym-ai-send').disabled = true;
-  gymAiStreaming = true;
-
-  const existing = state.gym.exercises.map(e=>`${e.name} ${e.sets||''}×${e.reps||''} @${e.weight||'?'}`).join(', ')||'None yet';
-  const sys = `You are a gym logging assistant. Session: ${state.gym.session||'Not set'}. Exercises logged so far: ${existing}.
-
-The user describes their workout in natural language. Your job:
-1. Parse exercises from their description
-2. Reply conversationally confirming what you logged
-3. At the END of your reply, include a JSON block (wrapped in \`\`\`json ... \`\`\`) with this exact format:
-[{"name":"Exercise Name","sets":"4","reps":"8","weight":"185 lbs"}]
-
-If the user is just chatting (not logging), answer normally without JSON.
-Keep replies concise. All weights are in lbs.`;
-
-  try {
-    const full = await callOpenAI(
-      gymAiHistory.map(message => ({ role:message.role, content:message.content })),
-      sys, 800);
-    bubble.classList.remove('thinking'); bubble.textContent=full;
-    gymAiHistory.push({role:'assistant',content:full});
-
-    // Parse JSON exercises from response
-    const jsonMatch = full.match(/```json\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      try {
-        const exercises = JSON.parse(jsonMatch[1].trim());
-        let added = 0;
-        for (const ex of exercises) {
-          if (!ex.name) continue;
-          state.gym.exercises.push({ id:uid(), name:ex.name, sets:String(ex.sets||''), reps:String(ex.reps||''), weight:String(ex.weight||''), completed:false });
-          added++;
-        }
-        if (added > 0) {
-          saveState();
-          renderExerciseList();
-          const confirmDiv = document.createElement('div');
-          confirmDiv.className = 'ai-bubble assistant';
-          confirmDiv.style.cssText = 'font-size:12px;color:var(--sp-green);font-weight:700;';
-          confirmDiv.textContent = `✓ Added ${added} exercise${added>1?'s':''} to your log`;
-          document.getElementById('gym-ai-messages').appendChild(confirmDiv);
-          document.getElementById('gym-ai-messages').scrollTop = 9999;
-        }
-      } catch {}
-    }
-  } catch(err) {
-    bubble.classList.remove('thinking'); bubble.style.color='var(--red)'; bubble.textContent='Error: '+err.message;
-  } finally {
-    gymAiStreaming=false;
-    document.getElementById('gym-ai-send').disabled=false;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════
 // SUMMARY TAB
 // ═══════════════════════════════════════════════════════════════
 
@@ -6309,33 +5427,6 @@ function renderLogTab() {
   renderConcentricNutritionChart(m);
   renderSummaryCharts();
 
-  // ── Training summary ──
-  const trainingEl = document.getElementById('summary-training-body');
-  if (trainingEl) {
-    if (!state.gym.session && !state.gym.exercises.length) {
-      trainingEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0;">No training logged today</div>';
-    } else {
-      let thtml = '';
-      if (state.gym.session) {
-        const completed = state.gym.exercises.filter(exercise => exercise.completed !== false).length;
-        thtml += `<div style="display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;"><span>${escHtml(state.gym.session)}</span><span style="color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;">${completed} completed / ${state.gym.exercises.length} planned</span></div>`;
-      }
-      if (state.gym.exercises.length) {
-        thtml += state.gym.exercises.map(e => {
-          const isHold = e.hold || isHoldExercise(e.name);
-          const detail = isHold
-            ? [e.durationMin ? e.durationMin+' min' : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ')
-            : [e.sets ? e.sets+' sets' : '', e.reps ? e.reps+' reps' : '', e.weight ? '@'+e.weight : '', e.feeling ? `Feel: ${e.feeling}/10` : ''].filter(Boolean).join(' · ');
-          return `<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.62);">
-            <div style="font-size:13px;font-weight:600;color:var(--text2);">${e.completed === false ? '○' : '✓'} ${escHtml(e.name)}</div>
-            <div style="font-size:11px;color:var(--muted);text-align:right;">${detail}</div>
-          </div>`;
-        }).join('');
-      }
-      trainingEl.innerHTML = thtml;
-    }
-  }
-
   // ── 14-day history ──
   const keys = getRecentKeys(14);
   let histHtml = '';
@@ -6350,49 +5441,7 @@ function renderLogTab() {
     </div>`;
   }
   document.getElementById('history-rows').innerHTML = histHtml || '<div class="empty-state">No history yet</div>';
-  renderLifeCoachSummary();
 }
-
-function renderLifeCoachSummary() {
-  const box = document.getElementById('life-coach-summary');
-  if (!box) return;
-  box.textContent = state.checkin?.lifeCoachSummary
-    || 'Review today’s data and generate a concise coaching summary.';
-}
-
-async function generateLifeCoachSummary() {
-  if (!getOpenAIKey()) {
-    pendingApiKeyAction = { type:'life-summary' };
-    openApiKeyModal();
-    return;
-  }
-  const button = document.getElementById('life-coach-btn');
-  const box = document.getElementById('life-coach-summary');
-  button.disabled = true;
-  button.textContent = 'Thinking…';
-  box.textContent = 'Reviewing today…';
-  try {
-    const macros = sumMacros(state.food || []);
-    const checkin = state.checkin || { scores:{}, tasks:{} };
-    const completedTasks = CHECKIN_TASKS
-      .filter(task => checkin.tasks?.[task.key])
-      .map(task => task.label)
-      .concat(normalizeCheckinCustomItems(checkin).filter(item => item.done && item.label.trim()).map(item => item.label.trim()));
-    const prompt = `Date: ${garminDateKey()}\nStatus scores: ${JSON.stringify(checkin.scores || {})}\nChecklist completed: ${completedTasks.join(', ') || 'none'}\nNutrition: ${Math.round(macros.kcal)} kcal, ${Math.round(macros.p)}g protein, ${Math.round(macros.fiber)}g fiber.\nWorkout: ${state.gym?.session || 'none'}; ${(state.gym?.exercises || []).filter(e => e.completed !== false).map(e => e.name).join(', ') || 'no completed exercises'}.\nWater: ${state.waterMl || 0} ml.`;
-    const summary = await callOpenAI([{ role:'user', content:prompt }],
-      'You are a supportive, practical life coach. Write one short paragraph plus up to three concrete next actions. Balance study, work, fitness, nutrition and recovery. Do not shame, diagnose or exaggerate. Use the same language as the user’s data where practical.', 550);
-    state.checkin = checkin;
-    state.checkin.lifeCoachSummary = summary;
-    saveState();
-    box.textContent = summary;
-  } catch (err) {
-    box.textContent = 'Could not generate summary: ' + err.message;
-  } finally {
-    button.disabled = false;
-    button.textContent = 'Refresh';
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════
 // DATA EXPORT (for weekly backup)
 // ═══════════════════════════════════════════════════════════════
@@ -6422,8 +5471,6 @@ function _importData(data) {
     // The count is shown as "restored N days", so only days are counted.
     if (isDayKey(key)) count++;
   }
-  // A restored file already carries her recipes; do not paste the seed on top.
-  if (data.alog_recipes) localStorage.setItem('alog_recipes_seeded', '1');
   if (count) noteNextSync();
   return count;
 }
@@ -6579,7 +5626,7 @@ async function setupNativeReminders() {
     if (permission.display !== 'granted') return;
     const weekday = new Date().getDay() + 1; // Capacitor: Sunday=1 … Saturday=7
     await notifications.schedule({ notifications:[
-      { id:701, title:'AthleteLog', body:'记录今天的训练、饮食和 Feeling。', schedule:{ on:{ hour:21, minute:0 } } },
+      { id:701, title:'AthleteLog', body:'记录今天的训练和饮食。', schedule:{ on:{ hour:21, minute:0 } } },
       { id:707, title:'AthleteLog backup', body:'导出并保存最近 7 天的 AthleteLog 备份。', schedule:{ on:{ weekday, hour:9, minute:0 } } }
     ] });
     localStorage.setItem('alog_native_reminders', '1');
@@ -6998,7 +6045,7 @@ function saveGistToken() {
 // Day records plus anything else that is *data she created*. Settings,
 // tokens and caches are excluded: they are either secrets or re-derivable.
 // Export, Gist sync and restore all go through here so they cannot drift.
-const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_recipes', 'alog_usual_breakfast'];
+const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_usual_breakfast'];
 
 function isDayKey(key) {
   return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
@@ -7123,7 +6170,7 @@ document.getElementById('period-btn').onclick = () => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// CLAUDE AI OVERLAY
+// OPENAI FOOD AND VOICE REQUESTS
 // ═══════════════════════════════════════════════════════════════
 let pendingApiKeyAction = null;
 
@@ -7148,97 +6195,6 @@ async function callOpenAI(input, instructions, maxOutputTokens = 900) {
   if (!text) throw new Error('OpenAI returned no text');
   return text;
 }
-
-function openAI(context) {
-  const apiKey = getOpenAIKey();
-  if (!apiKey) {
-    pendingApiKeyAction = { type: 'ai', context };
-    openApiKeyModal();
-    return;
-  }
-  aiContext = context || 'food';
-  aiHistory = [];
-  document.getElementById('ai-overlay-title').textContent = context === 'gym' ? '🤖 Gym AI Coach' : '🤖 Nutrition AI';
-  document.getElementById('ai-messages').innerHTML = '';
-  document.getElementById('ai-input').value = '';
-  // Show welcome
-  appendAIBubble('assistant', `Hi! I'm your ${context === 'gym' ? 'gym coach' : 'nutrition assistant'}. Ask me anything about your ${context === 'gym' ? 'training' : 'food & macros'} today.`);
-  document.getElementById('ai-overlay').classList.add('open');
-}
-
-function closeAI() {
-  document.getElementById('ai-overlay').classList.remove('open');
-  aiStreaming = false;
-}
-
-function buildSystemPrompt() {
-  if (aiContext === 'gym') {
-    const m = sumMacros(state.food);
-    return `You are an expert strength & conditioning coach. Today's gym session: ${state.gym.session||'Not set'}. Exercises: ${state.gym.exercises.map(e=>`${e.name} ${e.sets||''}×${e.reps||''} @${e.weight||'?'}lbs`).join(', ')||'None logged'}. User also ate: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal today. Give concise, actionable coaching advice.`;
-  }
-  const m = sumMacros(state.food);
-  const foodList = state.food.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).map(f=>`${f.time} ${f.name} (${formatMacro(f.p)}g P, ${formatMacro(f.kcal)} kcal)`).join('\n');
-  // The protocol is the authority; the coach advises inside it, not around it.
-  const plan = loadPlan();
-  const entry = todayPlanEntry();
-  const planContext = plan ? `\n\nThe user follows this eating protocol. Treat it as the source of truth and never contradict it:\n---\n${plan.markdown}\n---\n${entry ? `Today is a ${entry.template} day (${TEMPLATE_NAMES[entry.template] || ''})${entry.activity ? `, planned activity: ${entry.activity}` : ''}${entry.focus ? `, nutrient focus: ${entry.focus}` : ''}.` : 'Today is not in the protocol schedule.'}` : '';
-  return `You are an expert sports nutritionist.${planContext}\n\nToday's food log:\n${foodList||'Nothing logged yet'}\n\nTotals: ${Math.round(m.p)}g protein, ${Math.round(m.kcal)} kcal, ${Math.round(m.fat)}g fat, ${Math.round(m.carbs)}g carbs, ${Math.round(m.fiber)}g fiber.\nGoals: ${GOALS.protein}g protein, ${GOALS.fiber}g fiber, ${dailyCalorieGoal(state)} kcal (base goal ${BASE_CALORIE_GOAL} plus today's training).\nPeriod: ${state.period?'Yes':'No'}. Water: ${state.waterMl || 0}/${WATER_GOAL_ML} ml.\nGive concise, personalized nutrition advice.`;
-}
-
-function appendAIBubble(role, text) {
-  const msgs = document.getElementById('ai-messages');
-  const div = document.createElement('div');
-  div.className = `ai-bubble ${role}`;
-  div.textContent = text;
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-
-function aiInputKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendAIMessage();
-  }
-}
-
-async function sendAIMessage() {
-  if (aiStreaming) return;
-  const input = document.getElementById('ai-input');
-  const text = input.value.trim();
-  if (!text) return;
-  const apiKey = getOpenAIKey();
-  if (!apiKey) { openApiKeyModal(); return; }
-
-  input.value = '';
-  aiHistory.push({ role: 'user', content: text });
-  appendAIBubble('user', text);
-
-  const assistantBubble = appendAIBubble('assistant', '');
-  assistantBubble.classList.add('thinking');
-  assistantBubble.innerHTML = '<div class="spinner"></div>';
-
-  const sendBtn = document.getElementById('ai-send-btn');
-  sendBtn.disabled = true;
-  aiStreaming = true;
-
-  try {
-    const fullText = await callOpenAI(
-      aiHistory.map(message => ({ role:message.role, content:message.content })),
-      buildSystemPrompt(), 1100);
-    assistantBubble.classList.remove('thinking');
-    assistantBubble.textContent = fullText;
-    aiHistory.push({ role: 'assistant', content: fullText });
-  } catch(err) {
-    assistantBubble.classList.remove('thinking');
-    assistantBubble.style.color = 'var(--red)';
-    assistantBubble.textContent = 'Error: ' + err.message;
-  } finally {
-    aiStreaming = false;
-    sendBtn.disabled = false;
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════
 // API KEY MODAL
 // ═══════════════════════════════════════════════════════════════
@@ -7263,15 +6219,13 @@ function saveApiKey() {
   localStorage.setItem('openai_api_key', key);
   closeApiKeyModal();
   if (action) {
-    if (action.type === 'ai') openAI(action.context);
-    else if (action.type === 'photo') document.getElementById('photo-input').click();
+    if (action.type === 'photo') document.getElementById('photo-input').click();
     else if (action.type === 'barcode') document.getElementById('barcode-input').click();
     else if (action.type === 'estimate') estimateFoodWithAI(action.query);
     else if (action.type === 'food-voice') organizeSpokenFood(action.transcript);
     else if (action.type === 'food-voice-start') toggleFoodVoice();
     else if (action.type === 'detail-voice-start') toggleVoice();
     else if (action.type === 'feeling-voice-start') toggleFeelingVoice();
-    else if (action.type === 'life-summary') generateLifeCoachSummary();
   }
 }
 
@@ -7291,7 +6245,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       renderLogTab();
       healthOrRelaySync(true);
     }
-    if (tab === 'food') { renderDayList(); renderPlanPill(); }
+    if (tab === 'food') renderDayList();
   };
 });
 
@@ -7302,9 +6256,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.classList.remove('open');
       if (overlay.id === 'qty-modal') closeQtyModal();
       if (overlay.id === 'api-key-modal') closeApiKeyModal();
-      if (overlay.id === 'freq-modal') closeFreqModal();
       if (overlay.id === 'photo-modal') closePhotoModal();
-      if (overlay.id === 'gym-ai-modal') closeGymAI();
       if (overlay.id === 'gist-modal') closeGistModal();
     }
   });
@@ -7824,242 +6776,6 @@ async function copyGymMarkdown() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EATING PROTOCOL
-// The plan is written in the vault, for a human to read. A LaunchAgent
-// (tools/plan_sync.py) republishes it to the Gist this app already syncs
-// with; the app renders the Markdown as-is and reads one thing as data —
-// which template today falls on — so Today can say it instead of asking.
-// ═══════════════════════════════════════════════════════════════
-const PLAN_GIST_FILE = 'athletelog-plan.json';
-const PLAN_CACHE_KEY = 'alog_plan_cache';
-
-const TEMPLATE_NAMES = {
-  A: '训练日',
-  B: '休息 / 轻活动日',
-  C: '长距离日',
-};
-
-function loadPlan() {
-  try { return JSON.parse(localStorage.getItem(PLAN_CACHE_KEY)) || null; }
-  catch { return null; }
-}
-
-function todayPlanEntry() {
-  const plan = loadPlan();
-  if (!plan || !plan.schedule) return null;
-  const entry = plan.schedule[garminDateKey()];
-  return entry ? { ...entry, plan } : null;
-}
-
-// AI Coach may use the synced plan as context, but the feature is always
-// presented as a coach rather than as a separate Plan destination.
-function renderPlanPill() {
-  const pill = document.getElementById('plan-pill');
-  if (!pill) return;
-  pill.textContent = 'AI Coach';
-}
-
-async function planAutoSync(silent = true) {
-  const token = localStorage.getItem('github_gist_token');
-  if (!token) return false;
-  try {
-    const cachedId = localStorage.getItem('plan_gist_id');
-    let gistId = cachedId;
-    if (!gistId) {
-      const listing = await fetch('https://api.github.com/gists?per_page=50', {
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      if (!listing.ok) throw new Error('GitHub auth failed');
-      const gist = (await listing.json()).find(g => g.files && g.files[PLAN_GIST_FILE]);
-      if (!gist) throw new Error('No ' + PLAN_GIST_FILE + ' gist found');
-      gistId = gist.id;
-      localStorage.setItem('plan_gist_id', gistId);
-    }
-    const resp = await fetch(`https://api.github.com/gists/${gistId}`, {
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    if (!resp.ok) throw new Error('Could not read the plan file');
-    const raw = resp.json ? (await resp.json()).files?.[PLAN_GIST_FILE]?.content : null;
-    if (!raw) throw new Error('Plan file is empty');
-    JSON.parse(raw); // fail loudly here rather than at render time
-    localStorage.setItem(PLAN_CACHE_KEY, raw);
-    localStorage.setItem('plan_last_sync', new Date().toISOString());
-    renderPlanPill();
-    if (!silent) renderPlanSheet();
-    return true;
-  } catch (err) {
-    if (!silent) {
-      const body = document.getElementById('plan-body');
-      if (body) body.insertAdjacentHTML('afterbegin',
-        `<div class="plan-warning">${escHtml(err.message)}</div>`);
-    }
-    return false;
-  }
-}
-
-// ── Markdown → HTML ────────────────────────────────────────────
-// Small on purpose: the plan documents use headings, tables, callouts,
-// lists, bold and inline code, and nothing else.
-function planInline(text) {
-  return escHtml(text)
-    .replace(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g, '$1')       // [[wikilink]]
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');               // links, text only
-}
-
-function planTableRow(line) {
-  return line.trim().replace(/^\||\|$/g, '').split('|').map(cell => cell.trim());
-}
-
-function renderPlanMarkdown(markdown) {
-  const lines = String(markdown || '').split(/\r?\n/);
-  const out = [];
-  let listType = null;
-  let table = null;
-
-  const closeList = () => { if (listType) { out.push(`</${listType}>`); listType = null; } };
-  const closeTable = () => {
-    if (!table) return;
-    const head = table.head.map(cell => `<th>${planInline(cell)}</th>`).join('');
-    const body = table.rows.map(row =>
-      `<tr>${row.map(cell => `<td>${planInline(cell)}</td>`).join('')}</tr>`).join('');
-    out.push(`<div class="plan-table-wrap"><table>${head ? `<thead><tr>${head}</tr></thead>` : ''}<tbody>${body}</tbody></table></div>`);
-    table = null;
-  };
-  const closeAll = () => { closeList(); closeTable(); };
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Tables: a header row followed by a |---|---| separator.
-    if (/^\|.*\|$/.test(trimmed)) {
-      const cells = planTableRow(trimmed);
-      if (!table) {
-        const next = (lines[i + 1] || '').trim();
-        if (/^\|[\s:|-]+\|$/.test(next)) {
-          closeList();
-          table = { head: cells, rows: [] };
-          i++;
-          continue;
-        }
-        table = { head: [], rows: [] };
-      }
-      table.rows.push(cells);
-      continue;
-    }
-    closeTable();
-
-    if (!trimmed) { closeList(); continue; }
-
-    if (/^---+$/.test(trimmed)) { closeAll(); out.push('<hr>'); continue; }
-
-    const heading = trimmed.match(/^(#{1,6})\s+(.*)$/);
-    if (heading) {
-      closeAll();
-      const level = Math.min(heading[1].length + 1, 6);
-      out.push(`<h${level}>${planInline(heading[2])}</h${level}>`);
-      continue;
-    }
-
-    // Consecutive `>` lines are one quote, not one per line.
-    if (trimmed.startsWith('>')) {
-      closeList();
-      const quoted = [];
-      while (i < lines.length && lines[i].trim().startsWith('>')) {
-        quoted.push(lines[i].trim().replace(/^>\s?/, '').replace(/^\[!\w+\][-+]?\s*/, ''));
-        i++;
-      }
-      i--;
-      const inner = quoted.filter(Boolean).map(part => planInline(part)).join('<br>');
-      if (inner) out.push(`<blockquote>${inner}</blockquote>`);
-      continue;
-    }
-
-    const task = trimmed.match(/^[-*]\s+\[([ xX])\]\s+(.*)$/);
-    if (task) {
-      if (listType !== 'ul') { closeList(); out.push('<ul class="plan-tasks">'); listType = 'ul'; }
-      out.push(`<li class="${task[1].trim() ? 'done' : ''}">${planInline(task[2])}</li>`);
-      continue;
-    }
-
-    const bullet = trimmed.match(/^[-*]\s+(.*)$/);
-    if (bullet) {
-      if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
-      out.push(`<li>${planInline(bullet[1])}</li>`);
-      continue;
-    }
-
-    const numbered = trimmed.match(/^\d+[.)]\s+(.*)$/);
-    if (numbered) {
-      if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
-      out.push(`<li>${planInline(numbered[1])}</li>`);
-      continue;
-    }
-
-    closeList();
-    out.push(`<p>${planInline(trimmed)}</p>`);
-  }
-  closeAll();
-  return out.join('\n');
-}
-
-// ── Sheet ──────────────────────────────────────────────────────
-function openPlanSheet() {
-  document.getElementById('plan-overlay').classList.add('open');
-  renderPlanSheet();
-  planAutoSync(true).then(ok => { if (ok) renderPlanSheet(); });
-}
-
-function closePlanSheet() {
-  document.getElementById('plan-overlay').classList.remove('open');
-}
-
-function renderPlanSheet() {
-  const plan = loadPlan();
-  const title = document.getElementById('plan-title');
-  const body = document.getElementById('plan-body');
-  if (!body) return;
-
-  if (!plan) {
-    if (title) title.textContent = 'Eating protocol';
-    body.innerHTML = `
-      <div class="plan-empty">
-        <p>No plan synced yet.</p>
-        <p>The plan is published from the vault by <code>tools/plan_sync.py</code>.
-        Connect Gist backup first (Summary → Cloud Backup), then run the LaunchAgent once.</p>
-      </div>`;
-    return;
-  }
-
-  if (title) title.textContent = plan.title || 'Eating protocol';
-  const entry = todayPlanEntry();
-  const today = entry ? `
-    <div class="plan-today">
-      <div class="plan-today-badge">${escHtml(entry.template)}</div>
-      <div class="plan-today-text">
-        <div class="plan-today-name">今天 · ${escHtml(TEMPLATE_NAMES[entry.template] || '')}</div>
-        <div class="plan-today-meta">${[entry.activity, entry.focus].filter(Boolean).map(escHtml).join(' · ')}</div>
-        ${entry.note ? `<div class="plan-today-note">${escHtml(entry.note)}</div>` : ''}
-      </div>
-    </div>` : '';
-
-  const stamp = plan.synced || plan.updated;
-  body.innerHTML = `${today}
-    <div class="plan-markdown">${renderPlanMarkdown(plan.markdown)}</div>
-    <div class="plan-stamp">${escHtml(plan.source || '')}${stamp ? ` · synced ${escHtml(stamp)}` : ''}</div>`;
-  body.scrollTop = 0;
-}
-
-// The AI coach is still reachable, but now it reads the plan first.
-function askCoachAboutPlan() {
-  closePlanSheet();
-  openAI('food');
-}
-
-// ═══════════════════════════════════════════════════════════════
 // BARCODE SCANNING
 // A barcode is an exact key, so it skips the guessing that text search has
 // to do: Open Food Facts is looked up by code, not by name.
@@ -8559,8 +7275,6 @@ function init() {
   setupNativeReminders();
   updateGarminBtn();
   renderGymIoStatus();
-  renderPlanPill();
-  planAutoSync(true);
   checkFirstRun();
   healthOrRelaySync(true);
 
@@ -8579,7 +7293,6 @@ function refreshFromLibs() {
   ensureFavourites();
   renderHeader();
   renderDayList();
-  renderTodayPlan();
 }
 
 // Do not wait for the module event. An installed phone can keep the previous

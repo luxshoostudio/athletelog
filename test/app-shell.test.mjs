@@ -54,14 +54,14 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.ok(fallback, 'page keeps a breakfast seed for installs whose module has not loaded')
   assert.deepEqual(Function(`return (${fallback[1]})`)(), seedUsualBreakfast())
   assert.match(sw, /usual-breakfast\.mjs/)
-  assert.match(sw, /athletelog-v43/)
+  assert.match(sw, /athletelog-v44/)
   assert.match(sw, /\.\/workout-bank\.js/)
   assert.match(sw, /network for lib scripts/)
   assert.match(html, /apple-touch-icon" href="icon-1024\.png"/)
   assert.match(manifest, /"src": "icon-1024\.png"/)
   assert.match(sw, /'\.\/icon-1024\.png'/)
   assert.match(html, /icon-1024\.png/)
-  assert.match(html, /const BACKUP_EXTRA_KEYS = \['alog_favourites', 'alog_recipes', 'alog_usual_breakfast'\]/)
+  assert.match(html, /const BACKUP_EXTRA_KEYS = \['alog_favourites', 'alog_usual_breakfast'\]/)
   assert.doesNotMatch(html, /generateIcons/)
   assert.doesNotMatch(html, /athletelog-v38/)
   assert.match(boot, /window\.AthleteLogPlan = WeekPlan/)
@@ -76,6 +76,17 @@ test('workout bank shows a clickable source for the selected action', () => {
   assert.match(html, /id="workout-source-meta"/)
   assert.match(html, /id="workout-source-link"/)
   assert.match(html, /sourceMeta\.classList\.toggle\('hidden', !item\.source\)/)
+})
+
+test('retired log and coaching screens leave food tools and week planning available', () => {
+  for (const id of ['recipe-overlay', 'plan-overlay', 'freq-modal', 'gym-ai-modal', 'ai-overlay', 'life-coach-summary']) {
+    assert.ok(!html.includes(`id="${id}"`), `retired screen: ${id}`)
+  }
+  for (const action of ['triggerPhoto', 'openBarcodeScanner', 'toggleFoodVoice']) {
+    assert.ok(html.includes(`onclick="${action}()"`), `available food tool: ${action}`)
+  }
+  assert.match(html, /function readWeekPlan/)
+  assert.doesNotMatch(html, /localStorage\.removeItem\(['"]alog_recipes/)
 })
 
 test('the page replaces a stored Usual Breakfast that still matches the old seed', () => {
@@ -101,9 +112,9 @@ test('the page replaces a stored Usual Breakfast that still matches the old seed
   }
   const tuna = { name: 'Tuna', p: 20, kcal: 100 }
   const migrated = pinPageFavourites([old, tuna])
-  assert.equal(migrated[0].kcal, 464)
-  assert.equal(migrated[0].fiber, 16.5)
-  assert.equal(migrated[0].components.find(item => item.name === 'whole milk').p, 1.6)
+  assert.equal(migrated[0].kcal, 609)
+  assert.equal(migrated[0].fiber, 20.9)
+  assert.equal(migrated[0].components.find(item => item.name === 'Chia seeds').p, 5)
   assert.equal(migrated[1].name, 'Lifeway Strawberry Kefir (1 cup)')
   assert.equal(migrated[2], tuna)
   assert.equal(old.components.find(item => item.name === '2% milk').name, '2% milk')

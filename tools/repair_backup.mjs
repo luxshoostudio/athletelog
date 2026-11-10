@@ -38,10 +38,6 @@ const app = new Function('uid', [
   grab('function searchFoodDb', '\n// ═'),
   grab('function calcQty', 'function uid()'),
   grab('const GYM_SEPARATORS', 'function gymSessionToKey'),
-  // searchFoodDb also consults saved recipes, which a backup file does not
-  // carry into this context; stub it so only the database is matched.
-  'function loadRecipes() { return []; }',
-  'function recipeAsFoodItem() { return null; }',
 ].join('\n') + '\nreturn {parseExerciseLine, searchFoodDb, calcQty, DB};')(uid);
 
 const data = JSON.parse(fs.readFileSync(input, 'utf8'));

@@ -9,10 +9,9 @@ both, and the native build simply has more available to it.
 
 | | PWA | Native |
 |---|---|---|
-| Active calories | Gist relay (`alog-garmin`, needs the Mac awake, uses Garmin's undocumented endpoint) | **Apple Health, direct** |
+| Active calories | Manual entry | **Apple Health, direct** |
 | Steps | not available | **Apple Health, direct** |
 | Storage | localStorage, which iOS may evict | app storage, not evicted |
-| Eating protocol | `alog-plan` → Gist | unchanged, same path |
 
 Sleep is **not** included. `capacitor-health` does not expose it; adding it
 means a small custom plugin, which is a separate job.
