@@ -2140,7 +2140,9 @@ function calcPacePerMile(miles, timeStr) {
   else mins = parseFloat(timeStr);
   if (!mins || !parseFloat(miles)) return '';
   const pace = mins / parseFloat(miles);
-  const m = Math.floor(pace), s = Math.round((pace - m) * 60);
+  let m = Math.floor(pace);
+  let s = Math.round((pace - m) * 60);
+  if (s === 60) { m += 1; s = 0; }
   return `${m}:${String(s).padStart(2,'0')}/mile`;
 }
 
@@ -2159,9 +2161,9 @@ function normalizeMiles(distance) {
 function pacePerMileFromKm(pace) {
   const match = String(pace || '').match(/(\d+):(\d{1,2})\s*\/\s*km/i);
   if (!match) return String(pace || '');
-  const seconds = (+match[1] * 60 + +match[2]) * 1.609344;
-  const mins = Math.floor(seconds / 60);
-  return `${mins}:${String(Math.round(seconds % 60)).padStart(2,'0')}/mile`;
+  const totalSeconds = Math.round((+match[1] * 60 + +match[2]) * 1.609344);
+  const mins = Math.floor(totalSeconds / 60);
+  return `${mins}:${String(totalSeconds % 60).padStart(2,'0')}/mile`;
 }
 
 // Static/time-based exercises are logged by total duration in minutes.
@@ -3109,6 +3111,19 @@ function localDateIso(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 }
 
+function localDateFromIso(value) {
+  const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? new Date(+match[1], +match[2] - 1, +match[3]) : new Date(value);
+}
+
+function calendarDaysSince(value, now = new Date()) {
+  const saved = localDateFromIso(value);
+  if (!Number.isFinite(saved.getTime())) return 0;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const savedDay = new Date(saved.getFullYear(), saved.getMonth(), saved.getDate());
+  return Math.max(0, Math.floor((today - savedDay) / 86400000));
+}
+
 function openBackfillModal() {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -3236,10 +3251,17 @@ function rollOpenDay(options) {
   }
   const persisted = JSON.stringify(memory);
   const stored = read(from);
+  const checkin = memory?.checkin;
+  const hasCheckin = !!(checkin && (
+    Object.values(checkin.scores || {}).some(value => value != null && value !== '') ||
+    Object.values(checkin.tasks || {}).some(Boolean) ||
+    (Array.isArray(checkin.customItems) && checkin.customItems.some(item => item?.label?.trim() || item?.done)) ||
+    checkin.firework || checkin.tomorrow || checkin.thoughts || checkin.lifeCoachSummary
+  ));
   const hasEntries = !!(memory && (
     (Array.isArray(memory.food) && memory.food.length) ||
     (memory.gym && (memory.gym.session || (Array.isArray(memory.gym.exercises) && memory.gym.exercises.length))) ||
-    memory.waterMl || memory.water || memory.period || memory.garminKcal || memory.garminAutoKcal || memory.checkin
+    memory.waterMl || memory.water || memory.period || memory.garminKcal || memory.garminAutoKcal || hasCheckin
   ));
   if (stored !== persisted && (stored != null || hasEntries)) write(from, persisted);
   const raw = read(calendarKey);
@@ -4866,11 +4888,6 @@ function freqModalTap(name) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// VOICE INPUT
-// ═══════════════════════════════════════════════════════════════
-function initVoice() {}
-
 function showToast(msg, dur = 3000) {
   document.querySelectorAll('.nm-toast').forEach(t => t.remove());
   const t = document.createElement('div');
@@ -5872,7 +5889,6 @@ function renderGymHistory() {
   const container = document.getElementById('gym-history-list');
   if (!container) return;
   const keys = getRecentKeys(14);
-  const todayK = todayKey();
   let html = '';
   for (let i = 1; i < keys.length; i++) {
     const key = keys[i];
@@ -5949,7 +5965,7 @@ function showGymDayDetail(key) {
 function openGymDate() {
   const value = document.getElementById('gym-history-date').value;
   if (!value) { showToast('Choose a date first'); return; }
-  if (value > new Date().toISOString().slice(0, 10)) { showToast('Future dates cannot be logged'); return; }
+  if (value > localDateIso()) { showToast('Future dates cannot be logged'); return; }
   showGymDayDetail('alog_' + value.replace(/-/g, '_'));
 }
 
@@ -6045,8 +6061,8 @@ function updateGymDetailInputMode() {
   const session = nameEl.dataset.session || '';
   const run = isRunExercise(name) || (!name.trim() && isDistanceSession(session));
   const hold = !run && isHoldExercise(name);
-  setsEl.style.display = hold ? 'none' : '';
-  weightEl.style.display = hold ? 'none' : '';
+  setsEl.style.display = (run || hold) ? 'none' : '';
+  weightEl.style.display = (run || hold) ? 'none' : '';
   setsEl.placeholder = run ? 'Miles' : 'Sets';
   repsEl.placeholder = (run || hold) ? 'Duration (min)' : 'Reps';
   weightEl.placeholder = run ? 'Pace /mile' : 'lbs';
@@ -6177,8 +6193,6 @@ const SESSION_BURN = {
 // RMR measured by DEXA scan (BodySpec, Aug 14 2026): 1,306 kcal/day.
 // History: 2025-08 1,272 → 2026-05 1,357 → 2026-08 1,306
 // The server profile's nutritionTargets.calories (1300) is not used here.
-const BMR_ESTIMATE = 1306;
-
 function activeBurnForDay(day) {
   const manual = day.garminKcal || 0;
   const synced = day.garminAutoKcal || 0;
@@ -6501,10 +6515,10 @@ function setExportRange(days) {
   const to = new Date();
   const from = new Date();
   if (days > 0) from.setDate(to.getDate() - days + 1);
-  document.getElementById('export-to').value = to.toISOString().slice(0, 10);
+  document.getElementById('export-to').value = localDateIso(to);
   document.getElementById('export-from').value = days > 0
-    ? from.toISOString().slice(0, 10)
-    : (allDays[0] ? dayKeyToIso(allDays[0]) : to.toISOString().slice(0, 10));
+    ? localDateIso(from)
+    : (allDays[0] ? dayKeyToIso(allDays[0]) : localDateIso(to));
 }
 
 function exportData() {
@@ -6527,7 +6541,7 @@ function confirmExportData() {
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const dateStr = new Date().toISOString().slice(0,10);
+  const dateStr = localDateIso();
   a.href = url;
   a.download = `athletelog-${from}-to-${to}.json`;
   document.body.appendChild(a);
@@ -6544,7 +6558,7 @@ function confirmExportData() {
 function checkBackupReminder() {
   const last = localStorage.getItem('alog_last_backup');
   if (!last) return;
-  const daysSince = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  const daysSince = calendarDaysSince(last);
   if (daysSince >= 7) {
     const token = localStorage.getItem('github_gist_token');
     if (token) {
@@ -6984,7 +6998,7 @@ function saveGistToken() {
 // Day records plus anything else that is *data she created*. Settings,
 // tokens and caches are excluded: they are either secrets or re-derivable.
 // Export, Gist sync and restore all go through here so they cannot drift.
-const BACKUP_EXTRA_KEYS = ['alog_recipes', 'alog_usual_breakfast'];
+const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_recipes', 'alog_usual_breakfast'];
 
 function isDayKey(key) {
   return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
@@ -7016,7 +7030,7 @@ async function syncToGist(silent = false) {
 
   try {
     const allData = getAllLogData();
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = localDateIso();
     const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: allData }, null, 2);
 
     let gistId = localStorage.getItem('github_gist_id');
@@ -7741,7 +7755,7 @@ function renderGymIoStatus() {
   if (!status) return;
   const last = localStorage.getItem('alog_last_gym_export');
   if (!last) { status.textContent = 'Never exported to Obsidian yet.'; status.style.color = 'var(--muted)'; return; }
-  const days = Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+  const days = calendarDaysSince(last);
   status.textContent = `Last export to Obsidian: ${days} day${days === 1 ? '' : 's'} ago`;
   status.style.color = days > 7 ? 'var(--sp-green)' : 'var(--muted)';
 }
@@ -7790,7 +7804,7 @@ function exportGymMarkdown() {
   const markdown = buildGymMarkdown(year, month);
   if (!markdown) { showToast('No sessions logged this month yet'); return; }
   downloadTextFile(`${year} ${MONTH_NAMES[month - 1]} Gym Log.md`, markdown);
-  localStorage.setItem('alog_last_gym_export', new Date().toISOString().slice(0, 10));
+  localStorage.setItem('alog_last_gym_export', localDateIso());
   renderGymIoStatus();
   showToast('✓ Markdown ready — paste it into the month file', 4000);
 }
@@ -7801,7 +7815,7 @@ async function copyGymMarkdown() {
   if (!markdown) { showToast('No sessions logged this month yet'); return; }
   try {
     await navigator.clipboard.writeText(markdown);
-    localStorage.setItem('alog_last_gym_export', new Date().toISOString().slice(0, 10));
+    localStorage.setItem('alog_last_gym_export', localDateIso());
     renderGymIoStatus();
     showToast('✓ Copied — paste into your month file', 4000);
   } catch {
@@ -8538,7 +8552,6 @@ function init() {
   migrateKnownPeriodSeptember2026();
   useStoredToday();
   watchCalendarDay();
-  initVoice();
   renderHeader();
   renderDayList();
   checkBackupReminder();
@@ -8585,7 +8598,7 @@ window.addEventListener('athletelog-libs', startApp);
 startApp();
 
 // ═══════════════════════════════════════════════════════════════
-// PWA: Service Worker + PNG Icon Generator
+// PWA: Service Worker
 // ═══════════════════════════════════════════════════════════════
 
 // Register service worker
@@ -8599,56 +8612,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Generate PNG icons via canvas — the same Lx mark as icon.svg, since a home
-// screen wants a raster and iOS will not rasterise the SVG itself.
-(async function generateIcons() {
-  if (!('serviceWorker' in navigator)) return;
-  const sizes = [192, 512];
-  for (const size of sizes) {
-    const key = `icon-${size}.png`;
-    const cache = await caches.open('athletelog-v38').catch(() => null);
-    if (!cache) return;
-    const hit = await cache.match(key);
-    if (hit) continue; // already generated
-
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    const u = size / 1024;              // the mark is drawn on a 1024 grid
-
-    ctx.fillStyle = '#151515';
-    ctx.fillRect(0, 0, size, size);
-
-    const drawMark = (width, alpha) => {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = '#f8ead2';
-      ctx.lineWidth = width * u;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();                                   // L
-      ctx.moveTo(204 * u, 194 * u);
-      ctx.lineTo(204 * u, 714 * u);
-      ctx.lineTo(468 * u, 714 * u);
-      ctx.stroke();
-      ctx.beginPath();                                   // x
-      ctx.moveTo(478 * u, 430 * u); ctx.lineTo(768 * u, 714 * u);
-      ctx.moveTo(768 * u, 430 * u); ctx.lineTo(478 * u, 714 * u);
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    // Soft halo under the solid mark, matching the SVG's blurred layer.
-    ctx.filter = `blur(${Math.max(1, Math.round(15 * u))}px)`;
-    drawMark(148, 0.2);
-    ctx.filter = 'none';
-    drawMark(136, 1);
-
-    canvas.toBlob(blob => {
-      if (blob) cache.put(key, new Response(blob, { headers: { 'Content-Type': 'image/png' } }));
-    }, 'image/png');
-  }
-})();
 </script>
 </body>
 </html>

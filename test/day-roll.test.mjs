@@ -103,6 +103,23 @@ test('crossing midnight does not copy or delete the previous day', () => {
   assert.equal(same.openKey, 'alog_2026_11_03')
 })
 
+test('an auto-created empty check-in does not create a phantom day record', () => {
+  const rollOpenDay = pageFunction('rollOpenDay')
+  let writes = 0
+  rollOpenDay({
+    openKey: 'alog_2026_11_02',
+    calendarKey: 'alog_2026_11_03',
+    memory: {
+      food: [],
+      gym: { session: '', exercises: [] },
+      checkin: { scores: {}, tasks: {}, firework: '', tomorrow: '', thoughts: '' },
+    },
+    read: () => null,
+    write: () => { writes++ },
+  })
+  assert.equal(writes, 0)
+})
+
 test('the open page rebinds when the calendar day changes', () => {
   assert.match(html, /function onCalendarDayMaybeChanged\(/)
   assert.match(html, /function useStoredToday\(/)
@@ -112,6 +129,26 @@ test('the open page rebinds when the calendar day changes', () => {
   const apply = extractFunction(html, 'applyNextSyncDays')
   assert.match(apply, /useStoredToday\(\)/)
   assert.doesNotMatch(apply, /setItem\(todayKey\(\)/)
+})
+
+test('pace formatting carries rounded seconds into the next minute', () => {
+  const calcPacePerMile = pageFunction('calcPacePerMile')
+  assert.equal(calcPacePerMile('1', '5.999'), '6:00/mile')
+  assert.equal(calcPacePerMile('3.1', '18:35'), '6:00/mile')
+
+  const pacePerMileFromKm = pageFunction('pacePerMileFromKm')
+  assert.equal(pacePerMileFromKm('3:44/km'), '6:00/mile')
+  assert.equal(pacePerMileFromKm('not a pace'), 'not a pace')
+})
+
+test('date-only reminders use calendar days instead of elapsed hours', () => {
+  const calendarDaysSince = new Function(
+    `${extractFunction(html, 'localDateFromIso')}\n${extractFunction(html, 'calendarDaysSince')}\nreturn calendarDaysSince;`,
+  )()
+  const lateToday = new Date(2026, 10, 10, 23, 59)
+  assert.equal(calendarDaysSince('2026-11-03', lateToday), 7)
+  assert.equal(calendarDaysSince('2026-11-10', lateToday), 0)
+  assert.equal(calendarDaysSince('not a date', lateToday), 0)
 })
 
 test('a custom session is its own selected chip and does not select a built-in bucket', () => {
