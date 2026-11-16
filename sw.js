@@ -1,5 +1,5 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v44';
+const CACHE = 'athletelog-v45';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,8 @@ const ASSETS = [
   './lib/next-sync.mjs',
   './lib/next-sync-boot.js',
   './lib/usual-breakfast.mjs',
+  './lib/cycle.mjs',
+  './lib/gist-backup.mjs',
   './vendor/barcode-detector.js',
   './vendor/zxing_reader.wasm',
   'https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap'

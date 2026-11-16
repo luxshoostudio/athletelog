@@ -1054,6 +1054,59 @@ body { background-image:none; }
 .goal-bar-fill.kcal { background:#ff9500; }
 .goal-bar-fill.carbs { background:#34c759; }
 .goal-bar-fill.fat { background:#5ac8fa; }
+
+/* Cycle card. Logged days are solid; predictions stay an outline so a guess
+   never looks like something she recorded. Fertile days use the green. */
+.cycle-card {
+  margin: 0 0 16px; padding: 16px 14px 14px; background: #fff; border-radius: 20px;
+  box-shadow: 0 .5px 0 rgba(0,0,0,.08);
+}
+.cycle-kicker { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.cycle-headline { margin-top: 4px; color: var(--text); font-size: 20px; font-weight: 750; letter-spacing: -.02em; line-height: 1.15; }
+.cycle-detail { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.cycle-actions { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+.cycle-date-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+.cycle-date {
+  flex: 1; min-width: 0; min-height: 40px; padding: 0 10px; border: 1px solid #e5e5ea; border-radius: 12px;
+  background: #fff; color: var(--text); font-family: var(--font); font-weight: 600;
+}
+.cycle-log, .cycle-step {
+  min-height: 40px; border: 0; border-radius: 999px; background: #ff2d55; color: #fff;
+  font-family: var(--font); font-size: 13px; font-weight: 700; padding: 0 14px; cursor: pointer;
+}
+.cycle-log:active, .cycle-step:active { background: #d7003a; }
+.cycle-adjust { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.cycle-adjust-note { flex: 1 0 100%; color: var(--muted); font-size: 12px; font-weight: 650; }
+.cycle-step { background: #fff; color: #ff2d55; border: 1px solid #ffd0dc; }
+.cycle-step:disabled { color: #aeaeb2; border-color: #e5e5ea; }
+.cycle-month { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+.cycle-month button {
+  width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f2f2f7; color: var(--text);
+  font-size: 20px; line-height: 1; cursor: pointer;
+}
+#cycle-month-label { font-size: 15px; font-weight: 750; letter-spacing: -.02em; }
+.cycle-weekdays, .cycle-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cycle-weekdays { margin-top: 8px; color: var(--muted); font-size: 11px; font-weight: 700; text-align: center; }
+.cycle-grid { margin-top: 4px; }
+.cycle-day {
+  height: 36px; margin: 1px; border: 0; border-radius: 50%; background: transparent; color: var(--text);
+  font-family: var(--font); font-size: 13px; font-weight: 650; cursor: pointer;
+}
+.cycle-day.pad { visibility: hidden; cursor: default; }
+.cycle-day.logged { background: #ff2d55; color: #fff; }
+.cycle-day.predicted { background: transparent; color: #ff2d55; box-shadow: inset 0 0 0 1.5px #ff2d55; }
+.cycle-day.fertile { background: #e5f4ea; color: #1f6b45; }
+.cycle-day.ovulation { box-shadow: inset 0 0 0 2px #1f6b45; }
+.cycle-day.logged.ovulation { box-shadow: none; }
+.cycle-day.today { outline: 2px solid #1c1c1e; outline-offset: 1px; }
+.cycle-legend { display: flex; flex-wrap: wrap; gap: 10px 12px; margin-top: 12px; color: var(--muted); font-size: 11px; font-weight: 650; }
+.cycle-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.cycle-legend .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.cycle-legend .swatch.logged { background: #ff2d55; }
+.cycle-legend .swatch.predicted { box-shadow: inset 0 0 0 1.5px #ff2d55; }
+.cycle-legend .swatch.fertile { background: #e5f4ea; box-shadow: inset 0 0 0 1.5px #1f6b45; }
+.cycle-legend .swatch.ovulation { box-shadow: inset 0 0 0 2px #1f6b45; }
+.cycle-hint { margin-top: 10px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .photo-result-info { min-width: 0; flex: 1; }
 .photo-qty { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .photo-qty-input {
@@ -1215,7 +1268,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
             </div>
             <div class="organic-header-actions">
               <span id="last-period-label">Last period · —</span>
-              <button id="period-btn" aria-pressed="false">Turn on</button>
+              <button id="period-btn" aria-pressed="false">Log period</button>
               <button class="backfill-btn" onclick="openBackfillModal()">↩ Backfill</button>
             </div>
           </div>
@@ -1277,6 +1330,32 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <!-- Today's food entries (inline) -->
         <div class="section-label">Today</div>
         <div id="home-today-food"></div>
+
+        <section class="cycle-card" id="cycle-card" aria-label="Cycle">
+          <div class="cycle-kicker">Cycle</div>
+          <div class="cycle-headline" id="cycle-headline">No period logged yet</div>
+          <div class="cycle-detail" id="cycle-detail">Log a start once. The usual length fills in, including a past day you forgot.</div>
+          <div class="cycle-actions">
+            <label class="cycle-date-label" for="cycle-start-date">Started</label>
+            <input type="date" id="cycle-start-date" class="cycle-date" aria-label="Period start date">
+            <button type="button" class="cycle-log" id="cycle-log-btn">Log period</button>
+          </div>
+          <div class="cycle-adjust" id="cycle-adjust"></div>
+          <div class="cycle-month">
+            <button type="button" id="cycle-prev" aria-label="Previous month">‹</button>
+            <div id="cycle-month-label"></div>
+            <button type="button" id="cycle-next" aria-label="Next month">›</button>
+          </div>
+          <div class="cycle-weekdays" aria-hidden="true"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+          <div class="cycle-grid" id="cycle-calendar" role="grid" aria-label="Cycle calendar"></div>
+          <div class="cycle-legend">
+            <span><i class="swatch logged"></i>Logged</span>
+            <span><i class="swatch predicted"></i>Predicted</span>
+            <span><i class="swatch fertile"></i>Fertile</span>
+            <span><i class="swatch ovulation"></i>Ovulation</span>
+          </div>
+          <p class="cycle-hint">Tap any day, including past days, to add or remove it. Tap the first day of a prediction to log that period. Started early or late, and the end, are the buttons above.</p>
+        </section>
 
         <!-- Past days history -->
         <div class="section-label" style="margin-top:8px">History</div>
@@ -1453,6 +1532,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px;">
       <button class="outline-btn" onclick="startBackfill('food')">Food</button>
       <button class="outline-btn" onclick="startBackfill('gym')">Workout</button>
+      <button class="outline-btn" onclick="startBackfill('period')">Period</button>
     </div>
     <div class="modal-btn-row" style="margin-top:14px;">
       <button class="outline-btn" onclick="closeBackfillModal()">Cancel</button>
@@ -2876,6 +2956,10 @@ function startBackfill(section) {
 
   const tab = document.querySelector(`.tab-btn[data-tab="${section}"]`);
   if (tab) tab.click();
+  if (section === 'period') {
+    logPeriodFrom(value);
+    return;
+  }
   if (section === 'food') showDayDetail(key);
   else if (section === 'gym') showGymDayDetail(key);
 }
@@ -3174,74 +3258,298 @@ function renderHeader() {
   renderPeriodStatus();
 }
 
-function getPeriodForecast() {
-  const periodDays = Object.keys(localStorage)
-    .filter(isDayKey)
-    .filter(key => loadState(key).period)
-    .sort();
-  const cycles = [];
-  for (const key of periodDays) {
-    const date = keyToDate(key);
-    const previous = cycles[cycles.length - 1];
-    if (!previous || Math.round((date - previous.end) / 86400000) > 1) {
-      cycles.push({ start: date, end: date });
-    } else {
-      previous.end = date;
-    }
+let cycleEpisodes = [];
+let cycleMonth = '';
+
+function cycleApi() {
+  if (window.AthleteLogCycle?.cycleStatus) return Promise.resolve(window.AthleteLogCycle);
+  if (!window.__alogCycleLoad) {
+    window.__alogCycleLoad = import('./lib/cycle.mjs').then(mod => {
+      window.AthleteLogCycle = mod;
+      return mod;
+    });
   }
-  if (!cycles.length) return null;
-
-  const intervals = cycles.slice(1).map((cycle, index) =>
-    Math.round((cycle.start - cycles[index].start) / 86400000)
-  ).filter(days => days >= 21 && days <= 40).slice(-6);
-  const cycleDays = intervals.length
-    ? Math.round(intervals.reduce((sum, days) => sum + days, 0) / intervals.length)
-    : 28;
-  const last = cycles[cycles.length - 1];
-  const next = new Date(last.start);
-  next.setDate(next.getDate() + cycleDays);
-  return { cycles, last, next, cycleDays };
+  return window.__alogCycleLoad;
 }
 
-function shortPeriodDate(date) {
-  return date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+function backupApi() {
+  if (window.AthleteLogBackup?.mergeBackupData) return Promise.resolve(window.AthleteLogBackup);
+  if (!window.__alogBackupLoad) {
+    window.__alogBackupLoad = import('./lib/gist-backup.mjs').then(mod => {
+      window.AthleteLogBackup = mod;
+      return mod;
+    });
+  }
+  return window.__alogBackupLoad;
 }
 
-function periodRange(cycle) {
-  const start = shortPeriodDate(cycle.start);
-  const end = shortPeriodDate(cycle.end);
-  return start === end ? start : `${start}–${end}`;
+function readStoredCycles() {
+  try { return JSON.parse(localStorage.getItem('alog_cycles') || 'null'); }
+  catch { return null; }
+}
+
+function periodDatesInStorage() {
+  const dates = [];
+  for (const key of Object.keys(localStorage)) {
+    if (!isDayKey(key)) continue;
+    try {
+      const day = JSON.parse(localStorage.getItem(key));
+      if (day?.period) dates.push(dayKeyToIso(key));
+    } catch { /* a damaged day is skipped */ }
+  }
+  return dates;
+}
+
+function blankPeriodDay() {
+  return { food: [], gym: { session: '', exercises: [] }, water: 0, waterMl: 0, period: false };
+}
+
+function projectCycleFlags(api, episodes) {
+  const dayMap = {};
+  for (const key of Object.keys(localStorage)) {
+    if (!isDayKey(key)) continue;
+    try { dayMap[dayKeyToIso(key)] = JSON.parse(localStorage.getItem(key)); } catch { /* skip */ }
+  }
+  if (stateDayKey) dayMap[dayKeyToIso(stateDayKey)] = state;
+  const patches = api.periodFlagPatches(episodes, dayMap);
+  for (const patch of patches) {
+    const key = dateToDayKey(patch.iso);
+    if (key === stateDayKey) continue;
+    if (patch.op === 'delete') {
+      localStorage.removeItem(key);
+      continue;
+    }
+    const day = dayMap[patch.iso] && typeof dayMap[patch.iso] === 'object' ? dayMap[patch.iso] : blankPeriodDay();
+    day.period = patch.op === 'set';
+    localStorage.setItem(key, JSON.stringify(day));
+  }
+  const openIso = stateDayKey ? dayKeyToIso(stateDayKey) : '';
+  const openLogged = !!openIso && episodes.some(episode => openIso >= episode.start && openIso <= episode.end);
+  const periodChanged = !!stateDayKey && (!!state.period !== openLogged);
+  if (stateDayKey) state.period = openLogged;
+  return patches.length > 0 || periodChanged;
+}
+
+function storeCycleEpisodes(api, episodes) {
+  cycleEpisodes = api.normalizeEpisodes(episodes);
+  localStorage.setItem('alog_cycles', JSON.stringify({ version: 1, episodes: cycleEpisodes }));
+  localStorage.setItem(api.MIGRATION_FLAG, '1');
+  if (projectCycleFlags(api, cycleEpisodes) && stateDayKey) saveState();
+}
+
+async function loadCycleModel(migrated) {
+  const api = await cycleApi();
+  const result = api.migrateCycleStore({
+    stored: readStoredCycles(),
+    periodDates: periodDatesInStorage(),
+    migrated: migrated !== false && localStorage.getItem(api.MIGRATION_FLAG) === '1',
+  });
+  cycleEpisodes = result.episodes;
+  localStorage.setItem('alog_cycles', JSON.stringify({ version: 1, episodes: result.episodes }));
+  localStorage.setItem(api.MIGRATION_FLAG, '1');
+  if (projectCycleFlags(api, result.episodes) && stateDayKey) saveState();
+  return api;
+}
+
+function currentCycleMonth() {
+  if (!/^\d{4}-\d{2}$/.test(cycleMonth)) {
+    const now = new Date();
+    cycleMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  return cycleMonth;
+}
+
+function shiftCycleMonth(delta) {
+  const [year, month] = currentCycleMonth().split('-').map(Number);
+  const next = new Date(year, month - 1 + delta, 1);
+  cycleMonth = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+  renderPeriodStatus();
+}
+
+function cycleMarkLabel(iso, mark) {
+  const bits = [iso];
+  if (mark.logged) bits.push('logged period');
+  else if (mark.predicted) bits.push('predicted period');
+  if (mark.fertile) bits.push('fertile');
+  if (mark.ovulation) bits.push('ovulation');
+  if (!mark.logged && !mark.predicted && !mark.fertile) bits.push('not logged');
+  return bits.join(', ');
+}
+
+function renderCycleAdjust(api, status) {
+  const host = document.getElementById('cycle-adjust');
+  if (!host) return;
+  host.innerHTML = '';
+  const latest = status.episodes[status.episodes.length - 1];
+  if (!latest) return;
+  const note = document.createElement('div');
+  note.className = 'cycle-adjust-note';
+  note.textContent = `Latest · ${api.rangeText(latest)}`;
+  host.appendChild(note);
+  const add = (label, delta, which) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cycle-step';
+    button.textContent = label;
+    button.onclick = () => {
+      const next = which === 'start' ? api.shiftStart(cycleEpisodes, delta) : api.shiftEnd(cycleEpisodes, delta);
+      const episode = next[next.length - 1];
+      commitCycles(next, episode ? `Latest period · ${api.rangeText(episode)}` : 'Period updated');
+    };
+    host.appendChild(button);
+  };
+  add('Start −1', -1, 'start');
+  add('Start +1', 1, 'start');
+  add('End −1', -1, 'end');
+  add('End +1', 1, 'end');
+}
+
+function renderCycleCalendar(api, today) {
+  const grid = document.getElementById('cycle-calendar');
+  const label = document.getElementById('cycle-month-label');
+  if (!grid || !label) return;
+  const month = currentCycleMonth();
+  const [year, monthNum] = month.split('-').map(Number);
+  const first = new Date(year, monthNum - 1, 1);
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+  const monthStart = `${month}-01`;
+  const monthEnd = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+  label.textContent = first.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const snap = api.cycleSnapshot(cycleEpisodes, monthStart, api.addDays(monthEnd, 40));
+  grid.innerHTML = '';
+  for (let pad = 0; pad < first.getDay(); pad++) {
+    const spacer = document.createElement('span');
+    spacer.className = 'cycle-day pad';
+    spacer.setAttribute('aria-hidden', 'true');
+    grid.appendChild(spacer);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${month}-${String(day).padStart(2, '0')}`;
+    const mark = api.markDay(iso, snap);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cycle-day'
+      + (mark.logged ? ' logged' : '')
+      + (mark.predicted ? ' predicted' : '')
+      + (mark.fertile ? ' fertile' : '')
+      + (mark.ovulation ? ' ovulation' : '')
+      + (iso === today ? ' today' : '');
+    button.textContent = String(day);
+    button.setAttribute('role', 'gridcell');
+    button.setAttribute('aria-label', cycleMarkLabel(iso, mark));
+    button.setAttribute('aria-pressed', mark.logged ? 'true' : 'false');
+    button.onclick = () => {
+      const next = api.applyCalendarTap(cycleEpisodes, iso);
+      const nowLogged = next.some(episode => iso >= episode.start && iso <= episode.end);
+      commitCycles(next, nowLogged ? `Logged ${api.rangeText(next.find(episode => iso >= episode.start && iso <= episode.end))}` : `Cleared ${iso}`);
+    };
+    grid.appendChild(button);
+  }
 }
 
 function renderPeriodStatus() {
   const button = document.getElementById('period-btn');
   const label = document.getElementById('last-period-label');
-  const forecast = getPeriodForecast();
-  const previousCycle = forecast
-    ? (state.period ? forecast.cycles[forecast.cycles.length - 2] : forecast.last)
-    : null;
-  label.textContent = previousCycle ? `Last period · ${periodRange(previousCycle)}` : 'Last period · —';
-  label.title = previousCycle ? `Previous period: ${periodRange(previousCycle)}` : 'No previous period recorded';
-  button.textContent = state.period ? 'Turn off' : 'Turn on';
-  button.classList.toggle('is-on', state.period);
-  button.setAttribute('aria-pressed', state.period ? 'true' : 'false');
-  button.title = state.period ? 'Today is marked as a period day' : 'Mark today as a period day';
+  const api = window.AthleteLogCycle;
+  const today = localDateIso();
+  const dateInput = document.getElementById('cycle-start-date');
+  if (dateInput) {
+    dateInput.max = today;
+    if (!dateInput.value) dateInput.value = today;
+  }
+  if (!api?.cycleStatus) {
+    if (label) label.textContent = 'Cycle';
+    if (button) button.textContent = 'Log period';
+    return;
+  }
+  const status = api.cycleStatus(cycleEpisodes, today);
+  const headline = document.getElementById('cycle-headline');
+  const detail = document.getElementById('cycle-detail');
+  if (headline) headline.textContent = status.headline;
+  if (detail) detail.textContent = status.detail;
+  if (label) {
+    label.textContent = status.headline;
+    label.title = status.detail;
+  }
+  if (button) {
+    const logging = status.primary === 'log';
+    button.textContent = status.primary === 'end-today' ? 'End today' : logging ? 'Log period' : 'On period';
+    button.classList.toggle('is-on', !logging);
+    button.setAttribute('aria-pressed', status.loggedToday ? 'true' : 'false');
+    button.title = status.primary === 'end-today'
+      ? 'End the period today and clear the days after today'
+      : logging ? 'Log a period starting on the chosen day' : 'Today is in a logged period. Edit days on the calendar.';
+  }
+  renderCycleAdjust(api, status);
+  renderCycleCalendar(api, today);
+}
+
+async function commitCycles(episodes, toast) {
+  const api = await cycleApi();
+  storeCycleEpisodes(api, episodes);
+  renderPeriodStatus();
+  if (toast) showToast(toast);
+}
+
+async function logPeriodFrom(iso) {
+  const today = localDateIso();
+  if (!iso) { showToast('Choose the day it started'); return; }
+  if (iso > today) { showToast('A period start is today or a past day'); return; }
+  const api = await cycleApi();
+  const next = api.logPeriodStart(cycleEpisodes, iso);
+  const episode = next.find(item => iso >= item.start && iso <= item.end);
+  await commitCycles(next, episode ? `Period logged · ${api.rangeText(episode)}` : 'Period logged');
+  const card = document.getElementById('cycle-card');
+  if (card) card.scrollIntoView({ block: 'nearest' });
+}
+
+async function onPeriodHeaderClick() {
+  const api = await cycleApi();
+  const today = localDateIso();
+  const status = api.cycleStatus(cycleEpisodes, today);
+  if (status.primary === 'end-today') {
+    await commitCycles(api.endOn(cycleEpisodes, today), 'Period ended today');
+    return;
+  }
+  if (status.primary === 'logged') {
+    document.getElementById('cycle-card')?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  const chosen = document.getElementById('cycle-start-date')?.value || today;
+  await logPeriodFrom(chosen);
 }
 
 function checkPeriodReminder() {
-  const forecast = getPeriodForecast();
-  if (!forecast || state.period) return;
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const daysUntil = Math.round((forecast.next - today) / 86400000);
+  const api = window.AthleteLogCycle;
+  if (!api?.cycleStatus || !cycleEpisodes.length) return;
+  const today = localDateIso();
+  const status = api.cycleStatus(cycleEpisodes, today);
+  if (status.loggedToday || !status.next) return;
+  const daysUntil = api.daysBetween(today, status.next.start);
   if (daysUntil < -2 || daysUntil > 3) return;
   const reminderKey = `alog_period_reminder_${todayKey()}`;
   if (localStorage.getItem(reminderKey)) return;
   const timing = daysUntil < 0 ? `${Math.abs(daysUntil)} day${daysUntil === -1 ? '' : 's'} overdue`
     : daysUntil === 0 ? 'expected today'
     : `expected in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
-  setTimeout(() => showToast(`Period ${timing} · last ${periodRange(forecast.last)}`, 5000), 1800);
+  setTimeout(() => showToast(`Period ${timing} · predicted ${api.rangeText(status.next)}`, 5000), 1800);
   localStorage.setItem(reminderKey, '1');
+}
+
+function startCycleTracking() {
+  const logButton = document.getElementById('cycle-log-btn');
+  const prev = document.getElementById('cycle-prev');
+  const next = document.getElementById('cycle-next');
+  if (logButton && !logButton.dataset.bound) {
+    logButton.dataset.bound = '1';
+    logButton.onclick = () => logPeriodFrom(document.getElementById('cycle-start-date').value);
+    prev.onclick = () => shiftCycleMonth(-1);
+    next.onclick = () => shiftCycleMonth(1);
+  }
+  loadCycleModel().then(() => {
+    renderPeriodStatus();
+    checkPeriodReminder();
+  }).catch(err => console.warn('Cycle tracking unavailable', err));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5490,6 +5798,7 @@ function handleBackupFileRestore(event) {
       closeRestoreModal();
       // Reload state from today
       useStoredToday();
+      loadCycleModel(false).then(() => { renderHeader(); renderDayList(); });
       renderHeader();
       renderDayList();
       renderLogTab();
@@ -5544,6 +5853,7 @@ async function restoreFromGist() {
 
     closeRestoreModal();
     useStoredToday();
+    loadCycleModel(false).then(() => { renderHeader(); renderDayList(); });
     renderHeader();
     renderDayList();
     renderLogTab();
@@ -5639,6 +5949,7 @@ async function setupNativeReminders() {
 function applyNextSyncDays() {
   useStoredToday();
   if (currentDetailKey) detailState = loadState(currentDetailKey);
+  loadCycleModel(false).then(() => renderPeriodStatus());
   renderHeader();
   if (typeof renderDayList === 'function') renderDayList();
   if (typeof renderLogTab === 'function') renderLogTab();
@@ -6045,7 +6356,7 @@ function saveGistToken() {
 // Day records plus anything else that is *data she created*. Settings,
 // tokens and caches are excluded: they are either secrets or re-derivable.
 // Export, Gist sync and restore all go through here so they cannot drift.
-const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_usual_breakfast'];
+const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_usual_breakfast', 'alog_cycles'];
 
 function isDayKey(key) {
   return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
@@ -6068,6 +6379,38 @@ function getAllLogData() {
   return collectBackupData();
 }
 
+async function readBackupGist(token, gistId) {
+  const resp = await fetch('https://api.github.com/gists/' + gistId, {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+  });
+  if (resp.status === 404) return { missing: true };
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    const failure = new Error(err.message || 'HTTP ' + resp.status);
+    failure.status = resp.status;
+    throw failure;
+  }
+  const gist = await resp.json();
+  const raw = await gistFileText(gist.files && gist.files['athletelog-backup.json'], token);
+  return { missing: false, file: JSON.parse(raw), updatedAt: gist.updated_at || '' };
+}
+
+function writeMergedBackup(data) {
+  for (const [key, value] of Object.entries(data)) {
+    if (!isBackupKey(key)) continue;
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+}
+
+function describeGistAdoptions(adopted) {
+  const names = adopted.filter(item => item.kind === 'favourite').map(item => item.name);
+  const days = adopted.filter(item => item.kind === 'period').length;
+  const parts = [];
+  if (names.length) parts.push(names.join(', '));
+  if (days) parts.push(`${days} period day${days === 1 ? '' : 's'}`);
+  return parts.join(' and ');
+}
+
 async function syncToGist(silent = false) {
   const token = localStorage.getItem('github_gist_token');
   if (!token) { openGistModal(); return; }
@@ -6076,11 +6419,39 @@ async function syncToGist(silent = false) {
   if (syncBtn) { syncBtn.textContent = 'Backing up…'; syncBtn.disabled = true; }
 
   try {
-    const allData = getAllLogData();
-    const dateStr = localDateIso();
-    const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: allData }, null, 2);
-
     let gistId = localStorage.getItem('github_gist_id');
+    let payload = getAllLogData();
+    let adopted = [];
+    let gistNewer = false;
+    if (gistId) {
+      let remote;
+      try {
+        remote = await readBackupGist(token, gistId);
+      } catch (err) {
+        err.message = 'Could not read the current Gist, so it was left unchanged. ' + err.message;
+        throw err;
+      }
+      if (remote.missing) {
+        localStorage.removeItem('github_gist_id');
+        if (syncBtn) { syncBtn.textContent = 'Cloud Backup'; syncBtn.disabled = false; }
+        return syncToGist(silent);
+      }
+      const backup = await backupApi();
+      const merged = backup.mergeBackupData(payload, remote.file);
+      payload = merged.data;
+      adopted = merged.adopted;
+      const seenAt = Date.parse(localStorage.getItem('alog_gist_synced_at') || '') || 0;
+      gistNewer = !seenAt || Date.parse(remote.updatedAt || '') > seenAt;
+      if (adopted.length) {
+        writeMergedBackup(payload);
+        useStoredToday();
+        ensureFavourites();
+        await loadCycleModel(false);
+      }
+    }
+
+    const dateStr = localDateIso();
+    const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: payload }, null, 2);
     let url = 'https://api.github.com/gists';
     let method = 'POST';
     if (gistId) { url += '/' + gistId; method = 'PATCH'; }
@@ -6096,8 +6467,8 @@ async function syncToGist(silent = false) {
     });
 
     if (resp.status === 404 && gistId) {
-      // Gist was deleted, so create a new one
       localStorage.removeItem('github_gist_id');
+      if (syncBtn) { syncBtn.textContent = 'Cloud Backup'; syncBtn.disabled = false; }
       return syncToGist(silent);
     }
     if (!resp.ok) {
@@ -6110,9 +6481,19 @@ async function syncToGist(silent = false) {
     const result = await resp.json();
     localStorage.setItem('github_gist_id', result.id);
     localStorage.setItem('alog_last_backup', dateStr);
-    if (!silent) showToast(`Cloud backup complete. ${Object.keys(allData).length} records saved to GitHub Gist`, 4000);
+    localStorage.setItem('alog_gist_synced_at', new Date().toISOString());
+    const kept = describeGistAdoptions(adopted);
+    const notice = kept
+      ? `Cloud backup merged${gistNewer ? ' the newer Gist' : ''}. Kept ${kept}.`
+      : gistNewer
+        ? `Cloud backup checked the newer Gist, then saved ${Object.keys(payload).length} records.`
+        : `Cloud backup complete. ${Object.keys(payload).length} records saved to GitHub Gist`;
+    if (!silent) showToast(notice, 5000);
+    else if (kept) console.info(notice);
+    renderHeader();
+    renderDayList();
   } catch(err) {
-    if (!silent) showToast('Cloud backup failed: ' + err.message, 4000);
+    if (!silent) showToast('Cloud backup failed: ' + err.message, 5000);
     else console.warn('Auto-sync failed:', err.message);
     if (err.status === 401 || err.status === 403 || /bad credentials|requires authentication/i.test(err.message)) {
       localStorage.removeItem('github_gist_token');
@@ -6162,12 +6543,7 @@ function copyToNotes() {
 // ═══════════════════════════════════════════════════════════════
 // PERIOD TOGGLE
 // ═══════════════════════════════════════════════════════════════
-document.getElementById('period-btn').onclick = () => {
-  state.period = !state.period;
-  saveState();
-  renderHeader();
-  showToast(state.period ? 'Period turned on for today' : 'Period turned off for today');
-};
+document.getElementById('period-btn').onclick = () => onPeriodHeaderClick();
 
 // ═══════════════════════════════════════════════════════════════
 // OPENAI FOOD AND VOICE REQUESTS
@@ -7271,7 +7647,7 @@ function init() {
   renderHeader();
   renderDayList();
   checkBackupReminder();
-  checkPeriodReminder();
+  startCycleTracking();
   setupNativeReminders();
   updateGarminBtn();
   renderGymIoStatus();
