@@ -83,15 +83,6 @@ body {
 #header-mid { flex: 1; min-width: 0; }
 #header-date { font-size: 14px; font-weight: 700; color: var(--text); }
 #header-macros { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
-#period-btn {
-  background: rgba(255,255,255,0.65);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
-  color: var(--text2); font-size: 10px; font-weight: 700; padding: 6px 12px; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0; letter-spacing: 0.06em; text-transform: uppercase;
-  font-family: var(--font); transition: background .2s, color .2s;
-}
-#period-btn:active { background: rgba(236,72,153,0.2); color: var(--pink); }
 
 /* TABS */
 #tabs {
@@ -719,18 +710,6 @@ body {
 .organic-kicker { font-size:11px; line-height:1; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
 #header-date { font-family:var(--display); font-size:26px; line-height:1.08; font-weight:400; color:var(--text); }
 .organic-header-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-#last-period-label {
-  min-height:34px; display:flex; align-items:center; padding:8px 12px;
-  border-radius:999px; background:#fff; color:#6e6e73;
-  font-size:11px; font-weight:700; white-space:nowrap;
-}
-#period-btn {
-  border:0; border-radius:999px; padding:8px 12px; min-height:34px;
-  font-family:var(--font); font-size:11px; font-weight:700; letter-spacing:0;
-  text-transform:none; white-space:nowrap;
-}
-#period-btn { color:#ff2d55; background:#ffebef; cursor:pointer; }
-#period-btn.is-on { color:#fff; background:#ff2d55; }
 .backfill-btn {
   min-height:34px; padding:8px 12px; border:0; border-radius:999px;
   background:#eaf4ff; color:#007aff; font-family:var(--font);
@@ -974,8 +953,6 @@ body {
   .panel-inner, .day-list-inner { padding-left:16px; padding-right:16px; }
   .organic-header-row { flex-direction:column; align-items:stretch; gap:12px; }
   .organic-header-actions { width:100%; max-width:none; justify-content:flex-start; }
-  #last-period-label { min-width:0; max-width:calc(100% - 82px); overflow:hidden; text-overflow:ellipsis; }
-  #period-btn { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .organic-macro-hero { gap:14px; padding:18px 16px; }
   #protein-ring-wrap, #protein-ring-wrap svg { width:108px; height:108px; }
   .today-action-row .action-pill { padding-inline:6px; font-size:11px; }
@@ -1054,6 +1031,85 @@ body { background-image:none; }
 .goal-bar-fill.kcal { background:#ff9500; }
 .goal-bar-fill.carbs { background:#34c759; }
 .goal-bar-fill.fat { background:#5ac8fa; }
+
+/* Cycle Tracking, in the shape of Apple Health: a scrolling day strip,
+   one large action, then grouped cards. */
+.cycle { margin: 22px 0 8px; font-family: var(--font); color: #1c1c1e; }
+.cycle-strip {
+  display: flex; gap: 2px; overflow-x: auto; padding: 4px 0 2px;
+  scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.cycle-strip::-webkit-scrollbar { display: none; }
+.cycle-strip-day {
+  flex: 0 0 48px; scroll-snap-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 5px; padding: 6px 0 8px; border: 0; background: transparent;
+  font-family: var(--font); color: #1c1c1e; cursor: pointer;
+}
+.cycle-strip-dow { height: 13px; font-size: 11px; font-weight: 600; color: #8e8e93; letter-spacing: .01em; white-space: nowrap; }
+.cycle-dot {
+  width: 32px; height: 32px; border-radius: 50%; box-sizing: border-box;
+  border: 1.5px solid #e5e5ea; background: #fff; display: grid; place-items: center;
+}
+.cycle-dot.logged { background: #ff2d55; border-color: #ff2d55; }
+.cycle-dot.predicted { background: #fff5f7; border: 1.5px dashed #ffb3c2; }
+.cycle-dot.fertile { background: #d7f3ff; border-color: #7ec8f0; }
+.cycle-dot.ovulation::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #32ade6; }
+.cycle-strip-num { font-size: 13px; font-weight: 500; color: #1c1c1e; font-variant-numeric: tabular-nums; }
+.cycle-strip-day.today .cycle-strip-dow,
+.cycle-strip-day.today .cycle-strip-num { color: #ff2d55; font-weight: 700; }
+.cycle-legend { display: flex; gap: 14px; padding: 2px 2px 0; color: #8e8e93; font-size: 12px; font-weight: 500; }
+.cycle-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cycle-legend i { width: 10px; height: 10px; border-radius: 50%; box-sizing: border-box; display: block; }
+.cycle-legend .logged { background: #ff2d55; }
+.cycle-legend .predicted { background: #fff5f7; border: 1.5px dashed #ffb3c2; }
+.cycle-legend .fertile { background: #d7f3ff; border: 1.5px solid #7ec8f0; }
+.cycle-status { padding: 22px 2px 0; }
+.cycle-kicker { font-size: 15px; font-weight: 600; color: #8e8e93; }
+.cycle-headline { margin-top: 2px; font-size: 34px; font-weight: 700; letter-spacing: -.03em; line-height: 1.08; color: #1c1c1e; }
+.cycle-detail { margin-top: 6px; font-size: 15px; line-height: 1.35; color: #8e8e93; }
+.cycle-log {
+  width: 100%; height: 50px; margin-top: 18px; border: 0; border-radius: 14px;
+  background: #ff2d55; color: #fff; font-family: var(--font); font-size: 17px; font-weight: 600; cursor: pointer;
+}
+.cycle-log:active { background: #d7003a; }
+.cycle-end {
+  width: 100%; height: 44px; margin-top: 8px; border: 0; border-radius: 12px; background: transparent;
+  color: #ff2d55; font-family: var(--font); font-size: 17px; font-weight: 400; cursor: pointer;
+}
+.cycle-end[hidden] { display: none; }
+.cycle-section-label { margin: 26px 4px 8px; font-size: 13px; font-weight: 600; color: #6e6e73; }
+.cycle-panel {
+  background: #fff; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.04);
+}
+.cycle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 48px; padding: 10px 16px; font-size: 17px; color: #1c1c1e;
+}
+.cycle-row + .cycle-row { box-shadow: inset 0 0.5px 0 #e5e5ea; }
+.cycle-row-value { color: #8e8e93; font-variant-numeric: tabular-nums; text-align: right; }
+.cycle-date {
+  width: 148px; border: 0; background: transparent; color: #8e8e93; font-family: var(--font);
+  font-weight: 400; text-align: right; min-height: 32px;
+}
+#cycle-adjust { display: contents; }
+.cycle-log-summary { padding: 16px 16px 8px; }
+.cycle-log-range { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; font-weight: 600; }
+.cycle-log-sub { margin-top: 3px; color: #8e8e93; font-size: 13px; font-weight: 400; }
+.cycle-bar { position: relative; height: 10px; margin: 14px 16px 16px; border-radius: 999px; background: #f2f2f7; }
+.cycle-bar-period { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #ff2d55; }
+.cycle-bar-today { position: absolute; top: -3px; width: 2px; height: 16px; border-radius: 2px; background: #1c1c1e; }
+.cycle-step {
+  border: 0; background: transparent; color: #ff2d55; font-family: var(--font); font-size: 17px; font-weight: 400;
+  padding: 0; cursor: pointer;
+}
+.cycle-hist { padding: 6px 0; }
+.cycle-hist-row { padding: 12px 16px 14px; }
+.cycle-hist-row + .cycle-hist-row { box-shadow: inset 0 0.5px 0 #e5e5ea; }
+.cycle-hist-top { display: flex; justify-content: space-between; gap: 12px; font-size: 17px; }
+.cycle-hist-top span:last-child { color: #8e8e93; font-variant-numeric: tabular-nums; }
+.cycle-hist-track { position: relative; height: 12px; margin-top: 10px; border-radius: 999px; background: #f2f2f7; }
+.cycle-hist-period { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #ff2d55; }
 .photo-result-info { min-width: 0; flex: 1; }
 .photo-qty { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .photo-qty-input {
@@ -1214,8 +1270,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
               <div id="header-date">Today</div>
             </div>
             <div class="organic-header-actions">
-              <span id="last-period-label">Last period · —</span>
-              <button id="period-btn" aria-pressed="false">Turn on</button>
               <button class="backfill-btn" onclick="openBackfillModal()">↩ Backfill</button>
             </div>
           </div>
@@ -1277,6 +1331,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <!-- Today's food entries (inline) -->
         <div class="section-label">Today</div>
         <div id="home-today-food"></div>
+
 
         <!-- Past days history -->
         <div class="section-label" style="margin-top:8px">History</div>
@@ -1431,6 +1486,41 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       <button class="copy-btn" onclick="copyToNotes()">Copy to Notes</button>
     </div>
   </div>
+  <div id="period-panel" class="panel">
+    <div class="panel-inner">
+      <section class="cycle" id="cycle-card" aria-label="Cycle Tracking">
+        <div class="cycle-strip" id="cycle-strip" role="list" aria-label="Days"></div>
+        <div class="cycle-legend" aria-hidden="true">
+          <span><i class="logged"></i>Logged</span>
+          <span><i class="predicted"></i>Predicted</span>
+          <span><i class="fertile"></i>Fertile</span>
+        </div>
+        <div class="cycle-status">
+          <div class="cycle-kicker" id="cycle-kicker">Period</div>
+          <div class="cycle-headline" id="cycle-headline">No period logged</div>
+          <div class="cycle-detail" id="cycle-detail">Add a period once. The usual length fills in.</div>
+        </div>
+        <button type="button" class="cycle-log" id="cycle-log-btn">Add Period</button>
+        <button type="button" class="cycle-end" id="cycle-end-btn" hidden>End today</button>
+
+        <h2 class="cycle-section-label">Cycle Log</h2>
+        <div class="cycle-panel" id="cycle-log-card">
+          <div id="cycle-log-summary"></div>
+          <div class="cycle-row">
+            <label for="cycle-start-date">Add from</label>
+            <input type="date" id="cycle-start-date" class="cycle-date" aria-label="Period start date">
+          </div>
+          <div id="cycle-adjust"></div>
+        </div>
+
+        <h2 class="cycle-section-label">Predictions</h2>
+        <div class="cycle-panel" id="cycle-predictions"></div>
+
+        <h2 class="cycle-section-label">Cycle History</h2>
+        <div class="cycle-panel cycle-hist" id="cycle-history"></div>
+      </section>
+    </div>
+  </div>
 
 </div>
 
@@ -1439,6 +1529,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
+  <button class="tab-btn" data-tab="period"><span class="nav-glyph" aria-hidden="true">◉</span>Period</button>
 </nav>
 
 <!-- BACKFILL MODAL -->
@@ -1453,6 +1544,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
     <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:4px;">
       <button class="outline-btn" onclick="startBackfill('food')">Food</button>
       <button class="outline-btn" onclick="startBackfill('gym')">Workout</button>
+      <button class="outline-btn" onclick="startBackfill('period')">Period</button>
     </div>
     <div class="modal-btn-row" style="margin-top:14px;">
       <button class="outline-btn" onclick="closeBackfillModal()">Cancel</button>
@@ -2878,6 +2970,10 @@ function startBackfill(section) {
 
   const tab = document.querySelector(`.tab-btn[data-tab="${section}"]`);
   if (tab) tab.click();
+  if (section === 'period') {
+    logPeriodFrom(value);
+    return;
+  }
   if (section === 'food') showDayDetail(key);
   else if (section === 'gym') showGymDayDetail(key);
 }
@@ -3176,74 +3272,411 @@ function renderHeader() {
   renderPeriodStatus();
 }
 
-function getPeriodForecast() {
-  const periodDays = Object.keys(localStorage)
-    .filter(isDayKey)
-    .filter(key => loadState(key).period)
-    .sort();
-  const cycles = [];
-  for (const key of periodDays) {
-    const date = keyToDate(key);
-    const previous = cycles[cycles.length - 1];
-    if (!previous || Math.round((date - previous.end) / 86400000) > 1) {
-      cycles.push({ start: date, end: date });
-    } else {
-      previous.end = date;
-    }
+let cycleEpisodes = [];
+let cycleMonth = '';
+
+function cycleApi() {
+  if (window.AthleteLogCycle?.cycleStatus) return Promise.resolve(window.AthleteLogCycle);
+  if (!window.__alogCycleLoad) {
+    window.__alogCycleLoad = import('./lib/cycle.mjs').then(mod => {
+      window.AthleteLogCycle = mod;
+      return mod;
+    });
   }
-  if (!cycles.length) return null;
-
-  const intervals = cycles.slice(1).map((cycle, index) =>
-    Math.round((cycle.start - cycles[index].start) / 86400000)
-  ).filter(days => days >= 21 && days <= 40).slice(-6);
-  const cycleDays = intervals.length
-    ? Math.round(intervals.reduce((sum, days) => sum + days, 0) / intervals.length)
-    : 28;
-  const last = cycles[cycles.length - 1];
-  const next = new Date(last.start);
-  next.setDate(next.getDate() + cycleDays);
-  return { cycles, last, next, cycleDays };
+  return window.__alogCycleLoad;
 }
 
-function shortPeriodDate(date) {
-  return date.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+function backupApi() {
+  if (window.AthleteLogBackup?.mergeBackupData) return Promise.resolve(window.AthleteLogBackup);
+  if (!window.__alogBackupLoad) {
+    window.__alogBackupLoad = import('./lib/gist-backup.mjs').then(mod => {
+      window.AthleteLogBackup = mod;
+      return mod;
+    });
+  }
+  return window.__alogBackupLoad;
 }
 
-function periodRange(cycle) {
-  const start = shortPeriodDate(cycle.start);
-  const end = shortPeriodDate(cycle.end);
-  return start === end ? start : `${start}–${end}`;
+function readStoredCycles() {
+  try { return JSON.parse(localStorage.getItem('alog_cycles') || 'null'); }
+  catch { return null; }
+}
+
+function periodDatesInStorage() {
+  const dates = [];
+  for (const key of Object.keys(localStorage)) {
+    if (!isDayKey(key)) continue;
+    try {
+      const day = JSON.parse(localStorage.getItem(key));
+      if (day?.period) dates.push(dayKeyToIso(key));
+    } catch { /* a damaged day is skipped */ }
+  }
+  return dates;
+}
+
+function blankPeriodDay() {
+  return { food: [], gym: { session: '', exercises: [] }, water: 0, waterMl: 0, period: false };
+}
+
+function projectCycleFlags(api, episodes) {
+  const dayMap = {};
+  for (const key of Object.keys(localStorage)) {
+    if (!isDayKey(key)) continue;
+    try { dayMap[dayKeyToIso(key)] = JSON.parse(localStorage.getItem(key)); } catch { /* skip */ }
+  }
+  if (stateDayKey) dayMap[dayKeyToIso(stateDayKey)] = state;
+  const patches = api.periodFlagPatches(episodes, dayMap);
+  for (const patch of patches) {
+    const key = dateToDayKey(patch.iso);
+    if (key === stateDayKey) continue;
+    if (patch.op === 'delete') {
+      localStorage.removeItem(key);
+      continue;
+    }
+    const day = dayMap[patch.iso] && typeof dayMap[patch.iso] === 'object' ? dayMap[patch.iso] : blankPeriodDay();
+    day.period = patch.op === 'set';
+    localStorage.setItem(key, JSON.stringify(day));
+  }
+  const openIso = stateDayKey ? dayKeyToIso(stateDayKey) : '';
+  const openLogged = !!openIso && episodes.some(episode => openIso >= episode.start && openIso <= episode.end);
+  const periodChanged = !!stateDayKey && (!!state.period !== openLogged);
+  if (stateDayKey) state.period = openLogged;
+  return patches.length > 0 || periodChanged;
+}
+
+function storeCycleEpisodes(api, episodes) {
+  cycleEpisodes = api.normalizeEpisodes(episodes);
+  localStorage.setItem('alog_cycles', JSON.stringify({ version: 1, episodes: cycleEpisodes }));
+  localStorage.setItem(api.MIGRATION_FLAG, '1');
+  if (projectCycleFlags(api, cycleEpisodes) && stateDayKey) saveState();
+}
+
+async function loadCycleModel(migrated) {
+  const api = await cycleApi();
+  const result = api.migrateCycleStore({
+    stored: readStoredCycles(),
+    periodDates: periodDatesInStorage(),
+    migrated: migrated !== false && localStorage.getItem(api.MIGRATION_FLAG) === '1',
+  });
+  cycleEpisodes = result.episodes;
+  localStorage.setItem('alog_cycles', JSON.stringify({ version: 1, episodes: result.episodes }));
+  localStorage.setItem(api.MIGRATION_FLAG, '1');
+  if (projectCycleFlags(api, result.episodes) && stateDayKey) saveState();
+  return api;
+}
+
+const CYCLE_DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const CYCLE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+let cycleStripReady = false;
+let cycleTabOpened = false;
+
+function cycleMarkLabel(iso, mark) {
+  const bits = [iso];
+  if (mark.logged) bits.push('logged period');
+  else if (mark.predicted) bits.push('predicted period');
+  if (mark.fertile) bits.push('fertile');
+  if (mark.ovulation) bits.push('ovulation');
+  if (!mark.logged && !mark.predicted && !mark.fertile) bits.push('not logged');
+  return bits.join(', ');
+}
+
+function cycleDisplay(status, api, today) {
+  if (!status.episodes.length) {
+    return { kicker: 'Cycle', title: 'No period logged', detail: 'Add a period once. The usual length fills in.' };
+  }
+  if (status.current) {
+    const day = api.daysBetween(status.current.start, today) + 1;
+    return { kicker: 'Period', title: `Day ${day}`, detail: api.rangeText(status.current) };
+  }
+  if (status.next) {
+    const delta = api.daysBetween(today, status.next.start);
+    const when = api.rangeText(status.next);
+    if (delta > 1) return { kicker: 'Period', title: `Predicted in ${delta} days`, detail: `Expected ${when}` };
+    if (delta === 1) return { kicker: 'Period', title: 'Predicted in 1 day', detail: `Expected ${when}` };
+    if (delta === 0) return { kicker: 'Period', title: 'Predicted today', detail: `Expected ${when}` };
+    const late = -delta;
+    return { kicker: 'Period', title: `${late} day${late === 1 ? '' : 's'} late`, detail: `Expected ${when}` };
+  }
+  const last = status.episodes[status.episodes.length - 1];
+  return { kicker: 'Cycle', title: 'No prediction', detail: `Last period ${api.rangeText(last)}` };
+}
+
+function renderCycleStrip(api, status, today) {
+  const strip = document.getElementById('cycle-strip');
+  if (!strip) return;
+  const scrollLeft = strip.scrollLeft;
+  const from = api.addDays(today, -100);
+  const until = api.addDays(today, 80);
+  const snap = api.cycleSnapshot(cycleEpisodes, from, until);
+  strip.replaceChildren();
+  for (let iso = from; iso <= until; iso = api.addDays(iso, 1)) {
+    const mark = api.markDay(iso, snap);
+    const date = new Date(iso + 'T00:00:00');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cycle-strip-day' + (iso === today ? ' today' : '');
+    button.dataset.iso = iso;
+    button.setAttribute('role', 'listitem');
+    button.setAttribute('aria-label', cycleMarkLabel(iso, mark));
+    button.setAttribute('aria-pressed', mark.logged ? 'true' : 'false');
+    const dow = document.createElement('span');
+    dow.className = 'cycle-strip-dow';
+    dow.textContent = iso === today ? 'Today' : (iso.endsWith('-01') || iso === from ? CYCLE_MONTHS[date.getMonth()] : CYCLE_DOW[date.getDay()]);
+    const dot = document.createElement('span');
+    dot.className = 'cycle-dot'
+      + (mark.logged ? ' logged' : '')
+      + (mark.predicted ? ' predicted' : '')
+      + (mark.fertile ? ' fertile' : '')
+      + (mark.ovulation ? ' ovulation' : '');
+    dot.setAttribute('aria-hidden', 'true');
+    const num = document.createElement('span');
+    num.className = 'cycle-strip-num';
+    num.textContent = String(date.getDate());
+    button.append(dow, dot, num);
+    button.onclick = () => {
+      const next = api.applyCalendarTap(cycleEpisodes, iso);
+      const episode = next.find(item => iso >= item.start && iso <= item.end);
+      commitCycles(next, episode ? `Logged ${api.rangeText(episode)}` : `Cleared ${iso}`);
+    };
+    strip.appendChild(button);
+  }
+  if (!cycleStripReady) {
+    const todayButton = strip.querySelector(`[data-iso="${today}"]`);
+    if (todayButton) strip.scrollLeft = Math.max(0, todayButton.offsetLeft - strip.clientWidth / 2 + todayButton.offsetWidth / 2);
+    cycleStripReady = true;
+  } else {
+    strip.scrollLeft = scrollLeft;
+  }
+  status.strip = snap;
+}
+
+function renderCycleLog(api, status, today) {
+  const summary = document.getElementById('cycle-log-summary');
+  const host = document.getElementById('cycle-adjust');
+  if (!summary || !host) return;
+  summary.parentElement.querySelectorAll(':scope > .cycle-bar').forEach(node => node.remove());
+  const latest = status.episodes[status.episodes.length - 1];
+  summary.replaceChildren();
+  host.replaceChildren();
+  if (!latest) {
+    summary.className = 'cycle-row';
+    summary.textContent = 'No cycle yet';
+    return;
+  }
+  summary.className = '';
+  const periodLen = api.daysBetween(latest.start, latest.end) + 1;
+  const dayInCycle = api.daysBetween(latest.start, today) + 1;
+  const cycleLen = Math.max(status.cycleLength, periodLen);
+  const wrap = document.createElement('div');
+  wrap.className = 'cycle-log-summary';
+  const range = document.createElement('div');
+  range.className = 'cycle-log-range';
+  const name = document.createElement('span');
+  name.textContent = api.rangeText(latest);
+  const length = document.createElement('span');
+  length.textContent = `${periodLen} day${periodLen === 1 ? '' : 's'}`;
+  range.append(name, length);
+  const sub = document.createElement('div');
+  sub.className = 'cycle-log-sub';
+  sub.textContent = dayInCycle > 0 && dayInCycle <= cycleLen
+    ? `Day ${dayInCycle} of about ${cycleLen}`
+    : `About every ${cycleLen} days`;
+  wrap.append(range, sub);
+  summary.appendChild(wrap);
+  const bar = document.createElement('div');
+  bar.className = 'cycle-bar';
+  const period = document.createElement('div');
+  period.className = 'cycle-bar-period';
+  period.style.width = `${Math.min(100, (periodLen / cycleLen) * 100)}%`;
+  bar.appendChild(period);
+  if (dayInCycle > 0 && dayInCycle <= cycleLen) {
+    const marker = document.createElement('div');
+    marker.className = 'cycle-bar-today';
+    marker.style.left = `${Math.min(100, ((dayInCycle - 0.5) / cycleLen) * 100)}%`;
+    bar.appendChild(marker);
+  }
+  summary.after(bar);
+
+  const add = (label, delta, which) => {
+    const row = document.createElement('div');
+    row.className = 'cycle-row';
+    const text = document.createElement('span');
+    text.textContent = label;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cycle-step';
+    button.textContent = delta < 0 ? '−1 day' : '+1 day';
+    button.onclick = () => {
+      const next = which === 'start' ? api.shiftStart(cycleEpisodes, delta) : api.shiftEnd(cycleEpisodes, delta);
+      const episode = next[next.length - 1];
+      commitCycles(next, episode ? `Latest period · ${api.rangeText(episode)}` : 'Period updated');
+    };
+    row.append(text, button);
+    host.appendChild(row);
+  };
+  add('Start earlier', -1, 'start');
+  add('Start later', 1, 'start');
+  add('End sooner', -1, 'end');
+  add('End later', 1, 'end');
+}
+
+function predictionRow(label, value) {
+  const row = document.createElement('div');
+  row.className = 'cycle-row';
+  const name = document.createElement('span');
+  name.textContent = label;
+  const detail = document.createElement('span');
+  detail.className = 'cycle-row-value';
+  detail.textContent = value;
+  row.append(name, detail);
+  return row;
+}
+
+function renderCyclePredictions(api, status, today) {
+  const host = document.getElementById('cycle-predictions');
+  if (!host) return;
+  host.replaceChildren();
+  const fertile = (status.prediction.fertile || []).find(window => window.end >= today) || status.prediction.fertile[0];
+  const ovulation = (status.prediction.ovulation || []).find(iso => iso >= today) || status.prediction.ovulation[0];
+  host.appendChild(predictionRow('Next period', status.next ? api.rangeText(status.next) : '—'));
+  host.appendChild(predictionRow('Fertile window', fertile ? api.rangeText(fertile) : '—'));
+  host.appendChild(predictionRow('Ovulation', ovulation ? api.rangeText({ start: ovulation, end: ovulation }) : '—'));
+  host.appendChild(predictionRow('Usual length', `${status.periodLength} days`));
+  host.appendChild(predictionRow('Cycle length', `${status.cycleLength} days`));
+}
+
+function renderCycleHistory(api, status) {
+  const host = document.getElementById('cycle-history');
+  if (!host) return;
+  host.replaceChildren();
+  const episodes = status.episodes;
+  if (!episodes.length) {
+    const empty = document.createElement('div');
+    empty.className = 'cycle-row';
+    empty.textContent = 'No periods logged';
+    host.appendChild(empty);
+    return;
+  }
+  const spans = episodes.map((episode, index) => {
+    const next = episodes[index + 1];
+    const periodLen = api.daysBetween(episode.start, episode.end) + 1;
+    const cycleLen = next ? api.daysBetween(episode.start, next.start) : Math.max(status.cycleLength, periodLen);
+    return { episode, periodLen, cycleLen };
+  });
+  const scale = Math.max(28, ...spans.map(item => item.cycleLen));
+  for (const item of spans.slice().reverse()) {
+    const row = document.createElement('div');
+    row.className = 'cycle-hist-row';
+    const top = document.createElement('div');
+    top.className = 'cycle-hist-top';
+    const name = document.createElement('span');
+    name.textContent = api.rangeText(item.episode);
+    const meta = document.createElement('span');
+    meta.textContent = `${item.periodLen} day${item.periodLen === 1 ? '' : 's'}`;
+    top.append(name, meta);
+    const track = document.createElement('div');
+    track.className = 'cycle-hist-track';
+    track.style.width = `${Math.max(18, (item.cycleLen / scale) * 100)}%`;
+    const period = document.createElement('div');
+    period.className = 'cycle-hist-period';
+    period.style.width = `${Math.min(100, (item.periodLen / item.cycleLen) * 100)}%`;
+    period.style.minWidth = '10px';
+    track.appendChild(period);
+    row.append(top, track);
+    host.appendChild(row);
+  }
 }
 
 function renderPeriodStatus() {
-  const button = document.getElementById('period-btn');
-  const label = document.getElementById('last-period-label');
-  const forecast = getPeriodForecast();
-  const previousCycle = forecast
-    ? (state.period ? forecast.cycles[forecast.cycles.length - 2] : forecast.last)
-    : null;
-  label.textContent = previousCycle ? `Last period · ${periodRange(previousCycle)}` : 'Last period · —';
-  label.title = previousCycle ? `Previous period: ${periodRange(previousCycle)}` : 'No previous period recorded';
-  button.textContent = state.period ? 'Turn off' : 'Turn on';
-  button.classList.toggle('is-on', state.period);
-  button.setAttribute('aria-pressed', state.period ? 'true' : 'false');
-  button.title = state.period ? 'Today is marked as a period day' : 'Mark today as a period day';
+  const api = window.AthleteLogCycle;
+  const today = localDateIso();
+  const dateInput = document.getElementById('cycle-start-date');
+  const endButton = document.getElementById('cycle-end-btn');
+  if (dateInput) {
+    dateInput.max = today;
+    if (!dateInput.value) dateInput.value = today;
+  }
+  if (!api?.cycleStatus) return;
+  const until = api.addDays(today, 80);
+  const status = api.cycleStatus(cycleEpisodes, today, until);
+  const display = cycleDisplay(status, api, today);
+  const kicker = document.getElementById('cycle-kicker');
+  const headline = document.getElementById('cycle-headline');
+  const detail = document.getElementById('cycle-detail');
+  if (kicker) kicker.textContent = display.kicker;
+  if (headline) headline.textContent = display.title;
+  if (detail) detail.textContent = display.detail;
+  if (endButton) endButton.hidden = status.primary !== 'end-today';
+  renderCycleStrip(api, status, today);
+  renderCycleLog(api, status, today);
+  renderCyclePredictions(api, status, today);
+  renderCycleHistory(api, status);
+}
+
+async function commitCycles(episodes, toast) {
+  const api = await cycleApi();
+  storeCycleEpisodes(api, episodes);
+  renderPeriodStatus();
+  if (toast) showToast(toast);
+}
+
+async function logPeriodFrom(iso) {
+  const today = localDateIso();
+  if (!iso) { showToast('Choose the day it started'); return; }
+  if (iso > today) { showToast('A period start is today or a past day'); return; }
+  const api = await cycleApi();
+  const next = api.logPeriodStart(cycleEpisodes, iso);
+  const episode = next.find(item => iso >= item.start && iso <= item.end);
+  await commitCycles(next, episode ? `Period logged · ${api.rangeText(episode)}` : 'Period logged');
+  const card = document.getElementById('cycle-card');
+  if (card) card.scrollIntoView({ block: 'nearest' });
+}
+
+async function onPeriodHeaderClick() {
+  const api = await cycleApi();
+  const today = localDateIso();
+  const status = api.cycleStatus(cycleEpisodes, today);
+  if (status.primary === 'end-today') {
+    await commitCycles(api.endOn(cycleEpisodes, today), 'Period ended today');
+    return;
+  }
+  if (status.primary === 'logged') {
+    document.getElementById('cycle-card')?.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  const chosen = document.getElementById('cycle-start-date')?.value || today;
+  await logPeriodFrom(chosen);
 }
 
 function checkPeriodReminder() {
-  const forecast = getPeriodForecast();
-  if (!forecast || state.period) return;
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const daysUntil = Math.round((forecast.next - today) / 86400000);
+  const api = window.AthleteLogCycle;
+  if (!api?.cycleStatus || !cycleEpisodes.length) return;
+  const today = localDateIso();
+  const status = api.cycleStatus(cycleEpisodes, today);
+  if (status.loggedToday || !status.next) return;
+  const daysUntil = api.daysBetween(today, status.next.start);
   if (daysUntil < -2 || daysUntil > 3) return;
   const reminderKey = `alog_period_reminder_${todayKey()}`;
   if (localStorage.getItem(reminderKey)) return;
   const timing = daysUntil < 0 ? `${Math.abs(daysUntil)} day${daysUntil === -1 ? '' : 's'} overdue`
     : daysUntil === 0 ? 'expected today'
     : `expected in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
-  setTimeout(() => showToast(`Period ${timing} · last ${periodRange(forecast.last)}`, 5000), 1800);
+  setTimeout(() => showToast(`Period ${timing} · predicted ${api.rangeText(status.next)}`, 5000), 1800);
   localStorage.setItem(reminderKey, '1');
+}
+
+function startCycleTracking() {
+  const logButton = document.getElementById('cycle-log-btn');
+  const endButton = document.getElementById('cycle-end-btn');
+  if (logButton && !logButton.dataset.bound) {
+    logButton.dataset.bound = '1';
+    logButton.onclick = () => logPeriodFrom(document.getElementById('cycle-start-date').value);
+    if (endButton) endButton.onclick = () => onPeriodHeaderClick();
+  }
+  loadCycleModel().then(() => {
+    renderPeriodStatus();
+    checkPeriodReminder();
+  }).catch(err => console.warn('Cycle tracking unavailable', err));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -5492,6 +5925,7 @@ function handleBackupFileRestore(event) {
       closeRestoreModal();
       // Reload state from today
       useStoredToday();
+      loadCycleModel(false).then(() => { renderHeader(); renderDayList(); });
       renderHeader();
       renderDayList();
       renderLogTab();
@@ -5546,6 +5980,7 @@ async function restoreFromGist() {
 
     closeRestoreModal();
     useStoredToday();
+    loadCycleModel(false).then(() => { renderHeader(); renderDayList(); });
     renderHeader();
     renderDayList();
     renderLogTab();
@@ -5641,6 +6076,7 @@ async function setupNativeReminders() {
 function applyNextSyncDays() {
   useStoredToday();
   if (currentDetailKey) detailState = loadState(currentDetailKey);
+  loadCycleModel(false).then(() => renderPeriodStatus());
   renderHeader();
   if (typeof renderDayList === 'function') renderDayList();
   if (typeof renderLogTab === 'function') renderLogTab();
@@ -6047,7 +6483,7 @@ function saveGistToken() {
 // Day records plus anything else that is *data she created*. Settings,
 // tokens and caches are excluded: they are either secrets or re-derivable.
 // Export, Gist sync and restore all go through here so they cannot drift.
-const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_usual_breakfast'];
+const BACKUP_EXTRA_KEYS = ['alog_favourites', 'alog_usual_breakfast', 'alog_cycles'];
 
 function isDayKey(key) {
   return /^alog_\d{4}_\d{2}_\d{2}$/.test(key);
@@ -6070,6 +6506,38 @@ function getAllLogData() {
   return collectBackupData();
 }
 
+async function readBackupGist(token, gistId) {
+  const resp = await fetch('https://api.github.com/gists/' + gistId, {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' }
+  });
+  if (resp.status === 404) return { missing: true };
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    const failure = new Error(err.message || 'HTTP ' + resp.status);
+    failure.status = resp.status;
+    throw failure;
+  }
+  const gist = await resp.json();
+  const raw = await gistFileText(gist.files && gist.files['athletelog-backup.json'], token);
+  return { missing: false, file: JSON.parse(raw), updatedAt: gist.updated_at || '' };
+}
+
+function writeMergedBackup(data) {
+  for (const [key, value] of Object.entries(data)) {
+    if (!isBackupKey(key)) continue;
+    localStorage.setItem(key, JSON.stringify(value));
+  }
+}
+
+function describeGistAdoptions(adopted) {
+  const names = adopted.filter(item => item.kind === 'favourite').map(item => item.name);
+  const days = adopted.filter(item => item.kind === 'period').length;
+  const parts = [];
+  if (names.length) parts.push(names.join(', '));
+  if (days) parts.push(`${days} period day${days === 1 ? '' : 's'}`);
+  return parts.join(' and ');
+}
+
 async function syncToGist(silent = false) {
   const token = localStorage.getItem('github_gist_token');
   if (!token) { openGistModal(); return; }
@@ -6078,11 +6546,39 @@ async function syncToGist(silent = false) {
   if (syncBtn) { syncBtn.textContent = 'Backing up…'; syncBtn.disabled = true; }
 
   try {
-    const allData = getAllLogData();
-    const dateStr = localDateIso();
-    const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: allData }, null, 2);
-
     let gistId = localStorage.getItem('github_gist_id');
+    let payload = getAllLogData();
+    let adopted = [];
+    let gistNewer = false;
+    if (gistId) {
+      let remote;
+      try {
+        remote = await readBackupGist(token, gistId);
+      } catch (err) {
+        err.message = 'Could not read the current Gist, so it was left unchanged. ' + err.message;
+        throw err;
+      }
+      if (remote.missing) {
+        localStorage.removeItem('github_gist_id');
+        if (syncBtn) { syncBtn.textContent = 'Cloud Backup'; syncBtn.disabled = false; }
+        return syncToGist(silent);
+      }
+      const backup = await backupApi();
+      const merged = backup.mergeBackupData(payload, remote.file);
+      payload = merged.data;
+      adopted = merged.adopted;
+      const seenAt = Date.parse(localStorage.getItem('alog_gist_synced_at') || '') || 0;
+      gistNewer = !seenAt || Date.parse(remote.updatedAt || '') > seenAt;
+      if (adopted.length) {
+        writeMergedBackup(payload);
+        useStoredToday();
+        ensureFavourites();
+        await loadCycleModel(false);
+      }
+    }
+
+    const dateStr = localDateIso();
+    const content = JSON.stringify({ exportedAt: new Date().toISOString(), data: payload }, null, 2);
     let url = 'https://api.github.com/gists';
     let method = 'POST';
     if (gistId) { url += '/' + gistId; method = 'PATCH'; }
@@ -6098,8 +6594,8 @@ async function syncToGist(silent = false) {
     });
 
     if (resp.status === 404 && gistId) {
-      // Gist was deleted, so create a new one
       localStorage.removeItem('github_gist_id');
+      if (syncBtn) { syncBtn.textContent = 'Cloud Backup'; syncBtn.disabled = false; }
       return syncToGist(silent);
     }
     if (!resp.ok) {
@@ -6112,9 +6608,19 @@ async function syncToGist(silent = false) {
     const result = await resp.json();
     localStorage.setItem('github_gist_id', result.id);
     localStorage.setItem('alog_last_backup', dateStr);
-    if (!silent) showToast(`Cloud backup complete. ${Object.keys(allData).length} records saved to GitHub Gist`, 4000);
+    localStorage.setItem('alog_gist_synced_at', new Date().toISOString());
+    const kept = describeGistAdoptions(adopted);
+    const notice = kept
+      ? `Cloud backup merged${gistNewer ? ' the newer Gist' : ''}. Kept ${kept}.`
+      : gistNewer
+        ? `Cloud backup checked the newer Gist, then saved ${Object.keys(payload).length} records.`
+        : `Cloud backup complete. ${Object.keys(payload).length} records saved to GitHub Gist`;
+    if (!silent) showToast(notice, 5000);
+    else if (kept) console.info(notice);
+    renderHeader();
+    renderDayList();
   } catch(err) {
-    if (!silent) showToast('Cloud backup failed: ' + err.message, 4000);
+    if (!silent) showToast('Cloud backup failed: ' + err.message, 5000);
     else console.warn('Auto-sync failed:', err.message);
     if (err.status === 401 || err.status === 403 || /bad credentials|requires authentication/i.test(err.message)) {
       localStorage.removeItem('github_gist_token');
@@ -6161,15 +6667,6 @@ function copyToNotes() {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PERIOD TOGGLE
-// ═══════════════════════════════════════════════════════════════
-document.getElementById('period-btn').onclick = () => {
-  state.period = !state.period;
-  saveState();
-  renderHeader();
-  showToast(state.period ? 'Period turned on for today' : 'Period turned off for today');
-};
 
 // ═══════════════════════════════════════════════════════════════
 // OPENAI FOOD AND VOICE REQUESTS
@@ -6248,6 +6745,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       healthOrRelaySync(true);
     }
     if (tab === 'food') renderDayList();
+    if (tab === 'period') {
+      // The strip centers on today only on its first render; renders while
+      // the panel is hidden measure nothing, so re-center on first open.
+      if (!cycleTabOpened) { cycleStripReady = false; cycleTabOpened = true; }
+      renderPeriodStatus();
+    }
   };
 });
 
@@ -7273,7 +7776,7 @@ function init() {
   renderHeader();
   renderDayList();
   checkBackupReminder();
-  checkPeriodReminder();
+  startCycleTracking();
   setupNativeReminders();
   updateGarminBtn();
   renderGymIoStatus();
