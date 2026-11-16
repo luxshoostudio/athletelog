@@ -1,5 +1,5 @@
 // AthleteLog Service Worker: fresh navigations with offline fallback
-const CACHE = 'athletelog-v44';
+const CACHE = 'athletelog-v45';
 const ASSETS = [
   './',
   './index.html',
@@ -75,6 +75,23 @@ self.addEventListener('fetch', e => {
   // The workout catalogue carries the per-action source URLs. Prefer the
   // network so an installed PWA does not keep an older source-less catalogue.
   if (url.origin === self.location.origin && /\/workout-bank\.js$/.test(url.pathname)) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // The food inbox is written by Amber between launches. Prefer the network
+  // so an installed PWA does not merge a stale copy; applied ids make a
+  // cached fallback harmless. Matches any origin: the native build reads
+  // the live GitHub Pages URL.
+  if (/\/food-inbox\.json$/.test(url.pathname)) {
     e.respondWith(
       fetch(e.request).then(res => {
         if (res.ok) {
