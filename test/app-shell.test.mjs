@@ -24,6 +24,7 @@ test('the header goal labels are rendered from GOALS and the Food tab has no gla
   assert.match(html, /data-tab="food"/)
   assert.match(html, /data-tab="gym"/)
   assert.match(html, /data-tab="log"/)
+  assert.match(html, /data-tab="period"/)
   assert.match(html, /function readWeekPlan/)
   assert.match(html, /Lifeway Strawberry Kefir \(1 cup\)/)
   assert.match(html, /Today's workout/)
@@ -70,6 +71,22 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.match(boot, /renderHeader/)
   assert.match(html, /function isOldUsualBreakfast/)
   assert.match(html, /!isOldUsualBreakfast\(breakfastCurrent\)/)
+})
+
+test('cycle tracking lives on its own Period tab, not on the Food page', () => {
+  const foodPanelAt = html.indexOf('id="food-panel"')
+  const gymPanelAt = html.indexOf('id="gym-panel"')
+  const periodPanelAt = html.indexOf('id="period-panel"')
+  const cycleAt = html.indexOf('id="cycle-card"')
+  const navAt = html.indexOf('id="tabs"')
+  assert.ok(foodPanelAt > 0 && gymPanelAt > foodPanelAt, 'food panel comes first')
+  assert.ok(periodPanelAt > gymPanelAt, 'period panel exists after the other panels')
+  assert.ok(cycleAt > periodPanelAt, 'cycle card is inside the period panel')
+  assert.ok(cycleAt < navAt, 'cycle card is before the tab bar')
+  assert.match(html, /if \(tab === 'period'\)/)
+  assert.match(html, /cycleTabOpened/)
+  assert.doesNotMatch(html, /id="period-btn"/)
+  assert.doesNotMatch(html, /periodHeaderButton/)
 })
 
 test('workout bank shows a clickable source for the selected action', () => {

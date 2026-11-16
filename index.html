@@ -83,15 +83,6 @@ body {
 #header-mid { flex: 1; min-width: 0; }
 #header-date { font-size: 14px; font-weight: 700; color: var(--text); }
 #header-macros { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
-#period-btn {
-  background: rgba(255,255,255,0.65);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border); border-radius: var(--radius-sm);
-  color: var(--text2); font-size: 10px; font-weight: 700; padding: 6px 12px; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0; letter-spacing: 0.06em; text-transform: uppercase;
-  font-family: var(--font); transition: background .2s, color .2s;
-}
-#period-btn:active { background: rgba(236,72,153,0.2); color: var(--pink); }
 
 /* TABS */
 #tabs {
@@ -719,18 +710,6 @@ body {
 .organic-kicker { font-size:11px; line-height:1; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
 #header-date { font-family:var(--display); font-size:26px; line-height:1.08; font-weight:400; color:var(--text); }
 .organic-header-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
-#last-period-label {
-  min-height:34px; display:flex; align-items:center; padding:8px 12px;
-  border-radius:999px; background:#fff; color:#6e6e73;
-  font-size:11px; font-weight:700; white-space:nowrap;
-}
-#period-btn {
-  border:0; border-radius:999px; padding:8px 12px; min-height:34px;
-  font-family:var(--font); font-size:11px; font-weight:700; letter-spacing:0;
-  text-transform:none; white-space:nowrap;
-}
-#period-btn { color:#ff2d55; background:#ffebef; cursor:pointer; }
-#period-btn.is-on { color:#fff; background:#ff2d55; }
 .backfill-btn {
   min-height:34px; padding:8px 12px; border:0; border-radius:999px;
   background:#eaf4ff; color:#007aff; font-family:var(--font);
@@ -974,8 +953,6 @@ body {
   .panel-inner, .day-list-inner { padding-left:16px; padding-right:16px; }
   .organic-header-row { flex-direction:column; align-items:stretch; gap:12px; }
   .organic-header-actions { width:100%; max-width:none; justify-content:flex-start; }
-  #last-period-label { min-width:0; max-width:calc(100% - 82px); overflow:hidden; text-overflow:ellipsis; }
-  #period-btn { max-width:100%; overflow:hidden; text-overflow:ellipsis; }
   .organic-macro-hero { gap:14px; padding:18px 16px; }
   #protein-ring-wrap, #protein-ring-wrap svg { width:108px; height:108px; }
   .today-action-row .action-pill { padding-inline:6px; font-size:11px; }
@@ -1355,37 +1332,6 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
         <div class="section-label">Today</div>
         <div id="home-today-food"></div>
 
-        <section class="cycle" id="cycle-card" aria-label="Cycle Tracking">
-          <div class="cycle-strip" id="cycle-strip" role="list" aria-label="Days"></div>
-          <div class="cycle-legend" aria-hidden="true">
-            <span><i class="logged"></i>Logged</span>
-            <span><i class="predicted"></i>Predicted</span>
-            <span><i class="fertile"></i>Fertile</span>
-          </div>
-          <div class="cycle-status">
-            <div class="cycle-kicker" id="cycle-kicker">Period</div>
-            <div class="cycle-headline" id="cycle-headline">No period logged</div>
-            <div class="cycle-detail" id="cycle-detail">Add a period once. The usual length fills in.</div>
-          </div>
-          <button type="button" class="cycle-log" id="cycle-log-btn">Add Period</button>
-          <button type="button" class="cycle-end" id="cycle-end-btn" hidden>End today</button>
-
-          <h2 class="cycle-section-label">Cycle Log</h2>
-          <div class="cycle-panel" id="cycle-log-card">
-            <div id="cycle-log-summary"></div>
-            <div class="cycle-row">
-              <label for="cycle-start-date">Add from</label>
-              <input type="date" id="cycle-start-date" class="cycle-date" aria-label="Period start date">
-            </div>
-            <div id="cycle-adjust"></div>
-          </div>
-
-          <h2 class="cycle-section-label">Predictions</h2>
-          <div class="cycle-panel" id="cycle-predictions"></div>
-
-          <h2 class="cycle-section-label">Cycle History</h2>
-          <div class="cycle-panel cycle-hist" id="cycle-history"></div>
-        </section>
 
         <!-- Past days history -->
         <div class="section-label" style="margin-top:8px">History</div>
@@ -1540,6 +1486,41 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
       <button class="copy-btn" onclick="copyToNotes()">Copy to Notes</button>
     </div>
   </div>
+  <div id="period-panel" class="panel">
+    <div class="panel-inner">
+      <section class="cycle" id="cycle-card" aria-label="Cycle Tracking">
+        <div class="cycle-strip" id="cycle-strip" role="list" aria-label="Days"></div>
+        <div class="cycle-legend" aria-hidden="true">
+          <span><i class="logged"></i>Logged</span>
+          <span><i class="predicted"></i>Predicted</span>
+          <span><i class="fertile"></i>Fertile</span>
+        </div>
+        <div class="cycle-status">
+          <div class="cycle-kicker" id="cycle-kicker">Period</div>
+          <div class="cycle-headline" id="cycle-headline">No period logged</div>
+          <div class="cycle-detail" id="cycle-detail">Add a period once. The usual length fills in.</div>
+        </div>
+        <button type="button" class="cycle-log" id="cycle-log-btn">Add Period</button>
+        <button type="button" class="cycle-end" id="cycle-end-btn" hidden>End today</button>
+
+        <h2 class="cycle-section-label">Cycle Log</h2>
+        <div class="cycle-panel" id="cycle-log-card">
+          <div id="cycle-log-summary"></div>
+          <div class="cycle-row">
+            <label for="cycle-start-date">Add from</label>
+            <input type="date" id="cycle-start-date" class="cycle-date" aria-label="Period start date">
+          </div>
+          <div id="cycle-adjust"></div>
+        </div>
+
+        <h2 class="cycle-section-label">Predictions</h2>
+        <div class="cycle-panel" id="cycle-predictions"></div>
+
+        <h2 class="cycle-section-label">Cycle History</h2>
+        <div class="cycle-panel cycle-hist" id="cycle-history"></div>
+      </section>
+    </div>
+  </div>
 
 </div>
 
@@ -1548,6 +1529,7 @@ button, .action-pill, .freq-pill, .tab-btn, .organic-segment, .exercise-check,
   <button class="tab-btn active" data-tab="food"><span class="nav-glyph" aria-hidden="true">●</span>Food</button>
   <button class="tab-btn" data-tab="gym"><span class="nav-glyph" aria-hidden="true">+</span>Workouts</button>
   <button class="tab-btn" data-tab="log"><span class="nav-glyph" aria-hidden="true">▥</span>Summary</button>
+  <button class="tab-btn" data-tab="period"><span class="nav-glyph" aria-hidden="true">◉</span>Period</button>
 </nav>
 
 <!-- BACKFILL MODAL -->
@@ -3384,6 +3366,7 @@ async function loadCycleModel(migrated) {
 const CYCLE_DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const CYCLE_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 let cycleStripReady = false;
+let cycleTabOpened = false;
 
 function cycleMarkLabel(iso, mark) {
   const bits = [iso];
@@ -6682,11 +6665,6 @@ function copyToNotes() {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PERIOD TOGGLE
-// ═══════════════════════════════════════════════════════════════
-const periodHeaderButton = document.getElementById('period-btn');
-if (periodHeaderButton) periodHeaderButton.onclick = () => onPeriodHeaderClick();
 
 // ═══════════════════════════════════════════════════════════════
 // OPENAI FOOD AND VOICE REQUESTS
@@ -6765,6 +6743,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
       healthOrRelaySync(true);
     }
     if (tab === 'food') renderDayList();
+    if (tab === 'period') {
+      // The strip centers on today only on its first render; renders while
+      // the panel is hidden measure nothing, so re-center on first open.
+      if (!cycleTabOpened) { cycleStripReady = false; cycleTabOpened = true; }
+      renderPeriodStatus();
+    }
   };
 });
 
