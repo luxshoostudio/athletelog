@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-16T22:45:57Z",
+  "updated": "2026-11-16T22:51:53Z",
   "entries": [
     {
       "id": "2026-11-16-1100-01",
@@ -27,6 +27,19 @@
       "fat": 0.2,
       "carbs": 9.5,
       "fiber": 2.9
+    },
+    {
+      "id": "2026-11-16-1451-01",
+      "date": "2026-11-16",
+      "time": "14:51",
+      "name": "cavatappi pasta with meatballs and mushrooms",
+      "qty": 1,
+      "unit": "box",
+      "p": 40,
+      "kcal": 710,
+      "fat": 18,
+      "carbs": 101,
+      "fiber": 6
     }
   ]
 }
