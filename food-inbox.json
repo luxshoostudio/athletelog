@@ -1,1 +1,19 @@
-{"entries":[],"updated":"2026-11-16T17:30:00Z","version":1}
+{
+  "version": 1,
+  "updated": "2026-11-16T22:37:41Z",
+  "entries": [
+    {
+      "id": "2026-11-16-1100-01",
+      "date": "2026-11-16",
+      "time": "11:00",
+      "name": "Trader Joe's Garlic Butter Nut Mix",
+      "qty": 2.5,
+      "unit": "serving",
+      "p": 10,
+      "kcal": 425,
+      "fat": 32.5,
+      "carbs": 25,
+      "fiber": 5
+    }
+  ]
+}
