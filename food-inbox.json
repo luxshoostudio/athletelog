@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "updated": "2026-11-17T20:31:00Z",
+  "updated": "2026-11-17T20:33:00Z",
   "entries": [
     {
       "id": "2026-11-17-1230-01",
       "date": "2026-11-17",
       "time": "12:30",
-      "name": "Tuna egg salad",
+      "name": "Tuna egg salad with light cream cheese",
       "qty": 1,
       "unit": "serving",
-      "p": 30,
-      "kcal": 437,
-      "fat": 33,
-      "carbs": 3,
+      "p": 32,
+      "kcal": 297,
+      "fat": 15.5,
+      "carbs": 4,
       "fiber": 1
     },
     {
@@ -22,11 +22,11 @@
       "name": "Seeded wholegrain bread",
       "qty": 3,
       "unit": "slices",
-      "p": 15,
-      "kcal": 360,
+      "p": 9,
+      "kcal": 270,
       "fat": 6,
-      "carbs": 60,
-      "fiber": 9
+      "carbs": 45,
+      "fiber": 2
     },
     {
       "id": "2026-11-17-1230-03",
