@@ -1,19 +1,19 @@
 {
   "version": 1,
-  "updated": "2026-11-17T20:33:00Z",
+  "updated": "2026-11-17T20:35:00Z",
   "entries": [
     {
       "id": "2026-11-17-1230-01",
       "date": "2026-11-17",
       "time": "12:30",
       "name": "Tuna egg salad with light cream cheese",
-      "qty": 1,
+      "qty": 0.5,
       "unit": "serving",
-      "p": 32,
-      "kcal": 297,
-      "fat": 15.5,
-      "carbs": 4,
-      "fiber": 1
+      "p": 16,
+      "kcal": 149,
+      "fat": 7.8,
+      "carbs": 2,
+      "fiber": 0.5
     },
     {
       "id": "2026-11-17-1230-02",
