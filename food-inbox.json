@@ -1,7 +1,59 @@
 {
   "version": 1,
-  "updated": "2026-11-16T22:51:53Z",
+  "updated": "2026-11-17T20:31:00Z",
   "entries": [
+    {
+      "id": "2026-11-17-1230-01",
+      "date": "2026-11-17",
+      "time": "12:30",
+      "name": "Tuna egg salad",
+      "qty": 1,
+      "unit": "serving",
+      "p": 30,
+      "kcal": 437,
+      "fat": 33,
+      "carbs": 3,
+      "fiber": 1
+    },
+    {
+      "id": "2026-11-17-1230-02",
+      "date": "2026-11-17",
+      "time": "12:30",
+      "name": "Seeded wholegrain bread",
+      "qty": 3,
+      "unit": "slices",
+      "p": 15,
+      "kcal": 360,
+      "fat": 6,
+      "carbs": 60,
+      "fiber": 9
+    },
+    {
+      "id": "2026-11-17-1230-03",
+      "date": "2026-11-17",
+      "time": "12:30",
+      "name": "Chicken breast, glazed",
+      "qty": 130,
+      "unit": "g",
+      "p": 40,
+      "kcal": 225,
+      "fat": 5,
+      "carbs": 2,
+      "fiber": 0
+    },
+    {
+      "id": "2026-11-17-1230-04",
+      "date": "2026-11-17",
+      "time": "12:30",
+      "name": "Cucumber and mini sweet peppers",
+      "qty": 160,
+      "unit": "g",
+      "p": 1.3,
+      "kcal": 35,
+      "fat": 0.3,
+      "carbs": 7.2,
+      "fiber": 1.8
+    },
     {
       "id": "2026-11-16-1100-01",
       "date": "2026-11-16",
