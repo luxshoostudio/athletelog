@@ -118,6 +118,58 @@
       "fat": 18,
       "carbs": 101,
       "fiber": 6
+    },
+    {
+      "id": "2026-11-18-1455-01",
+      "date": "2026-11-18",
+      "time": "14:55",
+      "name": "Cavatappi pasta with mushrooms and creamy sauce",
+      "qty": 1,
+      "unit": "serving",
+      "p": 17.1,
+      "kcal": 466,
+      "fat": 8.5,
+      "carbs": 80,
+      "fiber": 5
+    },
+    {
+      "id": "2026-11-18-1455-02",
+      "date": "2026-11-18",
+      "time": "14:55",
+      "name": "Meatballs",
+      "qty": 160,
+      "unit": "g",
+      "p": 28.8,
+      "kcal": 368,
+      "fat": 24,
+      "carbs": 9.6,
+      "fiber": 1
+    },
+    {
+      "id": "2026-11-18-1455-03",
+      "date": "2026-11-18",
+      "time": "14:55",
+      "name": "Chicken breast, glazed",
+      "qty": 100,
+      "unit": "g",
+      "p": 31,
+      "kcal": 175,
+      "fat": 3.6,
+      "carbs": 2,
+      "fiber": 0
+    },
+    {
+      "id": "2026-11-18-1455-04",
+      "date": "2026-11-18",
+      "time": "14:55",
+      "name": "Purple cabbage",
+      "qty": 40,
+      "unit": "g",
+      "p": 0.5,
+      "kcal": 10,
+      "fat": 0,
+      "carbs": 2.3,
+      "fiber": 1
     }
   ]
 }
