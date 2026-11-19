@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-19T19:59:55Z",
+  "updated": "2026-11-19T21:54:55Z",
   "entries": [
     {
       "id": "2026-11-18-1100-01",
@@ -9,11 +9,11 @@
       "name": "Regular Breakfast",
       "qty": 1,
       "unit": "serving",
-      "p": 30.9,
-      "kcal": 609,
-      "fat": 20,
-      "carbs": 87.4,
-      "fiber": 20.9
+      "p": 30.2,
+      "kcal": 470,
+      "fat": 8.7,
+      "carbs": 71,
+      "fiber": 17.7
     },
     {
       "id": "2026-11-17-1733-01",
@@ -243,11 +243,11 @@
       "name": "Regular Breakfast",
       "qty": 1,
       "unit": "serving",
-      "p": 30.9,
-      "kcal": 609,
-      "fat": 20,
-      "carbs": 87.4,
-      "fiber": 20.9
+      "p": 30.2,
+      "kcal": 470,
+      "fat": 8.7,
+      "carbs": 71,
+      "fiber": 17.7
     }
   ]
 }

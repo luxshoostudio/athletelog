@@ -55,7 +55,7 @@ test('startup does not wait on the module, and Usual Breakfast is a star favouri
   assert.ok(fallback, 'page keeps a breakfast seed for installs whose module has not loaded')
   assert.deepEqual(Function(`return (${fallback[1]})`)(), seedUsualBreakfast())
   assert.match(sw, /usual-breakfast\.mjs/)
-  assert.match(sw, /athletelog-v46/)
+  assert.match(sw, /athletelog-v47/)
   assert.match(sw, /food-inbox\\.json/)
   assert.match(sw, /\.\/workout-bank\.js/)
   assert.match(sw, /network for lib scripts/)
@@ -108,7 +108,7 @@ test('retired log and coaching screens leave food tools and week planning availa
   assert.doesNotMatch(html, /localStorage\.removeItem\(['"]alog_recipes/)
 })
 
-test('the page replaces a stored Usual Breakfast that still matches the old seed', () => {
+test('the page replaces a stored Usual Breakfast that still matches the previous (609 kcal) seed', () => {
   const start = html.indexOf('const USUAL_BREAKFAST_FALLBACK')
   const end = html.indexOf('function saveFavourites')
   const sumStart = html.indexOf('function sumMacros(food)')
@@ -118,28 +118,26 @@ test('the page replaces a stored Usual Breakfast that still matches the old seed
   const pinPageFavourites = page({ AthleteLogBreakfast: null })
   const old = {
     name: 'Usual Breakfast',
-    p: 30.2, kcal: 470, fat: 8.7, carbs: 71, fiber: 17.7,
+    p: 30.9, kcal: 609, fat: 20, carbs: 87.4, fiber: 20.9,
     components: [
+      { name: 'Kodiak Protein oats', amount: '1/2 cup (50 g)', p: 10, kcal: 190, fat: 3, carbs: 31, fiber: 4 },
+      { name: 'Chia seeds', amount: '2 tbsp (24 g)', p: 5, kcal: 120, fat: 8, carbs: 8, fiber: 8 },
+      { name: "Trader Joe's yogurt", amount: '3/4 cup (170 g)', p: 14, kcal: 190, fat: 8, carbs: 22, fiber: 0 },
       { name: 'Blueberries', amount: '100 g', p: 0.7, kcal: 57, fat: 0.3, carbs: 14.5, fiber: 2.4 },
       { name: 'Raspberries', amount: '100 g', p: 1.2, kcal: 52, fat: 0.7, carbs: 11.9, fiber: 6.5 },
-      { name: 'Strawberries', amount: '50 g', p: 0.3, kcal: 16, fat: 0.2, carbs: 3.8, fiber: 1 },
-      { name: 'Kodiak Protein oats', amount: '1/2 cup dry', p: 10, kcal: 190, fat: 4, carbs: 29, fiber: 5 },
-      { name: 'Chia seeds', amount: '2 tsp', p: 1.3, kcal: 39, fat: 2.5, carbs: 3.4, fiber: 2.8 },
-      { name: "Trader Joe's Greek yogurt", amount: '150 g', p: 15, kcal: 90, fat: 0, carbs: 6, fiber: 0 },
-      { name: '2% milk', amount: '50 ml', p: 1.7, kcal: 26, fat: 1, carbs: 2.4, fiber: 0 },
     ],
   }
   const tuna = { name: 'Tuna', p: 20, kcal: 100 }
   const migrated = pinPageFavourites([old, tuna])
-  assert.equal(migrated[0].kcal, 609)
-  assert.equal(migrated[0].fiber, 20.9)
-  assert.equal(migrated[0].components.find(item => item.name === 'Chia seeds').p, 5)
+  assert.equal(migrated[0].kcal, 470)
+  assert.equal(migrated[0].fiber, 17.7)
+  assert.equal(migrated[0].components.find(item => item.name === 'Chia seeds').p, 1.3)
   assert.equal(migrated[1].name, 'Lifeway Strawberry Kefir (1 cup)')
   assert.equal(migrated[2].name, 'Green Drink')
   assert.equal(migrated[2].kcal, 86)
   assert.equal(migrated[2].p, 2.9)
   assert.equal(migrated[3], tuna)
-  assert.equal(old.components.find(item => item.name === '2% milk').name, '2% milk')
+  assert.equal(old.components.find(item => item.name === 'Chia seeds').amount, '2 tbsp (24 g)')
 
   const edited = {
     ...old,
