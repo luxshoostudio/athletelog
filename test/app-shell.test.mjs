@@ -135,7 +135,10 @@ test('the page replaces a stored Usual Breakfast that still matches the old seed
   assert.equal(migrated[0].fiber, 20.9)
   assert.equal(migrated[0].components.find(item => item.name === 'Chia seeds').p, 5)
   assert.equal(migrated[1].name, 'Lifeway Strawberry Kefir (1 cup)')
-  assert.equal(migrated[2], tuna)
+  assert.equal(migrated[2].name, 'Green Drink')
+  assert.equal(migrated[2].kcal, 86)
+  assert.equal(migrated[2].p, 2.9)
+  assert.equal(migrated[3], tuna)
   assert.equal(old.components.find(item => item.name === '2% milk').name, '2% milk')
 
   const edited = {
@@ -144,5 +147,6 @@ test('the page replaces a stored Usual Breakfast that still matches the old seed
   }
   const kept = pinPageFavourites([edited, tuna])
   assert.equal(kept[0], edited)
-  assert.equal(kept[2], tuna)
+  assert.equal(kept[2].name, 'Green Drink')
+  assert.equal(kept[3], tuna)
 })

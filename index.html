@@ -2680,14 +2680,24 @@ function isKefirName(name) {
   return String(name || '').trim().toLocaleLowerCase() === 'lifeway strawberry kefir (1 cup)';
 }
 
+function isGreenDrinkName(name) {
+  return String(name || '').trim().toLocaleLowerCase() === 'green drink';
+}
+
 function isPinnedFavouriteName(name) {
-  return isBreakfastName(name) || isKefirName(name);
+  return isBreakfastName(name) || isKefirName(name) || isGreenDrinkName(name);
 }
 
 // Current Lifeway lowfat strawberry label, 1 cup (240 ml): 140 kcal, 2 g fat,
 // 18 g carb, 0 g fiber, 10 g protein. Protein matches her number.
 function kefirFavourite() {
   return { name: 'Lifeway Strawberry Kefir (1 cup)', p: 10, kcal: 140, fat: 2, carbs: 18, fiber: 0 };
+}
+
+// Green Drink, one serving (Nov 17): pineapple 50 g, mango 50 g, spinach 50 g,
+// ginger 1 tbsp, celery 50 g, cucumber 50 g, water 300 ml.
+function greenDrinkFavourite() {
+  return { name: 'Green Drink', p: 2.9, kcal: 86, fat: 0.6, carbs: 20.2, fiber: 3.8 };
 }
 
 function breakfastItemSignature(item) {
@@ -2714,8 +2724,9 @@ function pinPageFavourites(list) {
     ? breakfastCurrent
     : fallbackUsualBreakfastFavourite();
   const kefir = items.find(item => isKefirName(item.name)) || kefirFavourite();
+  const greenDrink = items.find(item => isGreenDrinkName(item.name)) || greenDrinkFavourite();
   const rest = items.filter(item => !isPinnedFavouriteName(item.name));
-  const next = [breakfast, kefir, ...rest];
+  const next = [breakfast, kefir, greenDrink, ...rest];
   if (next.length === items.length && next.every((item, index) => item === items[index])) return items;
   return next;
 }
