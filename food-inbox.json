@@ -1,7 +1,20 @@
 {
   "version": 1,
-  "updated": "2026-11-21T01:04:00Z",
+  "updated": "2026-11-21T05:09:00Z",
   "entries": [
+    {
+      "id": "2026-11-20-2021-01",
+      "date": "2026-11-20",
+      "time": "20:21",
+      "name": "Trader Joe's sour cream & onion lentil rings, whole bag",
+      "qty": 1,
+      "unit": "bag",
+      "p": 10,
+      "kcal": 340,
+      "fat": 15,
+      "carbs": 41,
+      "fiber": 4
+    },
     {
       "id": "2026-11-20-1700-01",
       "date": "2026-11-20",
