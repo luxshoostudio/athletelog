@@ -1,7 +1,33 @@
 {
   "version": 1,
-  "updated": "2026-11-20T21:55:00Z",
+  "updated": "2026-11-21T01:04:00Z",
   "entries": [
+    {
+      "id": "2026-11-20-1700-01",
+      "date": "2026-11-20",
+      "time": "17:00",
+      "name": "Pizza slice, thick crust with cheese and meat (Lucas Museum cafe)",
+      "qty": 1,
+      "unit": "slice",
+      "p": 22,
+      "kcal": 500,
+      "fat": 22,
+      "carbs": 52,
+      "fiber": 3
+    },
+    {
+      "id": "2026-11-20-1700-02",
+      "date": "2026-11-20",
+      "time": "17:00",
+      "name": "Fairlife Core Power Elite chocolate protein shake",
+      "qty": 1,
+      "unit": "bottle",
+      "p": 42,
+      "kcal": 230,
+      "fat": 3.5,
+      "carbs": 9,
+      "fiber": 0
+    },
     {
       "id": "2026-11-20-1100-01",
       "date": "2026-11-20",
