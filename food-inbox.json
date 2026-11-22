@@ -1,7 +1,20 @@
 {
   "version": 1,
-  "updated": "2026-11-21T22:26:00Z",
+  "updated": "2026-11-22T02:02:00Z",
   "entries": [
+    {
+      "id": "2026-11-21-1800-01",
+      "date": "2026-11-21",
+      "time": "18:00",
+      "name": "White sauce meatball cavatappi with mushrooms, peas, broccoli and tofu",
+      "qty": 1,
+      "unit": "plate",
+      "p": 51,
+      "kcal": 880,
+      "fat": 40,
+      "carbs": 88,
+      "fiber": 7
+    },
     {
       "id": "2026-11-21-1325-01",
       "date": "2026-11-21",
