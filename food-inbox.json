@@ -1,7 +1,33 @@
 {
   "version": 1,
-  "updated": "2026-11-22T02:02:00Z",
+  "updated": "2026-11-22T05:21:00Z",
   "entries": [
+    {
+      "id": "2026-11-21-2000-01",
+      "date": "2026-11-21",
+      "time": "20:00",
+      "name": "Green Drink",
+      "qty": 1,
+      "unit": "serving",
+      "p": 3.9,
+      "kcal": 111,
+      "fat": 0.8,
+      "carbs": 25.7,
+      "fiber": 5.2
+    },
+    {
+      "id": "2026-11-21-1500-01",
+      "date": "2026-11-21",
+      "time": "15:00",
+      "name": "Trader Joe's Horseradish & Chives potato chips",
+      "qty": 2.5,
+      "unit": "serving",
+      "p": 5,
+      "kcal": 375,
+      "fat": 22.5,
+      "carbs": 37.5,
+      "fiber": 2.5
+    },
     {
       "id": "2026-11-21-1800-01",
       "date": "2026-11-21",
