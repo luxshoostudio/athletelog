@@ -391,6 +391,19 @@
    "fat": 26,
    "carbs": 30,
    "fiber": 8
+  },
+  {
+   "id": "2026-11-22-1300-01",
+   "date": "2026-11-22",
+   "time": "13:00",
+   "name": "Regular Breakfast",
+   "qty": 1,
+   "unit": "serving",
+   "p": 30.2,
+   "kcal": 470,
+   "fat": 8.7,
+   "carbs": 71,
+   "fiber": 17.7
   }
  ]
 }
