@@ -417,6 +417,19 @@
    "fat": 8.7,
    "carbs": 71,
    "fiber": 17.7
+  },
+  {
+   "id": "2026-11-23-1632-01",
+   "date": "2026-11-23",
+   "time": "16:32",
+   "name": "Protein shake (Vega, kefir, frozen strawberries)",
+   "qty": 1,
+   "unit": "serving",
+   "p": 40,
+   "kcal": 320,
+   "fat": 5,
+   "carbs": 24,
+   "fiber": 2
   }
  ]
 }
