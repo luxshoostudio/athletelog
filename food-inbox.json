@@ -1,7 +1,20 @@
 {
  "version": 1,
- "updated": "2026-11-24T21:23:00Z",
+ "updated": "2026-11-24T21:30:00Z",
  "entries": [
+  {
+   "id": "2026-11-24-2130-01",
+   "date": "2026-11-24",
+   "time": "21:30",
+   "name": "Kimchi ramen with silken tofu, shiitake, gongcai, kimchi and onion",
+   "qty": 1,
+   "unit": "bowl",
+   "p": 25,
+   "kcal": 705,
+   "fat": 21,
+   "carbs": 97,
+   "fiber": 10
+  },
   {
    "id": "2026-11-24-2123-01",
    "date": "2026-11-24",
