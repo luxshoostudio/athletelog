@@ -1,7 +1,46 @@
 {
  "version": 1,
- "updated": "2026-11-24T21:30:00Z",
+ "updated": "2026-11-26T06:24:00Z",
  "entries": [
+  {
+   "id": "2026-11-25-1900-01",
+   "date": "2026-11-25",
+   "time": "19:00",
+   "name": "Kimchi soft tofu soup (spicy cabbage tofu soup)",
+   "qty": 1.5,
+   "unit": "serving",
+   "p": 30,
+   "kcal": 600,
+   "fat": 21,
+   "carbs": 27,
+   "fiber": 6
+  },
+  {
+   "id": "2026-11-25-1900-02",
+   "date": "2026-11-25",
+   "time": "19:00",
+   "name": "Pita bread",
+   "qty": 1,
+   "unit": "piece",
+   "p": 5,
+   "kcal": 165,
+   "fat": 1.6,
+   "carbs": 33,
+   "fiber": 1
+  },
+  {
+   "id": "2026-11-25-1900-03",
+   "date": "2026-11-25",
+   "time": "19:00",
+   "name": "Green Drink",
+   "qty": 1,
+   "unit": "serving",
+   "p": 3.9,
+   "kcal": 111,
+   "fat": 0.8,
+   "carbs": 25.7,
+   "fiber": 5.2
+  },
   {
    "id": "2026-11-24-2130-01",
    "date": "2026-11-24",
