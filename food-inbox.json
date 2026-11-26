@@ -573,6 +573,19 @@
       "fat": 0.4,
       "carbs": 27,
       "fiber": 3.1
+    },
+    {
+      "id": "2026-11-26-1130-01",
+      "date": "2026-11-26",
+      "time": "11:30",
+      "name": "Kefir protein strawberry smoothie",
+      "qty": 1,
+      "unit": "glass",
+      "p": 42,
+      "kcal": 350,
+      "fat": 6,
+      "carbs": 30,
+      "fiber": 2
     }
   ]
 }
