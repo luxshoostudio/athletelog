@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-26T00:20:00-08:00",
+  "updated": "2026-11-27T03:52:00-08:00",
   "entries": [
     {
       "id": "2026-11-25-1900-01",
@@ -586,6 +586,32 @@
       "fat": 6,
       "carbs": 30,
       "fiber": 2
+    },
+    {
+      "id": "2026-11-26-1900-01",
+      "date": "2026-11-26",
+      "time": "19:00",
+      "name": "Malatang (spicy hot pot bowl)",
+      "qty": 1,
+      "unit": "bowl",
+      "p": 22,
+      "kcal": 700,
+      "fat": 28,
+      "carbs": 75,
+      "fiber": 6
+    },
+    {
+      "id": "2026-11-26-1900-02",
+      "date": "2026-11-26",
+      "time": "19:00",
+      "name": "Green Drink",
+      "qty": 1,
+      "unit": "serving",
+      "p": 3.9,
+      "kcal": 111,
+      "fat": 0.8,
+      "carbs": 25.7,
+      "fiber": 5.2
     }
   ]
 }
